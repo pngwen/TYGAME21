@@ -1,0 +1,4 @@
+mechs.exe: mechs.obj gamelib.lib
+	link /ST:8192 /CO mechs,,,graphics.lib+gamelib.lib,,
+mechs.obj: mechs.c
+	cl -AM -Zi -c -Fc -Gs -G2 mechs.c

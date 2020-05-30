@@ -1,0 +1,96 @@
+May 21, 2020
+============
+General overview of video game loops.  Not a bad chapter, should be
+fun once we get started!
+
+Workshop
+========
+Exercises
+1.) List the main categories of game types, and try to think of at least
+    three games taht fit into each category.
+
+    First-Person, Three-Dimensional Walkthroughs
+    ============================================
+    1.) Doom
+    2.) Duke Nukem 3D
+    3.) American Mc-Ghee's Alice
+
+    Flying, Driving, or Spaceflight Simulations
+    ===========================================
+    1.) Microsoft Flight Sim
+    2.) Red Barron
+    3.) Top Gear 3000
+
+    Sports Games in 2-D or 3-D
+    ==========================
+    1.) Tecmo Bowl
+    2.) Blades of Steal
+    3.) Shufflepuck
+
+    Scrolling Adventure Games
+    =========================
+    1.) Duke Nukem 1 & 2
+    2.) Commander Keen
+    3.) Ghosts and Goblins
+
+    Sideview Combat Games
+    =====================
+    1.) Street Fighter
+    2.) Mortal Kombat
+    3.) Teken
+
+    Role-Playing Fantasy Games in 2- or 3-D
+    =======================================
+    1.) Betrayal at Krondor
+    2.) Eye of the Beholder
+    3.) Wizardry Series
+
+2.) Draw out and annotate a game loop.
+    
+    initialize_game()
+    while(not game over) {
+      game_logic_ai()
+      transform_game_objects()
+      get_input()
+      transform_player()
+      render()
+      music()
+      cleanup()
+    }
+    exit()
+
+3.) Play the game DOOM for a couple hours and see what can be done with a 
+    PC.
+
+    I played the shareware version of doom 1.666 which came on the book's
+    CD.  I did not play for a couple of hours.  First, I can beat the first
+    episode in far less time.  Second, I have played this many times over
+    the past 26 years!  
+
+    However, it was a lot of fun to play the original PC version.  I've
+    been playing modern ports of the engine, and so seeing the game in all
+    its pixely glory was quite cool.  This is the sort of programming that
+    will be fund to play with (Though I will probably do that sort of thing
+    when I get to Michael Abrash's stuff.)
+
+4.) Rent a couple science-fiction movies and go spend 10 bucks at an arcade.
+    
+    I did the 21st century equivalent.  I watched them on Amazon Prime and
+    Netflix.  The two science fiction movies I watched were Tank Girl and
+    Demolition Man.  Perhaps I should make some sort of survival shooter?
+
+    For the arcade, I used MAME.  I spent $10.00 worth of virtual quarters on
+      - Mortal Kombat
+      - Mr. Do
+      - 1942
+      - After Burner
+      - Ghosts 'N Goblins
+      - Gravitar
+      - Double Dragon
+    Great fun!
+
+5.) Read your compiler documentation on building libraries and using the 
+    libraries to create executable files.
+
+    Done!  It looks fairly straightforward, though sometimes the help system
+    does not find files.  Typical microsoft quality!

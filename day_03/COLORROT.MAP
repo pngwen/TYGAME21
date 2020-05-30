@@ -1,0 +1,52 @@
+Stack Allocation = 8192 bytes
+
+ Start  Stop   Length Name                   Class
+ 00000H 002EBH 002ECH COLORROT_TEXT          CODE
+ 002ECH 0189CH 015B1H _TEXT                  CODE
+ 018A0H 018A1H 00002H EMULATOR_TEXT          CODE
+ 018A2H 018A2H 00000H C_ETEXT                ENDCODE
+ 018B0H 018B0H 00000H EMULATOR_DATA          FAR_DATA
+ 018B0H 018F1H 00042H NULL                   BEGDATA
+ 018F2H 01B7FH 0028EH _DATA                  DATA
+ 01B80H 01B81H 00002H XIQC                   DATA
+ 01B82H 01B8DH 0000CH DBDATA                 DATA
+ 01B8EH 01B9BH 0000EH CDATA                  DATA
+ 01B9CH 01B9CH 00000H XIFB                   DATA
+ 01B9CH 01B9CH 00000H XIF                    DATA
+ 01B9CH 01B9CH 00000H XIFE                   DATA
+ 01B9CH 01B9CH 00000H XIB                    DATA
+ 01B9CH 01B9CH 00000H XI                     DATA
+ 01B9CH 01B9CH 00000H XIE                    DATA
+ 01B9CH 01B9CH 00000H XPB                    DATA
+ 01B9CH 01B9FH 00004H XP                     DATA
+ 01BA0H 01BA0H 00000H XPE                    DATA
+ 01BA0H 01BA0H 00000H XCB                    DATA
+ 01BA0H 01BA0H 00000H XC                     DATA
+ 01BA0H 01BA0H 00000H XCE                    DATA
+ 01BA0H 01BA0H 00000H XCFB                   DATA
+ 01BA0H 01BA0H 00000H XCFCRT                 DATA
+ 01BA0H 01BA0H 00000H XCF                    DATA
+ 01BA0H 01BA0H 00000H XCFE                   DATA
+ 01BA0H 01BA0H 00000H XIFCB                  DATA
+ 01BA0H 01BA0H 00000H XIFU                   DATA
+ 01BA0H 01BA0H 00000H XIFL                   DATA
+ 01BA0H 01BA0H 00000H XIFM                   DATA
+ 01BA0H 01BA0H 00000H XIFCE                  DATA
+ 01BA0H 01BA0H 00000H CONST                  CONST
+ 01BA0H 01BA7H 00008H HDR                    MSG
+ 01BA8H 01C7DH 000D6H MSG                    MSG
+ 01C7EH 01C7FH 00002H PAD                    MSG
+ 01C80H 01C80H 00001H EPAD                   MSG
+ 01C82H 01C82H 00000H _BSS                   BSS
+ 01C82H 01C82H 00000H XOB                    BSS
+ 01C82H 01C82H 00000H XO                     BSS
+ 01C82H 01C82H 00000H XOE                    BSS
+ 01C82H 01C82H 00000H XOFB                   BSS
+ 01C82H 01C82H 00000H XOF                    BSS
+ 01C82H 01C82H 00000H XOFE                   BSS
+ 01C90H 03C8FH 02000H STACK                  STACK
+
+ Origin   Group
+ 018B:0   DGROUP
+
+Program entry point at 002E:001C

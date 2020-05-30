@@ -1,0 +1,80 @@
+May 22, 2020
+============
+In day 2, the overall archtiecture of the code was explored.  Playing 
+mechs is fun, and the code is quite readable.  I glanced at some of the 
+details, and I look forward to the explanations in later lessons.
+
+I did have some trouble getting dosbox to play the sounds.  Dosbox has a
+default setting of putting an SB16 at port 220h and interrupt 7.  Updating
+the cfg file did not quite get the sound working, however.  I had to find
+a version of ct-voice.drv that worked with dosbox.  I found it in a game
+called "Innocent Until Caught" which apparently has an alternate SB driver
+that works well with dosbox. 
+
+After that, the game worked like a champ.  Pretty nice, considering how 
+little code is involved.
+
+I wonder when the last contest for mech war was run...
+
+Exercises
+=========
+1. Play Mech War until you reach wave 15 and see what happens.
+
+  This one actually took a bit of doing to get good enough at the game. 
+  I could not quite out my finger on what was happening until I looked at
+  the code. After wave 15, it selects randomly from the 15 wave patterns.
+  
+  The wave_number variable keeps increasimg, and the randomly selected
+  pattern is stored in the local_pattern variable. Prior to wave 16, these
+  variables always match. 
+  
+2. Try to edit the PCX files used for Mech War and change some of the images
+   for the game.  
+
+  This has prefictable results. I also altered the code to increase the size
+  of the missiles, and I changed the enemy missile color to a bright red
+  color to better fascilitate doging!
+  
+3. Try to find any bugs in Mech War.
+   - If you die as you kill the last mech, the wave loads twice.
+   - A game over in the above condition loads the wave then ends.
+   - Not a bug, but mech missiles are not visible. This makes dodgimg hard.
+     Revision: They are visible, they are just dark blue on a black 
+     background, so they are not very visible.
+   - Prezsing a key durimg the opening screen skips the instructions.
+     The instructions should lo d before accepting key presses.
+
+4. If you have a sound editor program that accepts VOC files, try to change
+   the sound effects used in Mech War.
+
+   Again, predictable results.  So I am skipping this one.
+   
+5. Think up an entire game.  Write down a list of all the elements in your
+   game, and all their interactions.
+   
+   I am thinking about developing a platform shooter where the main 
+   character has a rocket pack.  He can get various weapon and flight 
+   upgrades, and he has to gather fuel in order to fly.  He also has
+   to be careful to not hit his head too hard (or fall to his death)!
+   
+   I would need sprites:
+     - Character
+     - Character Flying
+     - Enemies
+     - Platforms 
+     - Backgrounds
+     - Weapons
+     - Powerups
+     
+   I would need sound effects:
+     - Jumping
+     - Landing
+     - Bumping
+     - Rocket Thurst
+     - Weapon Sounds
+     - Enemy Hit Sounds
+     
+   I also need to better flesh out his story. Why is he flying? What is
+   his goal? How does he win?  
+   
+   In addtion to these, I would need to design levels.

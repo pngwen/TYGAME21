@@ -1,0 +1,44 @@
+Day 3 5/23/2020
+===============
+In this day, we took a detailed look at the graphics functions and modes
+and we also started our graphics library.  I also put a lot of effort into
+making sure my MSC/C++ environment was working properply and wrote makefiles
+for mech wars.  
+
+I experimented a fair bit with modifications to Mech War during my reading.
+In order to do this, I had to copy the game library into the day_02 folder.
+This is the folder which holds my modified version of the game.
+
+I got a little side tracked in these adventures, and so it really took 
+a few days for me to get through day 3!
+
+Exercises
+=========
+1. Using the game library, write a program which plots a pixel on the screen
+   and makes it glow red.
+   
+   I used dots.c as a basis for this.  Making the red pixel was pretty 
+   easy, so I made some additional enhancments.  First, I made it a 3x3 
+   square so it would be easier to see.  Second, I made it cycle through
+   a few shades of red hoping for a glowing type effect.  It didn't look
+   all that great, so perhaps I need to revisit this later on!
+   
+2. Profile the difference between the two pixel-plotting functions Plot_Pixel
+   and Plot_Pixel_Fast().  Hint: write a program that plots 1,000,000 or so
+   pixels with each version, and record their speed difference.
+   
+3. Rewrite the Blit_Char() function so it draws each character in two colors.
+
+4. Write a program that slowly decreases the intesnity of all colors in each
+   color register until each register has all zeroes in it.
+   
+5. Try to make Plot_Pixel_Fast() even faster!
+
+6. Using the keyboard as an input device, try to make a crude drawing 
+   program that allows the user to change colors and move a pen on the
+   screen.
+   
+7. Write a program that bounces a single pixel around on the screen
+   without leaving a trail.
+   
+8. Close this book and watch a rerun of Star Trek: The Next Generation!

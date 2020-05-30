@@ -1,0 +1,4 @@
+red.exe: red.obj gamelib.lib
+	link /ST:8192 /CO red,,,graphics.lib+gamelib.lib,,
+red.obj: red.c
+	cl -AM -Zi -c -Fc -Gs -G2 red.c

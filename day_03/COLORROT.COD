@@ -1,0 +1,665 @@
+; File colorrot.c
+; 
+; // I N C L U D E S ///////////////////////////////////////////////////////////
+; 
+; #include <io.h>
+; #include <conio.h>
+; #include <stdio.h>
+; #include <stdlib.h>
+; #include <dos.h>
+; #include <bios.h>
+; #include <fcntl.h>
+; #include <memory.h>
+; #include <math.h>
+; #include <string.h>
+; 
+; // D E F I N E S  ////////////////////////////////////////////////////////////
+; 
+; #define VGA256            0x13
+; #define TEXT_MODE         0x03
+; 
+; #define PALETTE_MASK        0x3c6
+; #define PALETTE_REGISTER_RD 0x3c7
+; #define PALETTE_REGISTER_WR 0x3c8
+; #define PALETTE_DATA        0x3c9
+; 
+; #define SCREEN_WIDTH      (unsigned int)320
+; #define SCREEN_HEIGHT     (unsigned int)200
+; 
+; // S T R U C T U R E S ///////////////////////////////////////////////////////
+; 
+; // this structure holds a RGB triple in three bytes
+; 
+; typedef struct RGB_color_typ
+;         {
+; 
+;         unsigned char red;    // red   component of color 0-63
+;         unsigned char green;  // green component of color 0-63
+;         unsigned char blue;   // blue  component of color 0-63
+; 
+;         } RGB_color, *RGB_color_ptr;
+; 
+; 
+; // P R O T O T Y P E S ///////////////////////////////////////////////////////
+; 
+; void Set_Palette_Register(int index, RGB_color_ptr color);
+; 
+; void Get_Palette_Register(int index, RGB_color_ptr color);
+; 
+; void Create_Cool_Palette(void);
+; 
+; void H_Line(int x1,int x2,int y,unsigned int color);
+; 
+; // G L O B A L S  ////////////////////////////////////////////////////////////
+; 
+; unsigned char far *video_buffer = (char far *)0xA0000000L; // vram byte ptr
+; 
+; // F U N C T I O N S /////////////////////////////////////////////////////////
+; 
+; void Set_Palette_Register(int index, RGB_color_ptr color)
+; {
+; Line 59
+; index = 0006
+; color = 0008
+					_Set_Palette_Register:
+	*** 000000	c8 00 00 00 		enter	OFFSET L00646,OFFSET 0
+	*** 000004	56 			push	si
+	*** 000005	57 			push	di
+; 
+; // this function sets a single color look up table value indexed by index
+; // with the value in the color structure
+; 
+; // tell VGA card we are going to update a pallete register
+; 
+; _outp(PALETTE_MASK,0xff);
+; Line 66
+	*** 000006	68 ff 00 		push	OFFSET 255
+	*** 000009	68 c6 03 		push	OFFSET 966
+	*** 00000c	9a 00 00 00 00 		call	FAR PTR __outp
+	*** 000011	83 c4 04 		add	sp,OFFSET 4
+; 
+; // tell vga card which register we will be updating
+; 
+; _outp(PALETTE_REGISTER_WR, index);
+; Line 70
+	*** 000014	ff 76 06 		push	WORD PTR 6[bp]
+	*** 000017	68 c8 03 		push	OFFSET 968
+	*** 00001a	9a 00 00 00 00 		call	FAR PTR __outp
+	*** 00001f	83 c4 04 		add	sp,OFFSET 4
+; 
+; // now update the RGB triple, note the same port is used each time
+; 
+; _outp(PALETTE_DATA,color->red);
+; Line 74
+	*** 000022	8b 5e 08 		mov	bx,WORD PTR 8[bp]
+	*** 000025	8a 07 			mov	al,BYTE PTR [bx]
+	*** 000027	25 ff 00 		and	ax,OFFSET 255
+	*** 00002a	50 			push	ax
+	*** 00002b	68 c9 03 		push	OFFSET 969
+	*** 00002e	9a 00 00 00 00 		call	FAR PTR __outp
+	*** 000033	83 c4 04 		add	sp,OFFSET 4
+; _outp(PALETTE_DATA,color->green);
+; Line 75
+	*** 000036	8b 5e 08 		mov	bx,WORD PTR 8[bp]
+	*** 000039	8a 47 01 		mov	al,BYTE PTR 1[bx]
+	*** 00003c	25 ff 00 		and	ax,OFFSET 255
+	*** 00003f	50 			push	ax
+	*** 000040	68 c9 03 		push	OFFSET 969
+	*** 000043	9a 00 00 00 00 		call	FAR PTR __outp
+	*** 000048	83 c4 04 		add	sp,OFFSET 4
+; _outp(PALETTE_DATA,color->blue);
+; Line 76
+	*** 00004b	8b 5e 08 		mov	bx,WORD PTR 8[bp]
+	*** 00004e	8a 47 02 		mov	al,BYTE PTR 2[bx]
+	*** 000051	25 ff 00 		and	ax,OFFSET 255
+	*** 000054	50 			push	ax
+	*** 000055	68 c9 03 		push	OFFSET 969
+	*** 000058	9a 00 00 00 00 		call	FAR PTR __outp
+	*** 00005d	83 c4 04 		add	sp,OFFSET 4
+; 
+; } // end Set_Palette_Color
+; Line 78
+; Line 78
+					L00593:
+	*** 000060	5f 			pop	di
+	*** 000061	5e 			pop	si
+	*** 000062	c9 			leave
+	*** 000063	cb 			ret	OFFSET 0
+Local Size: 2
+; Line 0
+; 
+; ///////////////////////////////////////////////////////////////////////////////
+; 
+; void Get_Palette_Register(int index, RGB_color_ptr color)
+; {
+; 
+; // this function gets the data out of a color lookup regsiter and places it
+; // into color
+; 
+; // set the palette mask register
+; 
+; _outp(PALETTE_MASK,0xff);
+; 
+; // tell vga card which register we will be reading
+; 
+; _outp(PALETTE_REGISTER_RD, index);
+; 
+; // now extract the data
+; 
+; color->red   = _inp(PALETTE_DATA);
+; color->green = _inp(PALETTE_DATA);
+; color->blue  = _inp(PALETTE_DATA);
+; 
+; } // end Get_Palette_Color
+; 
+; ///////////////////////////////////////////////////////////////////////////////
+; 
+; void Create_Cool_Palette(void)
+; {
+; // this function creates a cool palette. 64 shades of gray, 64 of red,
+; // 64 of green and finally 64 of blue.
+; 
+; RGB_color color;
+; 
+; int index;
+; 
+; // swip thru the color registers and create 4 banks of 64 colors
+; 
+; for (index=0; index < 64; index++)
+;     {
+; 
+;     // grays
+; 
+;     color.red   = index;
+;     color.green = index;
+;     color.blue  = index;
+; 
+;     Set_Palette_Register(index, (RGB_color_ptr)&color);
+; 
+;     // reds
+; 
+;     color.red   = index;
+;     color.green = 0;
+;     color.blue  = 0;
+; 
+;     Set_Palette_Register(index+64, (RGB_color_ptr)&color);
+; 
+;     // greens
+; 
+;     color.red   = 0;
+;     color.green = index;
+;     color.blue  = 0;
+; 
+;     Set_Palette_Register(index+128, (RGB_color_ptr)&color);
+; 
+;     // blues
+; 
+;     color.red   = 0;
+;     color.green = 0;
+;     color.blue  = index;
+; 
+;     Set_Palette_Register(index+192, (RGB_color_ptr)&color);
+; 
+;     } // end index
+; 
+; // make color 0 black
+; 
+; color.red   = 0;
+; color.green = 0;
+; color.blue  = 0;
+; 
+; Set_Palette_Register(0, (RGB_color_ptr)&color);
+; 
+; Line 83
+; index = 0006
+; color = 0008
+					_Get_Palette_Register:
+	*** 000064	c8 00 00 00 		enter	OFFSET L00647,OFFSET 0
+	*** 000068	56 			push	si
+	*** 000069	57 			push	di
+; } // end Create_Cool_Palette
+; 
+; //////////////////////////////////////////////////////////////////////////////
+; 
+; void Set_Video_Mode(int mode)
+; {
+; 
+; Line 90
+	*** 00006a	68 ff 00 		push	OFFSET 255
+	*** 00006d	68 c6 03 		push	OFFSET 966
+	*** 000070	9a 00 00 00 00 		call	FAR PTR __outp
+	*** 000075	83 c4 04 		add	sp,OFFSET 4
+; // use the video interrupt 10h to set the video mode to the sent value
+; 
+; union REGS inregs,outregs;
+; 
+; Line 94
+	*** 000078	ff 76 06 		push	WORD PTR 6[bp]
+	*** 00007b	68 c7 03 		push	OFFSET 967
+	*** 00007e	9a 00 00 00 00 		call	FAR PTR __outp
+	*** 000083	83 c4 04 		add	sp,OFFSET 4
+; inregs.h.ah = 0;                    // set video mode sub-function
+; inregs.h.al = (unsigned char)mode;  // video mode to change to
+; 
+; _int86(0x10, &inregs, &outregs);
+; Line 98
+	*** 000086	68 c9 03 		push	OFFSET 969
+	*** 000089	9a 00 00 00 00 		call	FAR PTR __inp
+	*** 00008e	83 c4 02 		add	sp,OFFSET 2
+	*** 000091	8b 5e 08 		mov	bx,WORD PTR 8[bp]
+	*** 000094	88 07 			mov	BYTE PTR [bx],al
+; 
+; Line 99
+	*** 000096	68 c9 03 		push	OFFSET 969
+	*** 000099	9a 00 00 00 00 		call	FAR PTR __inp
+	*** 00009e	83 c4 02 		add	sp,OFFSET 2
+	*** 0000a1	8b 5e 08 		mov	bx,WORD PTR 8[bp]
+	*** 0000a4	88 47 01 		mov	BYTE PTR 1[bx],al
+; } // end Set_Video_Mode
+; Line 100
+	*** 0000a7	68 c9 03 		push	OFFSET 969
+	*** 0000aa	9a 00 00 00 00 		call	FAR PTR __inp
+	*** 0000af	83 c4 02 		add	sp,OFFSET 2
+	*** 0000b2	8b 5e 08 		mov	bx,WORD PTR 8[bp]
+	*** 0000b5	88 47 02 		mov	BYTE PTR 2[bx],al
+; 
+; //////////////////////////////////////////////////////////////////////////////
+; Line 102
+; Line 102
+					L00598:
+	*** 0000b8	5f 			pop	di
+	*** 0000b9	5e 			pop	si
+	*** 0000ba	c9 			leave
+	*** 0000bb	cb 			ret	OFFSET 0
+Local Size: 2
+; Line 0
+; 
+; void H_Line(int x1,int x2,int y,unsigned int color)
+; {
+; // draw a horizontal line useing the memset function
+; // note x2 > x1
+; 
+; _fmemset((char far *)(video_buffer + ((y<<8) + (y<<6)) + x1),color,x2-x1+1);
+; 
+; } // end H_Line
+; 
+; //M A I N /////////////////////////////////////////////////////////////////////
+; 
+; void main(void)
+; {
+; 
+; int index,           // loop var
+;     x1=150,          // x1 & x2 are the edges of the current piece of the road
+;     x2=170,
+;     y=0,             // y is the current y position of the piece of road
+;     curr_color=1;    // the current color being drawn
+; 
+; RGB_color color,color_1;
+; 
+; // set video mode to 320x200 256 color mode
+; 
+; Set_Video_Mode(VGA256);
+; 
+; // create the color palette
+; 
+; Create_Cool_Palette();
+; 
+; printf("Press any key to exit.");
+; 
+; // draw a road to nowhere
+; 
+; for (y=80; y<200; y++)
+;     {
+;     // draw next horizontal piece of road
+; 
+;     H_Line(x1,x2,y,curr_color);
+; 
+;     // make the road wider
+; 
+;     if (--x1 < 0)
+;        x1=0;
+; 
+;     if (++x2 > 319)
+;        x2=319;
+; 
+;     // next color please
+; 
+;     if (++curr_color>255)
+;        curr_color=1;
+; 
+;     } // end for
+; 
+; // wait for user to hit a key
+; 
+; while(!kbhit())
+;      {
+;      Get_Palette_Register(1,(RGB_color_ptr)&color_1);
+; 
+;      for (index=1; index<=254; index++)
+;          {
+;          Get_Palette_Register(index+1,(RGB_color_ptr)&color);
+;          Set_Palette_Register(index,(RGB_color_ptr)&color);
+; 
+;          } // end for
+; 
+;          Set_Palette_Register(255,(RGB_color_ptr)&color_1);
+; 
+;      } // end while
+; 
+; // go back to text mode
+; 
+; Set_Video_Mode(TEXT_MODE);
+; 
+; } // end main
+; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; Line 107
+					_Create_Cool_Palette:
+	*** 0000bc	c8 00 00 00 		enter	OFFSET L00648,OFFSET 0
+	*** 0000c0	56 			push	si
+	*** 0000c1	57 			push	di
+; index = fffc
+; color = fff8
+; ; ; ; ; Line 111
+; ; ; Line 113
+; ; ; ; ; Line 117
+	*** 0000c2	c7 46 fc 00 00 		mov	WORD PTR -4[bp],OFFSET 0
+	*** 0000c7	e9 00 00 		jmp	L00605
+					L00602:
+; ; Line 118
+; ; ; ; ; Line 122
+	*** 0000ca	8b 46 fc 		mov	ax,WORD PTR -4[bp]
+	*** 0000cd	88 46 f8 		mov	BYTE PTR -8[bp],al
+; ; Line 123
+	*** 0000d0	8b 46 fc 		mov	ax,WORD PTR -4[bp]
+	*** 0000d3	88 46 f9 		mov	BYTE PTR -7[bp],al
+; ; Line 124
+	*** 0000d6	8b 46 fc 		mov	ax,WORD PTR -4[bp]
+	*** 0000d9	88 46 fa 		mov	BYTE PTR -6[bp],al
+; ; ; Line 126
+	*** 0000dc	8d 46 f8 		lea	ax,WORD PTR -8[bp]
+	*** 0000df	50 			push	ax
+	*** 0000e0	ff 76 fc 		push	WORD PTR -4[bp]
+	*** 0000e3	9a 00 00 00 00 		call	FAR PTR _Set_Palette_Register
+	*** 0000e8	83 c4 04 		add	sp,OFFSET 4
+; ; ; ; ; Line 130
+	*** 0000eb	8b 46 fc 		mov	ax,WORD PTR -4[bp]
+	*** 0000ee	88 46 f8 		mov	BYTE PTR -8[bp],al
+; ; Line 131
+	*** 0000f1	c6 46 f9 00 		mov	BYTE PTR -7[bp],OFFSET 0
+; ; Line 132
+	*** 0000f5	c6 46 fa 00 		mov	BYTE PTR -6[bp],OFFSET 0
+; ; ; Line 134
+	*** 0000f9	8d 46 f8 		lea	ax,WORD PTR -8[bp]
+	*** 0000fc	50 			push	ax
+	*** 0000fd	8b 46 fc 		mov	ax,WORD PTR -4[bp]
+	*** 000100	05 40 00 		add	ax,OFFSET 64
+	*** 000103	50 			push	ax
+	*** 000104	9a 00 00 00 00 		call	FAR PTR _Set_Palette_Register
+	*** 000109	83 c4 04 		add	sp,OFFSET 4
+; ; ; ; ; Line 138
+	*** 00010c	c6 46 f8 00 		mov	BYTE PTR -8[bp],OFFSET 0
+; ; Line 139
+	*** 000110	8b 46 fc 		mov	ax,WORD PTR -4[bp]
+	*** 000113	88 46 f9 		mov	BYTE PTR -7[bp],al
+; ; Line 140
+	*** 000116	c6 46 fa 00 		mov	BYTE PTR -6[bp],OFFSET 0
+; ; ; Line 142
+	*** 00011a	8d 46 f8 		lea	ax,WORD PTR -8[bp]
+	*** 00011d	50 			push	ax
+	*** 00011e	8b 46 fc 		mov	ax,WORD PTR -4[bp]
+	*** 000121	05 80 00 		add	ax,OFFSET 128
+	*** 000124	50 			push	ax
+	*** 000125	9a 00 00 00 00 		call	FAR PTR _Set_Palette_Register
+	*** 00012a	83 c4 04 		add	sp,OFFSET 4
+; ; ; ; ; Line 146
+	*** 00012d	c6 46 f8 00 		mov	BYTE PTR -8[bp],OFFSET 0
+; ; Line 147
+	*** 000131	c6 46 f9 00 		mov	BYTE PTR -7[bp],OFFSET 0
+; ; Line 148
+	*** 000135	8b 46 fc 		mov	ax,WORD PTR -4[bp]
+	*** 000138	88 46 fa 		mov	BYTE PTR -6[bp],al
+; ; ; Line 150
+	*** 00013b	8d 46 f8 		lea	ax,WORD PTR -8[bp]
+	*** 00013e	50 			push	ax
+	*** 00013f	8b 46 fc 		mov	ax,WORD PTR -4[bp]
+	*** 000142	05 c0 00 		add	ax,OFFSET 192
+	*** 000145	50 			push	ax
+	*** 000146	9a 00 00 00 00 		call	FAR PTR _Set_Palette_Register
+	*** 00014b	83 c4 04 		add	sp,OFFSET 4
+; ; ; Line 152
+					L00603:
+; Line 152
+	*** 00014e	83 46 fc 01 		add	WORD PTR -4[bp],OFFSET 1
+					L00605:
+	*** 000152	83 7e fc 40 		cmp	WORD PTR -4[bp],OFFSET 64
+	*** 000156	7d 03 e9 6f ff 		jl	L00602
+					L00604:
+; ; ; ; ; Line 156
+	*** 00015b	c6 46 f8 00 		mov	BYTE PTR -8[bp],OFFSET 0
+; ; Line 157
+	*** 00015f	c6 46 f9 00 		mov	BYTE PTR -7[bp],OFFSET 0
+; ; Line 158
+	*** 000163	c6 46 fa 00 		mov	BYTE PTR -6[bp],OFFSET 0
+; ; ; Line 160
+	*** 000167	8d 46 f8 		lea	ax,WORD PTR -8[bp]
+	*** 00016a	50 			push	ax
+	*** 00016b	6a 00 			push	OFFSET 0
+	*** 00016d	9a 00 00 00 00 		call	FAR PTR _Set_Palette_Register
+	*** 000172	83 c4 04 		add	sp,OFFSET 4
+; ; ; Line 162
+; Line 162
+					L00599:
+	*** 000175	5f 			pop	di
+	*** 000176	5e 			pop	si
+	*** 000177	c9 			leave
+	*** 000178	cb 			ret	OFFSET 0
+Local Size: 8
+; Line 0
+; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; Line 167
+; mode = 0006
+					_Set_Video_Mode:
+	*** 00017a	c8 00 00 00 		enter	OFFSET L00649,OFFSET 0
+	*** 00017e	56 			push	si
+	*** 00017f	57 			push	di
+; outregs = fff0
+; inregs = ffe2
+; ; ; ; ; Line 171
+; ; ; Line 173
+	*** 000180	c6 46 e3 00 		mov	BYTE PTR -29[bp],OFFSET 0
+; ; Line 174
+	*** 000184	8b 46 06 		mov	ax,WORD PTR 6[bp]
+	*** 000187	88 46 e2 		mov	BYTE PTR -30[bp],al
+; ; ; Line 176
+	*** 00018a	8d 46 f0 		lea	ax,WORD PTR -16[bp]
+	*** 00018d	50 			push	ax
+	*** 00018e	8d 46 e2 		lea	ax,WORD PTR -30[bp]
+	*** 000191	50 			push	ax
+	*** 000192	6a 10 			push	OFFSET 16
+	*** 000194	9a 00 00 00 00 		call	FAR PTR __int86
+	*** 000199	83 c4 06 		add	sp,OFFSET 6
+; ; ; Line 178
+; Line 178
+					L00609:
+	*** 00019c	5f 			pop	di
+	*** 00019d	5e 			pop	si
+	*** 00019e	c9 			leave
+	*** 00019f	cb 			ret	OFFSET 0
+Local Size: 30
+; Line 0
+; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; Line 183
+; x1 = 0006
+; x2 = 0008
+; y = 000a
+; color = 000c
+					_H_Line:
+	*** 0001a0	c8 00 00 00 		enter	OFFSET L00650,OFFSET 0
+	*** 0001a4	56 			push	si
+	*** 0001a5	57 			push	di
+; ; ; ; ; Line 187
+	*** 0001a6	8b 46 08 		mov	ax,WORD PTR 8[bp]
+	*** 0001a9	2b 46 06 		sub	ax,WORD PTR 6[bp]
+	*** 0001ac	05 01 00 		add	ax,OFFSET 1
+	*** 0001af	50 			push	ax
+	*** 0001b0	8b 46 0c 		mov	ax,WORD PTR 12[bp]
+	*** 0001b3	50 			push	ax
+	*** 0001b4	8b 46 0a 		mov	ax,WORD PTR 10[bp]
+	*** 0001b7	c1 e0 06 		shl	ax,OFFSET 6
+	*** 0001ba	8b 56 0a 		mov	dx,WORD PTR 10[bp]
+	*** 0001bd	c1 e2 08 		shl	dx,OFFSET 8
+	*** 0001c0	03 d0 			add	dx,ax
+	*** 0001c2	a1 00 00 		mov	ax,WORD PTR _video_buffer
+	*** 0001c5	8b 0e 02 00 		mov	cx,WORD PTR _video_buffer+2
+	*** 0001c9	03 c2 			add	ax,dx
+	*** 0001cb	8b 56 06 		mov	dx,WORD PTR 6[bp]
+	*** 0001ce	03 c2 			add	ax,dx
+	*** 0001d0	51 			push	cx
+	*** 0001d1	50 			push	ax
+	*** 0001d2	9a 00 00 00 00 		call	FAR PTR __fmemset
+	*** 0001d7	83 c4 08 		add	sp,OFFSET 8
+; ; ; Line 189
+; Line 189
+					L00620:
+	*** 0001da	5f 			pop	di
+	*** 0001db	5e 			pop	si
+	*** 0001dc	c9 			leave
+	*** 0001dd	cb 			ret	OFFSET 0
+Local Size: 2
+; Line 0
+; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; Line 194
+					_main:
+	*** 0001de	c8 00 00 00 		enter	OFFSET L00651,OFFSET 0
+	*** 0001e2	56 			push	si
+	*** 0001e3	57 			push	di
+; x2 = fffc
+; index = fffa
+; y = fff8
+; color_1 = fff4
+; color = fff0
+; curr_color = ffee
+; x1 = ffec
+; ; ; Line 196
+; ; Line 197
+	*** 0001e4	c7 46 ec 96 00 		mov	WORD PTR -20[bp],OFFSET 150
+; ; Line 198
+	*** 0001e9	c7 46 fc aa 00 		mov	WORD PTR -4[bp],OFFSET 170
+; ; Line 199
+	*** 0001ee	c7 46 f8 00 00 		mov	WORD PTR -8[bp],OFFSET 0
+; ; Line 200
+	*** 0001f3	c7 46 ee 01 00 		mov	WORD PTR -18[bp],OFFSET 1
+; ; ; Line 202
+; ; ; ; ; Line 206
+	*** 0001f8	6a 13 			push	OFFSET 19
+	*** 0001fa	9a 00 00 00 00 		call	FAR PTR _Set_Video_Mode
+	*** 0001ff	83 c4 02 		add	sp,OFFSET 2
+; ; ; ; ; Line 210
+	*** 000202	9a 00 00 00 00 		call	FAR PTR _Create_Cool_Palette
+; ; ; Line 212
+	*** 000207	68 04 00 		push	OFFSET L00630
+	*** 00020a	9a 00 00 00 00 		call	FAR PTR _printf
+	*** 00020f	83 c4 02 		add	sp,OFFSET 2
+; ; ; ; ; Line 216
+	*** 000212	c7 46 f8 50 00 		mov	WORD PTR -8[bp],OFFSET 80
+	*** 000217	e9 00 00 		jmp	L00634
+					L00631:
+; ; Line 217
+; ; ; ; Line 220
+	*** 00021a	8b 46 ee 		mov	ax,WORD PTR -18[bp]
+	*** 00021d	50 			push	ax
+	*** 00021e	ff 76 f8 		push	WORD PTR -8[bp]
+	*** 000221	ff 76 fc 		push	WORD PTR -4[bp]
+	*** 000224	ff 76 ec 		push	WORD PTR -20[bp]
+	*** 000227	9a 00 00 00 00 		call	FAR PTR _H_Line
+	*** 00022c	83 c4 08 		add	sp,OFFSET 8
+; ; ; ; ; Line 224
+	*** 00022f	83 6e ec 01 		sub	WORD PTR -20[bp],OFFSET 1
+	*** 000233	8b 46 ec 		mov	ax,WORD PTR -20[bp]
+	*** 000236	3d 00 00 		cmp	ax,OFFSET 0
+	*** 000239	7c 03 e9 00 00 		jge	L00635
+; ; Line 225
+	*** 00023e	c7 46 ec 00 00 		mov	WORD PTR -20[bp],OFFSET 0
+; ; ; Line 227
+					L00635:
+	*** 000243	83 46 fc 01 		add	WORD PTR -4[bp],OFFSET 1
+	*** 000247	8b 46 fc 		mov	ax,WORD PTR -4[bp]
+	*** 00024a	3d 3f 01 		cmp	ax,OFFSET 319
+	*** 00024d	7f 03 e9 00 00 		jle	L00636
+; ; Line 228
+	*** 000252	c7 46 fc 3f 01 		mov	WORD PTR -4[bp],OFFSET 319
+; ; ; ; ; Line 232
+					L00636:
+	*** 000257	83 46 ee 01 		add	WORD PTR -18[bp],OFFSET 1
+	*** 00025b	8b 46 ee 		mov	ax,WORD PTR -18[bp]
+	*** 00025e	3d ff 00 		cmp	ax,OFFSET 255
+	*** 000261	7f 03 e9 00 00 		jle	L00637
+; ; Line 233
+	*** 000266	c7 46 ee 01 00 		mov	WORD PTR -18[bp],OFFSET 1
+; ; ; Line 235
+					L00637:
+					L00632:
+; Line 235
+	*** 00026b	83 46 f8 01 		add	WORD PTR -8[bp],OFFSET 1
+					L00634:
+	*** 00026f	81 7e f8 c8 00 		cmp	WORD PTR -8[bp],OFFSET 200
+	*** 000274	7d 03 e9 a1 ff 		jl	L00631
+					L00633:
+; ; ; ; ; Line 239
+					L00639:
+	*** 000279	9a 00 00 00 00 		call	FAR PTR _kbhit
+	*** 00027e	3d 00 00 		cmp	ax,OFFSET 0
+	*** 000281	74 03 e9 00 00 		jne	L00640
+; ; Line 240
+; ; Line 241
+	*** 000286	8d 46 f4 		lea	ax,WORD PTR -12[bp]
+	*** 000289	50 			push	ax
+	*** 00028a	6a 01 			push	OFFSET 1
+	*** 00028c	9a 00 00 00 00 		call	FAR PTR _Get_Palette_Register
+	*** 000291	83 c4 04 		add	sp,OFFSET 4
+; ; ; Line 243
+	*** 000294	c7 46 fa 01 00 		mov	WORD PTR -6[bp],OFFSET 1
+	*** 000299	e9 00 00 		jmp	L00645
+					L00642:
+; ; Line 244
+; ; Line 245
+	*** 00029c	8d 46 f0 		lea	ax,WORD PTR -16[bp]
+	*** 00029f	50 			push	ax
+	*** 0002a0	8b 46 fa 		mov	ax,WORD PTR -6[bp]
+	*** 0002a3	05 01 00 		add	ax,OFFSET 1
+	*** 0002a6	50 			push	ax
+	*** 0002a7	9a 00 00 00 00 		call	FAR PTR _Get_Palette_Register
+	*** 0002ac	83 c4 04 		add	sp,OFFSET 4
+; ; Line 246
+	*** 0002af	8d 46 f0 		lea	ax,WORD PTR -16[bp]
+	*** 0002b2	50 			push	ax
+	*** 0002b3	ff 76 fa 		push	WORD PTR -6[bp]
+	*** 0002b6	9a 00 00 00 00 		call	FAR PTR _Set_Palette_Register
+	*** 0002bb	83 c4 04 		add	sp,OFFSET 4
+; ; ; Line 248
+					L00643:
+; Line 248
+	*** 0002be	83 46 fa 01 		add	WORD PTR -6[bp],OFFSET 1
+					L00645:
+	*** 0002c2	81 7e fa fe 00 		cmp	WORD PTR -6[bp],OFFSET 254
+	*** 0002c7	7f 03 e9 d0 ff 		jle	L00642
+					L00644:
+; ; ; Line 250
+	*** 0002cc	8d 46 f4 		lea	ax,WORD PTR -12[bp]
+	*** 0002cf	50 			push	ax
+	*** 0002d0	68 ff 00 		push	OFFSET 255
+	*** 0002d3	9a 00 00 00 00 		call	FAR PTR _Set_Palette_Register
+	*** 0002d8	83 c4 04 		add	sp,OFFSET 4
+; ; ; Line 252
+; Line 252
+	*** 0002db	e9 9b ff 		jmp	L00639
+					L00640:
+; ; ; ; ; Line 256
+	*** 0002de	6a 03 			push	OFFSET 3
+	*** 0002e0	9a 00 00 00 00 		call	FAR PTR _Set_Video_Mode
+	*** 0002e5	83 c4 02 		add	sp,OFFSET 2
+; ; ; Line 258
+; Line 258
+					L00622:
+	*** 0002e8	5f 			pop	di
+	*** 0002e9	5e 			pop	si
+	*** 0002ea	c9 			leave
+	*** 0002eb	cb 			ret	OFFSET 0
+Local Size: 20
+; Line 0
