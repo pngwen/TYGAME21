@@ -1,0 +1,7 @@
+graph9.h(42): Warning! W138: No newline at end of file
+GRAPH9.C(84): Warning! W107: Missing return value for function 'Voc_Terminate_Driver'
+GRAPH9.C(141): Warning! W107: Missing return value for function 'Voc_Play_Sound'
+GRAPH9.C(156): Warning! W107: Missing return value for function 'Voc_Stop_Sound'
+GRAPH9.C(171): Warning! W107: Missing return value for function 'Voc_Pause_Sound'
+GRAPH9.C(186): Warning! W107: Missing return value for function 'Voc_Continue_Sound'
+GRAPH9.C(201): Warning! W107: Missing return value for function 'Voc_Break_Sound'

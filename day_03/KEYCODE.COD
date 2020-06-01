@@ -1,0 +1,190 @@
+; File keycode.c
+; // This program will just echo keyboard event codes
+; #include <io.h>
+; #include <conio.h>
+; #include <stdio.h>
+; #include <stdlib.h>
+; #include <dos.h>
+; #include <bios.h>
+; #include "graph3.h"
+; 
+; // D E F I N E S /////////////////////////////////////////////////////////////
+; 
+; // begin keyboard stuff
+; #define KEYBOARD_INT    0x09        // the keyboard interrupt number
+; #define KEY_BUFFER      0x60        // the buffer port
+; #define KEY_CONTROL     0x61        // the controller port
+; #define INT_CONTROL     0x20        // the interrupt controller
+; 
+; int done=0;
+; 
+; // P R O T O T Y P E S //////////////////////////////////////////////////////
+; void _interrupt _far New_Key_Int(void);
+; 
+; // F U N C T I O N S //////////////////////////////////////////////////////////
+; void main()
+; {
+; Line 25
+					_main:
+	*** 000000	c8 00 00 00 		enter	OFFSET L00498,OFFSET 0
+	*** 000004	56 			push	si
+	*** 000005	57 			push	di
+; Old_Isr = fffa
+; void (_interrupt _far *Old_Isr)();  // holds old keyboard interrupt handler
+; Line 26
+; 
+; // install our ISR
+; Old_Isr = _dos_getvect(KEYBOARD_INT);
+; Line 29
+	*** 000006	6a 09 			push	OFFSET 9
+	*** 000008	9a 00 00 00 00 		call	FAR PTR __dos_getvect
+	*** 00000d	83 c4 02 		add	sp,OFFSET 2
+	*** 000010	89 46 fa 		mov	WORD PTR -6[bp],ax
+	*** 000013	89 56 fc 		mov	WORD PTR -4[bp],dx
+; _dos_setvect(KEYBOARD_INT, New_Key_Int);
+; Line 30
+	*** 000016	68 00 00 		push	SEG _New_Key_Int
+	*** 000019	68 00 00 		push	OFFSET _New_Key_Int
+	*** 00001c	6a 09 			push	OFFSET 9
+	*** 00001e	9a 00 00 00 00 		call	FAR PTR __dos_setvect
+	*** 000023	83 c4 06 		add	sp,OFFSET 6
+; 
+; //display a friendly message
+; printf("Press and Release Some Keys\n");
+; Line 33
+	*** 000026	68 00 00 		push	OFFSET L00489
+	*** 000029	9a 00 00 00 00 		call	FAR PTR _printf
+	*** 00002e	83 c4 02 		add	sp,OFFSET 2
+; 
+; while(!done) {
+; Line 35
+	*** 000031	e9 00 00 		jmp	L00493
+					L00490:
+;     Delay(1);
+; Line 36
+	*** 000034	6a 01 			push	OFFSET 1
+	*** 000036	9a 00 00 00 00 		call	FAR PTR _Delay
+	*** 00003b	83 c4 02 		add	sp,OFFSET 2
+; }
+; Line 37
+					L00491:
+; Line 37
+					L00493:
+	*** 00003e	83 3e 1e 00 00 		cmp	WORD PTR _done,OFFSET 0
+	*** 000043	75 03 e9 ec ff 		je	L00490
+					L00492:
+; 
+; // replace old ISR
+; _dos_setvect(KEYBOARD_INT, Old_Isr);
+; Line 40
+	*** 000048	ff 76 fc 		push	WORD PTR -4[bp]
+	*** 00004b	ff 76 fa 		push	WORD PTR -6[bp]
+	*** 00004e	6a 09 			push	OFFSET 9
+	*** 000050	9a 00 00 00 00 		call	FAR PTR __dos_setvect
+	*** 000055	83 c4 06 		add	sp,OFFSET 6
+; }
+; Line 41
+; Line 41
+					L00487:
+	*** 000058	5f 			pop	di
+	*** 000059	5e 			pop	si
+	*** 00005a	c9 			leave
+	*** 00005b	cb 			ret	OFFSET 0
+Local Size: 6
+; Line 0
+; 
+; 
+; void _interrupt _far New_Key_Int(void)
+; {
+; int raw_key;
+; 
+; // I'm in the mood for some inline!
+; 
+; _asm
+;    {
+;    sti                    ; re-enable interrupts
+;    in al, KEY_BUFFER      ; get the key that was pressed
+;    xor ah,ah              ; zero out upper 8 bits of AX
+;    mov raw_key, ax        ; store the key in global
+;    in al, KEY_CONTROL     ; set the control register
+;    or al, 82h             ; set the proper bits to reset the FF
+;    out KEY_CONTROL,al     ; send the new data back to the control register
+;    and al,7fh
+;    out KEY_CONTROL,al     ; complete the reset
+;    mov al,20h
+;    out INT_CONTROL,al     ; re-enable interrupts
+;                           ; when this baby hits 88 mph, your gonna see
+;                           ; some serious @#@#$%
+; 
+;    } // end inline assembly
+; 
+; // now for some C to update the arrow state table
+; printf("%d\n", raw_key);
+; 
+; //terminate if we have just releaste ESC
+; if(raw_key == 129) {
+;     done = 1;
+; }
+; } // end New_Key_Int
+; ; ; ; ; ; ; ; ; ; ; ; Line 45
+					_New_Key_Int:
+	*** 00005c	60 			pusha
+	*** 00005d	1e 			push	ds
+	*** 00005e	06 			push	es
+	*** 00005f	8b ec 			mov	bp,sp
+	*** 000061	81 ec 00 00 		sub	sp,OFFSET L00499
+	*** 000065	1e 			push	ds
+	*** 000066	b8 00 00 		mov	ax,SEG con0
+	*** 000069	8e d8 			mov	ds,ax
+	*** 00006b	fc 			cld
+; raw_key = fffc
+; ; Line 46
+; ; ; ; ; Line 50
+; ; Line 51
+; ; Line 52
+	*** 00006c	fb 			sti
+; ; Line 53
+	*** 00006d	e4 60 			in	OFFSET 96
+; ; Line 54
+	*** 00006f	32 e4 			xor	ah,ah
+; ; Line 55
+	*** 000071	89 46 fc 		mov	WORD PTR -4[bp],ax
+; ; Line 56
+	*** 000074	e4 61 			in	OFFSET 97
+; ; Line 57
+	*** 000076	0c 82 			or	al,OFFSET 130
+; ; Line 58
+	*** 000078	e6 61 			out	OFFSET 97
+; ; Line 59
+	*** 00007a	24 7f 			and	al,OFFSET 127
+; ; Line 60
+	*** 00007c	e6 61 			out	OFFSET 97
+; ; Line 61
+	*** 00007e	b0 20 			mov	al,OFFSET 32
+; ; Line 62
+	*** 000080	e6 20 			out	OFFSET 32
+; ; Line 63
+; ; Line 64
+; ; ; Line 66
+; ; ; ; Line 69
+	*** 000082	ff 76 fc 		push	WORD PTR -4[bp]
+	*** 000085	68 20 00 		push	OFFSET L00496
+	*** 000088	9a 00 00 00 00 		call	FAR PTR _printf
+	*** 00008d	83 c4 04 		add	sp,OFFSET 4
+; ; ; ; Line 72
+	*** 000090	81 7e fc 81 00 		cmp	WORD PTR -4[bp],OFFSET 129
+	*** 000095	74 03 e9 00 00 		jne	L00497
+; ; Line 73
+	*** 00009a	c7 06 1e 00 01 00 	mov	WORD PTR _done,OFFSET 1
+; ; Line 74
+; ; Line 75
+					L00497:
+; Line 75
+					L00494:
+	*** 0000a0	8b e5 			mov	sp,bp
+	*** 0000a2	07 			pop	es
+	*** 0000a3	1f 			pop	ds
+	*** 0000a4	61 			popa
+	*** 0000a5	cf 			iret
+Local Size: 4
+; Line 0

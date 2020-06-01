@@ -1,0 +1,195 @@
+; File bounce.c
+; //Bounce a dot
+; 
+; // I N C L U D E S ///////////////////////////////////////////////////////////
+; 
+; #include <stdio.h>
+; #include <stdlib.h>
+; #include <conio.h>
+; 
+; #include "graph3.h" // this is all we need to include so that the program
+;                     // knows all the #defines, structures, prototypes etc.
+; 
+; // M A I N ///////////////////////////////////////////////////////////////////
+; 
+; void main(void)
+; {
+; Line 15
+					_main:
+	*** 000000	c8 00 00 00 		enter	OFFSET L00393,OFFSET 0
+	*** 000004	56 			push	si
+	*** 000005	57 			push	di
+; y = fffc
+; done = fffa
+; dx = fff8
+; x = fff6
+; dy = fff4
+; bg = fff2
+; int done=0; // exit flag
+; Line 16
+	*** 000006	c7 46 fa 00 00 		mov	WORD PTR -6[bp],OFFSET 0
+; int x=159;
+; Line 17
+	*** 00000b	c7 46 f6 9f 00 		mov	WORD PTR -10[bp],OFFSET 159
+; int y=99;
+; Line 18
+	*** 000010	c7 46 fc 63 00 		mov	WORD PTR -4[bp],OFFSET 99
+; int dx=5;
+; Line 19
+	*** 000015	c7 46 f8 05 00 		mov	WORD PTR -8[bp],OFFSET 5
+; int dy=3;
+; Line 20
+	*** 00001a	c7 46 f4 03 00 		mov	WORD PTR -12[bp],OFFSET 3
+; unsigned char bg=0x00;
+; Line 21
+	*** 00001f	c6 46 f2 00 		mov	BYTE PTR -14[bp],OFFSET 0
+; 
+; // set video mode to 320x200 256 color mode
+; Set_Video_Mode(VGA256);
+; Line 24
+	*** 000023	6a 13 			push	OFFSET 19
+	*** 000025	9a 00 00 00 00 		call	FAR PTR _Set_Video_Mode
+	*** 00002a	83 c4 02 		add	sp,OFFSET 2
+; 
+; 
+; // wait for user to hit a key
+; while(!done) {
+; Line 28
+	*** 00002d	e9 00 00 		jmp	L00385
+					L00382:
+;   //erase
+;   Plot_Pixel_Fast(x, y, bg);
+; Line 30
+	*** 000030	8a 46 f2 		mov	al,BYTE PTR -14[bp]
+	*** 000033	25 ff 00 		and	ax,OFFSET 255
+	*** 000036	50 			push	ax
+	*** 000037	ff 76 fc 		push	WORD PTR -4[bp]
+	*** 00003a	ff 76 f6 		push	WORD PTR -10[bp]
+	*** 00003d	9a 00 00 00 00 		call	FAR PTR _Plot_Pixel_Fast
+	*** 000042	83 c4 06 		add	sp,OFFSET 6
+; 
+;   //move
+;   x+=dx;
+; Line 33
+	*** 000045	8b 46 f8 		mov	ax,WORD PTR -8[bp]
+	*** 000048	01 46 f6 		add	WORD PTR -10[bp],ax
+;   if(x < 0) {
+; Line 34
+	*** 00004b	83 7e f6 00 		cmp	WORD PTR -10[bp],OFFSET 0
+	*** 00004f	7c 03 e9 00 00 		jge	L00386
+;       x = 0;
+; Line 35
+	*** 000054	c7 46 f6 00 00 		mov	WORD PTR -10[bp],OFFSET 0
+;       dx = -dx;
+; Line 36
+	*** 000059	8b 46 f8 		mov	ax,WORD PTR -8[bp]
+	*** 00005c	f7 d8 			neg	ax
+	*** 00005e	89 46 f8 		mov	WORD PTR -8[bp],ax
+;   } else if(x > 319) {
+; Line 37
+	*** 000061	e9 00 00 		jmp	L00387
+					L00386:
+; Line 37
+	*** 000064	81 7e f6 3f 01 		cmp	WORD PTR -10[bp],OFFSET 319
+	*** 000069	7f 03 e9 00 00 		jle	L00388
+;       x = 319;
+; Line 38
+	*** 00006e	c7 46 f6 3f 01 		mov	WORD PTR -10[bp],OFFSET 319
+;       dx = -dx;
+; Line 39
+	*** 000073	8b 46 f8 		mov	ax,WORD PTR -8[bp]
+	*** 000076	f7 d8 			neg	ax
+	*** 000078	89 46 f8 		mov	WORD PTR -8[bp],ax
+;   }
+; Line 40
+;   y+=dy;
+; Line 41
+					L00388:
+					L00387:
+	*** 00007b	8b 46 f4 		mov	ax,WORD PTR -12[bp]
+	*** 00007e	01 46 fc 		add	WORD PTR -4[bp],ax
+;   if(y < 0) {
+; Line 42
+	*** 000081	83 7e fc 00 		cmp	WORD PTR -4[bp],OFFSET 0
+	*** 000085	7c 03 e9 00 00 		jge	L00389
+;       y = 0;
+; Line 43
+	*** 00008a	c7 46 fc 00 00 		mov	WORD PTR -4[bp],OFFSET 0
+;       dy = -dy;
+; Line 44
+	*** 00008f	8b 46 f4 		mov	ax,WORD PTR -12[bp]
+	*** 000092	f7 d8 			neg	ax
+	*** 000094	89 46 f4 		mov	WORD PTR -12[bp],ax
+;   } else if(y > 199) {
+; Line 45
+	*** 000097	e9 00 00 		jmp	L00390
+					L00389:
+; Line 45
+	*** 00009a	81 7e fc c7 00 		cmp	WORD PTR -4[bp],OFFSET 199
+	*** 00009f	7f 03 e9 00 00 		jle	L00391
+;       y = 199;
+; Line 46
+	*** 0000a4	c7 46 fc c7 00 		mov	WORD PTR -4[bp],OFFSET 199
+;       dy = -dy;
+; Line 47
+	*** 0000a9	8b 46 f4 		mov	ax,WORD PTR -12[bp]
+	*** 0000ac	f7 d8 			neg	ax
+	*** 0000ae	89 46 f4 		mov	WORD PTR -12[bp],ax
+;   }
+; Line 48
+; 
+;   //draw
+;   Plot_Pixel_Fast(x, y, 0x0c);
+; Line 51
+					L00391:
+					L00390:
+	*** 0000b1	6a 0c 			push	OFFSET 12
+	*** 0000b3	ff 76 fc 		push	WORD PTR -4[bp]
+	*** 0000b6	ff 76 f6 		push	WORD PTR -10[bp]
+	*** 0000b9	9a 00 00 00 00 		call	FAR PTR _Plot_Pixel_Fast
+	*** 0000be	83 c4 06 		add	sp,OFFSET 6
+; 
+;   // Check for keyboard
+;   if(kbhit()) {
+; Line 54
+	*** 0000c1	9a 00 00 00 00 		call	FAR PTR _kbhit
+	*** 0000c6	3d 00 00 		cmp	ax,OFFSET 0
+	*** 0000c9	75 03 e9 00 00 		je	L00392
+;     done = 1;
+; Line 55
+	*** 0000ce	c7 46 fa 01 00 		mov	WORD PTR -6[bp],OFFSET 1
+;   }
+; Line 56
+;   Delay(1);
+; Line 57
+					L00392:
+	*** 0000d3	6a 01 			push	OFFSET 1
+	*** 0000d5	9a 00 00 00 00 		call	FAR PTR _Delay
+	*** 0000da	83 c4 02 		add	sp,OFFSET 2
+; }
+; Line 58
+					L00383:
+; Line 58
+					L00385:
+	*** 0000dd	83 7e fa 00 		cmp	WORD PTR -6[bp],OFFSET 0
+	*** 0000e1	75 03 e9 4a ff 		je	L00382
+					L00384:
+; 
+; // reset back set video mode to 320x200 256 color mode
+; 
+; Set_Video_Mode(TEXT_MODE);
+; Line 62
+	*** 0000e6	6a 03 			push	OFFSET 3
+	*** 0000e8	9a 00 00 00 00 		call	FAR PTR _Set_Video_Mode
+	*** 0000ed	83 c4 02 		add	sp,OFFSET 2
+; 
+; } // end main
+; Line 64
+; Line 64
+					L00375:
+	*** 0000f0	5f 			pop	di
+	*** 0000f1	5e 			pop	si
+	*** 0000f2	c9 			leave
+	*** 0000f3	cb 			ret	OFFSET 0
+Local Size: 14
+; Line 0

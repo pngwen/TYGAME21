@@ -1,0 +1,339 @@
+; File vgapal.c
+; // This is a little utility program to display the VGA Pallette
+; // Author: Robert Lowe <pngwen@acm.org>
+; // Created: June 1, 2020
+; #include <conio.h>
+; #include "graph3.h"
+; 
+; //Draw an 8x16 color swatch
+; void draw_swatch(int x, int y, unsigned char color);
+; 
+; void main()
+; {
+; Line 11
+					_main:
+	*** 000000	c8 00 00 00 		enter	OFFSET L00293,OFFSET 0
+	*** 000004	56 			push	si
+	*** 000005	57 			push	di
+; x = fffc
+; c = fffa
+; r = fff8
+; col_label = ffd8
+; y = ffd6
+; row_label = ffb6
+;     const char *row_label[] = { "0x00", "0x10", "0x20", "0x30", "0x40",
+; Line 12
+	*** 000006	c7 46 b6 00 00 		mov	WORD PTR -74[bp],OFFSET L00220
+	*** 00000b	c7 46 b8 05 00 		mov	WORD PTR -72[bp],OFFSET L00221
+	*** 000010	c7 46 ba 0a 00 		mov	WORD PTR -70[bp],OFFSET L00222
+	*** 000015	c7 46 bc 0f 00 		mov	WORD PTR -68[bp],OFFSET L00223
+	*** 00001a	c7 46 be 14 00 		mov	WORD PTR -66[bp],OFFSET L00224
+; 	                        "0x50", "0x60", "0x70", "0x80", "0x90",
+; Line 13
+	*** 00001f	c7 46 c0 19 00 		mov	WORD PTR -64[bp],OFFSET L00225
+	*** 000024	c7 46 c2 1e 00 		mov	WORD PTR -62[bp],OFFSET L00226
+	*** 000029	c7 46 c4 23 00 		mov	WORD PTR -60[bp],OFFSET L00227
+	*** 00002e	c7 46 c6 28 00 		mov	WORD PTR -58[bp],OFFSET L00228
+	*** 000033	c7 46 c8 2d 00 		mov	WORD PTR -56[bp],OFFSET L00229
+; 			        "0xA0", "0xB0", "0xC0", "0xD0", "0xE0",
+; Line 14
+	*** 000038	c7 46 ca 32 00 		mov	WORD PTR -54[bp],OFFSET L00230
+	*** 00003d	c7 46 cc 37 00 		mov	WORD PTR -52[bp],OFFSET L00231
+	*** 000042	c7 46 ce 3c 00 		mov	WORD PTR -50[bp],OFFSET L00232
+	*** 000047	c7 46 d0 41 00 		mov	WORD PTR -48[bp],OFFSET L00233
+	*** 00004c	c7 46 d2 46 00 		mov	WORD PTR -46[bp],OFFSET L00234
+; 				"0xF0" };
+; Line 15
+	*** 000051	c7 46 d4 4b 00 		mov	WORD PTR -44[bp],OFFSET L00235
+;     const char *col_label[] = { "0", "1", "2", "3", "4", "5", "6", "7",
+; Line 16
+	*** 000056	c7 46 d8 50 00 		mov	WORD PTR -40[bp],OFFSET L00237
+	*** 00005b	c7 46 da 52 00 		mov	WORD PTR -38[bp],OFFSET L00238
+	*** 000060	c7 46 dc 54 00 		mov	WORD PTR -36[bp],OFFSET L00239
+	*** 000065	c7 46 de 56 00 		mov	WORD PTR -34[bp],OFFSET L00240
+	*** 00006a	c7 46 e0 58 00 		mov	WORD PTR -32[bp],OFFSET L00241
+	*** 00006f	c7 46 e2 5a 00 		mov	WORD PTR -30[bp],OFFSET L00242
+	*** 000074	c7 46 e4 5c 00 		mov	WORD PTR -28[bp],OFFSET L00243
+	*** 000079	c7 46 e6 5e 00 		mov	WORD PTR -26[bp],OFFSET L00244
+; 	                        "8", "9", "A", "B", "C", "D", "E", "F" };
+; Line 17
+	*** 00007e	c7 46 e8 60 00 		mov	WORD PTR -24[bp],OFFSET L00245
+	*** 000083	c7 46 ea 62 00 		mov	WORD PTR -22[bp],OFFSET L00246
+	*** 000088	c7 46 ec 64 00 		mov	WORD PTR -20[bp],OFFSET L00247
+	*** 00008d	c7 46 ee 66 00 		mov	WORD PTR -18[bp],OFFSET L00248
+	*** 000092	c7 46 f0 68 00 		mov	WORD PTR -16[bp],OFFSET L00249
+	*** 000097	c7 46 f2 6a 00 		mov	WORD PTR -14[bp],OFFSET L00250
+	*** 00009c	c7 46 f4 6c 00 		mov	WORD PTR -12[bp],OFFSET L00251
+	*** 0000a1	c7 46 f6 6e 00 		mov	WORD PTR -10[bp],OFFSET L00252
+;     int r,c;  //row and column index
+; Line 18
+;     int x,y;  //x,y coordinate
+; Line 19
+; 
+;     // set video mode to 320x200 256 color mode
+;     Set_Video_Mode(VGA256);
+; Line 22
+	*** 0000a6	6a 13 			push	OFFSET 19
+	*** 0000a8	9a 00 00 00 00 		call	FAR PTR _Set_Video_Mode
+	*** 0000ad	83 c4 02 		add	sp,OFFSET 2
+; 
+;     /*
+;      * The layout we wish to achieve is this:
+;      *     0 1 2 3 4 5 6 7 8 9 A B C D E F
+;      * 0x00
+;      * 0x10
+;      * 0x20
+;      * 0x30
+;      * 0x40
+;      * 0x50
+;      * 0x70
+;      * 0x80   Colors Go Here 
+;      * 0x90       each color space is 16w x 8h
+;      * 0xA0
+;      * 0xB0
+;      * 0xC0
+;      * 0xD0
+;      * 0xE0
+;      * 0xF0
+;      * Rows: 17 * 8 = 136 pixels
+;      * Cols: 36 * 8 = 288 pixels
+;      * Starting row = 100 - (136/2) - 1 = 31
+;      * Starig Col = 160 - (288/2) - 1 = 15
+;      */
+; 
+;     //Draw the palette label
+;     Blit_String(100,8,0x07,"DEFAULT VGA PALETTE",1);
+; Line 49
+	*** 0000b0	6a 01 			push	OFFSET 1
+	*** 0000b2	68 70 00 		push	OFFSET L00257
+	*** 0000b5	6a 07 			push	OFFSET 7
+	*** 0000b7	6a 08 			push	OFFSET 8
+	*** 0000b9	6a 64 			push	OFFSET 100
+	*** 0000bb	9a 00 00 00 00 		call	FAR PTR _Blit_String
+	*** 0000c0	83 c4 0a 		add	sp,OFFSET 10
+; 
+;     //Draw the col headers
+;     x=15+32+4;
+; Line 52
+	*** 0000c3	c7 46 fc 33 00 		mov	WORD PTR -4[bp],OFFSET 51
+;     y=31;
+; Line 53
+	*** 0000c8	c7 46 d6 1f 00 		mov	WORD PTR -42[bp],OFFSET 31
+;     for(c=0; c<16; c++, x+=16) {
+; Line 54
+	*** 0000cd	c7 46 fa 00 00 		mov	WORD PTR -6[bp],OFFSET 0
+	*** 0000d2	e9 00 00 		jmp	L00258
+					L00259:
+	*** 0000d5	8b 46 fa 		mov	ax,WORD PTR -6[bp]
+	*** 0000d8	83 46 fa 01 		add	WORD PTR -6[bp],OFFSET 1
+	*** 0000dc	83 46 fc 10 		add	WORD PTR -4[bp],OFFSET 16
+	*** 0000e0	8b 46 fc 		mov	ax,WORD PTR -4[bp]
+					L00258:
+	*** 0000e3	83 7e fa 10 		cmp	WORD PTR -6[bp],OFFSET 16
+	*** 0000e7	7c 03 e9 00 00 		jge	L00260
+; 	Blit_String(x, y, 0x07, col_label[c], 1);
+; Line 55
+	*** 0000ec	6a 01 			push	OFFSET 1
+	*** 0000ee	8b 46 fa 		mov	ax,WORD PTR -6[bp]
+	*** 0000f1	d1 e0 			shl	ax,OFFSET 1
+	*** 0000f3	8d 5e d8 		lea	bx,WORD PTR -40[bp]
+	*** 0000f6	03 d8 			add	bx,ax
+	*** 0000f8	ff 37 			push	WORD PTR ss:[bx]
+	*** 0000fa	6a 07 			push	OFFSET 7
+	*** 0000fc	ff 76 d6 		push	WORD PTR -42[bp]
+	*** 0000ff	ff 76 fc 		push	WORD PTR -4[bp]
+	*** 000102	9a 00 00 00 00 		call	FAR PTR _Blit_String
+	*** 000107	83 c4 0a 		add	sp,OFFSET 10
+;     }
+; Line 56
+; Line 56
+	*** 00010a	e9 c8 ff 		jmp	L00259
+					L00260:
+;     y+=8;
+; Line 57
+	*** 00010d	83 46 d6 08 		add	WORD PTR -42[bp],OFFSET 8
+; 
+;     //Draw the rows
+;     for(r=0; r<16; r++, y+=8) {
+; Line 60
+	*** 000111	c7 46 f8 00 00 		mov	WORD PTR -8[bp],OFFSET 0
+	*** 000116	e9 00 00 		jmp	L00262
+					L00263:
+	*** 000119	8b 46 f8 		mov	ax,WORD PTR -8[bp]
+	*** 00011c	83 46 f8 01 		add	WORD PTR -8[bp],OFFSET 1
+	*** 000120	83 46 d6 08 		add	WORD PTR -42[bp],OFFSET 8
+	*** 000124	8b 46 d6 		mov	ax,WORD PTR -42[bp]
+					L00262:
+	*** 000127	83 7e f8 10 		cmp	WORD PTR -8[bp],OFFSET 16
+	*** 00012b	7c 03 e9 00 00 		jge	L00264
+; 	x=15;
+; Line 61
+	*** 000130	c7 46 fc 0f 00 		mov	WORD PTR -4[bp],OFFSET 15
+; 	Blit_String(x,y,0x07, row_label[r], 1);
+; Line 62
+	*** 000135	6a 01 			push	OFFSET 1
+	*** 000137	8b 46 f8 		mov	ax,WORD PTR -8[bp]
+	*** 00013a	d1 e0 			shl	ax,OFFSET 1
+	*** 00013c	8d 5e b6 		lea	bx,WORD PTR -74[bp]
+	*** 00013f	03 d8 			add	bx,ax
+	*** 000141	ff 37 			push	WORD PTR ss:[bx]
+	*** 000143	6a 07 			push	OFFSET 7
+	*** 000145	ff 76 d6 		push	WORD PTR -42[bp]
+	*** 000148	ff 76 fc 		push	WORD PTR -4[bp]
+	*** 00014b	9a 00 00 00 00 		call	FAR PTR _Blit_String
+	*** 000150	83 c4 0a 		add	sp,OFFSET 10
+; 	x+=32;
+; Line 63
+	*** 000153	83 46 fc 20 		add	WORD PTR -4[bp],OFFSET 32
+; 	for(c=0; c<16; c++, x+=16){
+; Line 64
+	*** 000157	c7 46 fa 00 00 		mov	WORD PTR -6[bp],OFFSET 0
+	*** 00015c	e9 00 00 		jmp	L00266
+					L00267:
+	*** 00015f	8b 46 fa 		mov	ax,WORD PTR -6[bp]
+	*** 000162	83 46 fa 01 		add	WORD PTR -6[bp],OFFSET 1
+	*** 000166	83 46 fc 10 		add	WORD PTR -4[bp],OFFSET 16
+	*** 00016a	8b 46 fc 		mov	ax,WORD PTR -4[bp]
+					L00266:
+	*** 00016d	83 7e fa 10 		cmp	WORD PTR -6[bp],OFFSET 16
+	*** 000171	7c 03 e9 00 00 		jge	L00268
+; 	    draw_swatch(x,y, (r<<4) + c);
+; Line 65
+	*** 000176	8b 46 f8 		mov	ax,WORD PTR -8[bp]
+	*** 000179	d1 e0 			shl	ax,OFFSET 1
+	*** 00017b	d1 e0 			shl	ax,OFFSET 1
+	*** 00017d	d1 e0 			shl	ax,OFFSET 1
+	*** 00017f	d1 e0 			shl	ax,OFFSET 1
+	*** 000181	03 46 fa 		add	ax,WORD PTR -6[bp]
+	*** 000184	50 			push	ax
+	*** 000185	ff 76 d6 		push	WORD PTR -42[bp]
+	*** 000188	ff 76 fc 		push	WORD PTR -4[bp]
+	*** 00018b	9a 00 00 00 00 		call	FAR PTR _draw_swatch
+	*** 000190	83 c4 06 		add	sp,OFFSET 6
+; 	}
+; Line 66
+; Line 66
+	*** 000193	e9 c9 ff 		jmp	L00267
+					L00268:
+;     }
+; Line 67
+; Line 67
+	*** 000196	e9 80 ff 		jmp	L00263
+					L00264:
+; 
+;     //print exit instructions
+;     Blit_String(0,192,0x07, "press any key to exit", 1);
+; Line 70
+	*** 000199	6a 01 			push	OFFSET 1
+	*** 00019b	68 84 00 		push	OFFSET L00270
+	*** 00019e	6a 07 			push	OFFSET 7
+	*** 0001a0	68 c0 00 		push	OFFSET 192
+	*** 0001a3	6a 00 			push	OFFSET 0
+	*** 0001a5	9a 00 00 00 00 		call	FAR PTR _Blit_String
+	*** 0001aa	83 c4 0a 		add	sp,OFFSET 10
+; 
+;     //wait for a key press
+;     while(!kbhit()) {}
+; Line 73
+					L00272:
+	*** 0001ad	9a 00 00 00 00 		call	FAR PTR _kbhit
+	*** 0001b2	3d 00 00 		cmp	ax,OFFSET 0
+	*** 0001b5	74 03 e9 00 00 		jne	L00273
+; Line 73
+	*** 0001ba	e9 f0 ff 		jmp	L00272
+					L00273:
+; 
+; 
+;     // reset back set video mode to 320x200 256 color mode
+;     Set_Video_Mode(TEXT_MODE);
+; Line 77
+	*** 0001bd	6a 03 			push	OFFSET 3
+	*** 0001bf	9a 00 00 00 00 		call	FAR PTR _Set_Video_Mode
+	*** 0001c4	83 c4 02 		add	sp,OFFSET 2
+; }
+; Line 78
+; Line 78
+					L00218:
+	*** 0001c7	5f 			pop	di
+	*** 0001c8	5e 			pop	si
+	*** 0001c9	c9 			leave
+	*** 0001ca	cb 			ret	OFFSET 0
+Local Size: 74
+; Line 0
+; 
+; 
+; void draw_swatch(int x, int y, unsigned char color)
+; {
+;     int right=x+16;
+;     int bottom=y+8;
+;     int py;
+; 
+;     for(x; x<right; x++) {
+; 	for(py=y; py<bottom; py++) {
+; 	    Plot_Pixel_Fast(x, py, color);
+; 	}
+;     }
+; }
+; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; Line 82
+; x = 0006
+; y = 0008
+; color = 000a
+					_draw_swatch:
+	*** 0001cc	c8 00 00 00 		enter	OFFSET L00294,OFFSET 0
+	*** 0001d0	56 			push	si
+	*** 0001d1	57 			push	di
+; bottom = fffc
+; py = fffa
+; right = fff8
+; ; Line 83
+	*** 0001d2	8b 46 06 		mov	ax,WORD PTR 6[bp]
+	*** 0001d5	05 10 00 		add	ax,OFFSET 16
+	*** 0001d8	89 46 f8 		mov	WORD PTR -8[bp],ax
+; ; Line 84
+	*** 0001db	8b 46 08 		mov	ax,WORD PTR 8[bp]
+	*** 0001de	05 08 00 		add	ax,OFFSET 8
+	*** 0001e1	89 46 fc 		mov	WORD PTR -4[bp],ax
+; ; Line 85
+; ; ; Line 87
+	*** 0001e4	e9 00 00 		jmp	L00288
+					L00285:
+; ; Line 88
+	*** 0001e7	8b 46 08 		mov	ax,WORD PTR 8[bp]
+	*** 0001ea	89 46 fa 		mov	WORD PTR -6[bp],ax
+	*** 0001ed	e9 00 00 		jmp	L00292
+					L00289:
+; ; Line 89
+	*** 0001f0	8a 46 0a 		mov	al,BYTE PTR 10[bp]
+	*** 0001f3	25 ff 00 		and	ax,OFFSET 255
+	*** 0001f6	50 			push	ax
+	*** 0001f7	ff 76 fa 		push	WORD PTR -6[bp]
+	*** 0001fa	ff 76 06 		push	WORD PTR 6[bp]
+	*** 0001fd	9a 00 00 00 00 		call	FAR PTR _Plot_Pixel_Fast
+	*** 000202	83 c4 06 		add	sp,OFFSET 6
+; ; Line 90
+					L00290:
+; Line 90
+	*** 000205	83 46 fa 01 		add	WORD PTR -6[bp],OFFSET 1
+					L00292:
+	*** 000209	8b 46 fc 		mov	ax,WORD PTR -4[bp]
+	*** 00020c	39 46 fa 		cmp	WORD PTR -6[bp],ax
+	*** 00020f	7d 03 e9 dc ff 		jl	L00289
+					L00291:
+; ; Line 91
+					L00286:
+; Line 91
+	*** 000214	83 46 06 01 		add	WORD PTR 6[bp],OFFSET 1
+					L00288:
+	*** 000218	8b 46 f8 		mov	ax,WORD PTR -8[bp]
+	*** 00021b	39 46 06 		cmp	WORD PTR 6[bp],ax
+	*** 00021e	7d 03 e9 c4 ff 		jl	L00285
+					L00287:
+; ; Line 92
+; Line 92
+					L00281:
+	*** 000223	5f 			pop	di
+	*** 000224	5e 			pop	si
+	*** 000225	c9 			leave
+	*** 000226	cb 			ret	OFFSET 0
+Local Size: 8
+; Line 0

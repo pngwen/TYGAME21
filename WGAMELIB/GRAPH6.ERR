@@ -1,0 +1,5 @@
+graph3.h(67): Warning! W138: No newline at end of file
+graph4.h(100): Warning! W138: No newline at end of file
+graph6.h(69): Warning! W138: No newline at end of file
+GRAPH6.C(493): Warning! W131: No prototype found for function '_inp'
+GRAPH6.C(578): Warning! W138: No newline at end of file

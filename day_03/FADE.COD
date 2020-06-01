@@ -1,0 +1,191 @@
+; File fade.c
+; // I N C L U D E S ///////////////////////////////////////////////////////////
+; 
+; #include <stdio.h>
+; #include <stdlib.h>
+; #include <conio.h>
+; 
+; #include "graph3.h" // this is all we need to include so that the program
+;                     // knows all the #defines, structures, prototypes etc.
+; 
+; // M A I N ///////////////////////////////////////////////////////////////////
+; 
+; void main(void)
+; {
+; Line 13
+					_main:
+	*** 000000	c8 00 00 00 		enter	OFFSET L00399,OFFSET 0
+	*** 000004	56 			push	si
+	*** 000005	57 			push	di
+; y = fffc
+; done = fffa
+; color = fff6
+; i = fff4
+; x = fff2
+; RGB_color color;  
+; Line 14
+; int done;
+; Line 15
+; int x,y;
+; Line 16
+; int i;
+; Line 17
+; 
+; // set video mode to 320x200 256 color mode
+; Set_Video_Mode(VGA256);
+; Line 20
+	*** 000006	6a 13 			push	OFFSET 19
+	*** 000008	9a 00 00 00 00 		call	FAR PTR _Set_Video_Mode
+	*** 00000d	83 c4 02 		add	sp,OFFSET 2
+; 
+; //set each pixel to a random value
+; for(x=0; x<320; x++) {
+; Line 23
+	*** 000010	c7 46 f2 00 00 		mov	WORD PTR -14[bp],OFFSET 0
+	*** 000015	e9 00 00 		jmp	L00384
+					L00381:
+;     for(y=0; y<200; y++) {
+; Line 24
+	*** 000018	c7 46 fc 00 00 		mov	WORD PTR -4[bp],OFFSET 0
+	*** 00001d	e9 00 00 		jmp	L00388
+					L00385:
+; 	Plot_Pixel_Fast(x, y, (unsigned char)(rand() & 0xff));
+; Line 25
+	*** 000020	9a 00 00 00 00 		call	FAR PTR _rand
+	*** 000025	25 ff 00 		and	ax,OFFSET 255
+	*** 000028	25 ff 00 		and	ax,OFFSET 255
+	*** 00002b	50 			push	ax
+	*** 00002c	ff 76 fc 		push	WORD PTR -4[bp]
+	*** 00002f	ff 76 f2 		push	WORD PTR -14[bp]
+	*** 000032	9a 00 00 00 00 		call	FAR PTR _Plot_Pixel_Fast
+	*** 000037	83 c4 06 		add	sp,OFFSET 6
+;     }
+; Line 26
+					L00386:
+; Line 26
+	*** 00003a	83 46 fc 01 		add	WORD PTR -4[bp],OFFSET 1
+					L00388:
+	*** 00003e	81 7e fc c8 00 		cmp	WORD PTR -4[bp],OFFSET 200
+	*** 000043	7d 03 e9 d8 ff 		jl	L00385
+					L00387:
+; }
+; Line 27
+					L00382:
+; Line 27
+	*** 000048	83 46 f2 01 		add	WORD PTR -14[bp],OFFSET 1
+					L00384:
+	*** 00004c	81 7e f2 40 01 		cmp	WORD PTR -14[bp],OFFSET 320
+	*** 000051	7d 03 e9 c2 ff 		jl	L00381
+					L00383:
+; 
+; // fade to black
+; do {
+; Line 30
+					L00389:
+;     //assume this is the last time
+;     done = 1;
+; Line 32
+	*** 000056	c7 46 fa 01 00 		mov	WORD PTR -6[bp],OFFSET 1
+; 
+;     //decrement every register
+;     for(i=0; i<=255; i++) {
+; Line 35
+	*** 00005b	c7 46 f4 00 00 		mov	WORD PTR -12[bp],OFFSET 0
+	*** 000060	e9 00 00 		jmp	L00395
+					L00392:
+;         Get_Palette_Register(i, &color);
+; Line 36
+	*** 000063	8d 46 f6 		lea	ax,WORD PTR -10[bp]
+	*** 000066	50 			push	ax
+	*** 000067	ff 76 f4 		push	WORD PTR -12[bp]
+	*** 00006a	9a 00 00 00 00 		call	FAR PTR _Get_Palette_Register
+	*** 00006f	83 c4 04 		add	sp,OFFSET 4
+; 	if(color.red) {
+; Line 37
+	*** 000072	8a 46 f6 		mov	al,BYTE PTR -10[bp]
+	*** 000075	25 ff 00 		and	ax,OFFSET 255
+	*** 000078	3d 00 00 		cmp	ax,OFFSET 0
+	*** 00007b	75 03 e9 00 00 		je	L00396
+; 	    done = 0;
+; Line 38
+	*** 000080	c7 46 fa 00 00 		mov	WORD PTR -6[bp],OFFSET 0
+; 	    color.red--;
+; Line 39
+	*** 000085	80 6e f6 01 		sub	BYTE PTR -10[bp],OFFSET 1
+; 	}
+; Line 40
+; 	if(color.green) {
+; Line 41
+					L00396:
+	*** 000089	8a 46 f7 		mov	al,BYTE PTR -9[bp]
+	*** 00008c	25 ff 00 		and	ax,OFFSET 255
+	*** 00008f	3d 00 00 		cmp	ax,OFFSET 0
+	*** 000092	75 03 e9 00 00 		je	L00397
+; 	    done = 0;
+; Line 42
+	*** 000097	c7 46 fa 00 00 		mov	WORD PTR -6[bp],OFFSET 0
+; 	    color.green--;
+; Line 43
+	*** 00009c	80 6e f7 01 		sub	BYTE PTR -9[bp],OFFSET 1
+; 	}
+; Line 44
+; 	if(color.blue) {
+; Line 45
+					L00397:
+	*** 0000a0	8a 46 f8 		mov	al,BYTE PTR -8[bp]
+	*** 0000a3	25 ff 00 		and	ax,OFFSET 255
+	*** 0000a6	3d 00 00 		cmp	ax,OFFSET 0
+	*** 0000a9	75 03 e9 00 00 		je	L00398
+; 	    done = 0;
+; Line 46
+	*** 0000ae	c7 46 fa 00 00 		mov	WORD PTR -6[bp],OFFSET 0
+; 	    color.blue--;
+; Line 47
+	*** 0000b3	80 6e f8 01 		sub	BYTE PTR -8[bp],OFFSET 1
+; 	}
+; Line 48
+; 	Set_Palette_Register(i, &color);
+; Line 49
+					L00398:
+	*** 0000b7	8d 46 f6 		lea	ax,WORD PTR -10[bp]
+	*** 0000ba	50 			push	ax
+	*** 0000bb	ff 76 f4 		push	WORD PTR -12[bp]
+	*** 0000be	9a 00 00 00 00 		call	FAR PTR _Set_Palette_Register
+	*** 0000c3	83 c4 04 		add	sp,OFFSET 4
+;     }
+; Line 50
+					L00393:
+; Line 50
+	*** 0000c6	83 46 f4 01 		add	WORD PTR -12[bp],OFFSET 1
+					L00395:
+	*** 0000ca	81 7e f4 ff 00 		cmp	WORD PTR -12[bp],OFFSET 255
+	*** 0000cf	7f 03 e9 8f ff 		jle	L00392
+					L00394:
+;     Delay(2); //sloooowly
+; Line 51
+	*** 0000d4	6a 02 			push	OFFSET 2
+	*** 0000d6	9a 00 00 00 00 		call	FAR PTR _Delay
+	*** 0000db	83 c4 02 		add	sp,OFFSET 2
+; } while(!done);
+; Line 52
+					L00390:
+	*** 0000de	83 7e fa 00 		cmp	WORD PTR -6[bp],OFFSET 0
+	*** 0000e2	75 03 e9 6f ff 		je	L00389
+; Line 52
+					L00391:
+; 
+; Set_Video_Mode(TEXT_MODE);
+; Line 54
+	*** 0000e7	6a 03 			push	OFFSET 3
+	*** 0000e9	9a 00 00 00 00 		call	FAR PTR _Set_Video_Mode
+	*** 0000ee	83 c4 02 		add	sp,OFFSET 2
+; }
+; Line 55
+; Line 55
+					L00375:
+	*** 0000f1	5f 			pop	di
+	*** 0000f2	5e 			pop	si
+	*** 0000f3	c9 			leave
+	*** 0000f4	cb 			ret	OFFSET 0
+Local Size: 14
+; Line 0

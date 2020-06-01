@@ -12,35 +12,49 @@
 
 void main(void)
 {
-
+RGB_color orig;  //The original red color
+RGB_color cur;   //The current red color
 int done=0; // exit flag
-int index=0;
+int fade=-1;
 int x,y;
-unsigned char colors[]={ 0x04, 0x0c, 0x27, 0x28,
-                         0x27, 0x0c };
 
 // set video mode to 320x200 256 color mode
-
 Set_Video_Mode(VGA256);
 
-// plot 10000 dots
+//extract the color
+Get_Palette_Register(0x0c, &orig);
+cur = orig;
 
+//plot the pixel
+Plot_Pixel_Fast(158,98,0x0c);
+Plot_Pixel_Fast(159,98,0x0c);
+Plot_Pixel_Fast(160,98,0x0c);
+Plot_Pixel_Fast(158,99,0x0c);
+Plot_Pixel_Fast(159,99,0x0c);
+Plot_Pixel_Fast(160,99,0x0c);
+Plot_Pixel_Fast(158,100,0x0c);
+Plot_Pixel_Fast(159,100,0x0c);
+Plot_Pixel_Fast(160,100,0x0c);
 
 // wait for user to hit a key
 
 while(!done) {
-  for(x=158; x<=160; x++) {
-    for(y=98; y<=100; y++) {
-      Plot_Pixel_Fast(x,y,colors[index]);
-    }
+  //fade the color
+  if(fade < 0 && (!cur.red || !cur.green || !cur.blue)) {
+    fade = 1;
+  } else if(cur.red == orig.red || cur.green == orig.green || cur.blue == orig.blue) {
+    fade = -1;
   }
-  index = (index + 1) % sizeof(colors);
+  cur.red += fade;
+  cur.blue += fade;
+  cur.green += fade;
+  Set_Palette_Register(0x0c, &cur);
 
   // Check for keyboard
   if(kbhit()) {
     done = 1;
   }
-  Delay(10);
+  Delay(1);
 }
 
 // reset back set video mode to 320x200 256 color mode

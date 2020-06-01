@@ -1,0 +1,5 @@
+graph7j.h(55): Warning! W138: No newline at end of file
+GRAPH7J.C(74): Warning! W107: Missing return value for function 'Joystick'
+GRAPH7J.C(89): Warning! W131: No prototype found for function '_int86'
+GRAPH7J.C(119): Warning! W107: Missing return value for function 'Joystick_Bios'
+GRAPH7J.C(278): Warning! W138: No newline at end of file

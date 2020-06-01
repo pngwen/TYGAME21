@@ -1,0 +1,8 @@
+graph3.h(67): Warning! W138: No newline at end of file
+GRAPH3.C(22): Warning! E1180: Sign specifier mismatch
+GRAPH3.C(22): Note! I2003: source conversion type is 'int __far *'
+GRAPH3.C(22): Note! I2004: target conversion type is 'unsigned int __far *'
+GRAPH3.C(132): Warning! W131: No prototype found for function '_int86'
+GRAPH3.C(276): Warning! W131: No prototype found for function '_outp'
+GRAPH3.C(308): Warning! W131: No prototype found for function '_inp'
+GRAPH3.C(315): Warning! W138: No newline at end of file

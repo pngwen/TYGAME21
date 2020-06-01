@@ -1,0 +1,134 @@
+; File profile.c
+; 
+; // I N C L U D E S ///////////////////////////////////////////////////////////
+; 
+; #include <stdio.h>
+; #include <stdlib.h>
+; #include <conio.h>
+; 
+; #include "graph3.h" // this is all we need to include so that the program
+;                     // knows all the #defines, structures, prototypes etc.
+; 
+; // M A I N ///////////////////////////////////////////////////////////////////
+; 
+; void main(void)
+; {
+; Line 14
+					_main:
+	*** 000000	c8 00 00 00 		enter	OFFSET L00387,OFFSET 0
+	*** 000004	56 			push	si
+	*** 000005	57 			push	di
+; count = fffa
+; unsigned long int count;
+; Line 15
+; 
+; //do fast pixel load
+; printf("Fast Mode");
+; Line 18
+	*** 000006	68 00 00 		push	OFFSET L00377
+	*** 000009	9a 00 00 00 00 		call	FAR PTR _printf
+	*** 00000e	83 c4 02 		add	sp,OFFSET 2
+; getch();
+; Line 19
+	*** 000011	9a 00 00 00 00 		call	FAR PTR _getch
+; 
+; // set video mode to 320x200 256 color mode
+; Set_Video_Mode(VGA256);
+; Line 22
+	*** 000016	6a 13 			push	OFFSET 19
+	*** 000018	9a 00 00 00 00 		call	FAR PTR _Set_Video_Mode
+	*** 00001d	83 c4 02 		add	sp,OFFSET 2
+; 
+; for(count=0; count < 1000000; count++) {
+; Line 24
+	*** 000020	c7 46 fa 00 00 		mov	WORD PTR -6[bp],OFFSET 0
+	*** 000025	c7 46 fc 00 00 		mov	WORD PTR -4[bp],OFFSET 0
+	*** 00002a	e9 00 00 		jmp	L00381
+					L00378:
+;     Plot_Pixel_Fast(159,99,0x0C);
+; Line 25
+	*** 00002d	6a 0c 			push	OFFSET 12
+	*** 00002f	6a 63 			push	OFFSET 99
+	*** 000031	68 9f 00 		push	OFFSET 159
+	*** 000034	9a 00 00 00 00 		call	FAR PTR _Plot_Pixel_Fast
+	*** 000039	83 c4 06 		add	sp,OFFSET 6
+; }
+; Line 26
+					L00379:
+; Line 26
+	*** 00003c	83 46 fa 01 		add	WORD PTR -6[bp],OFFSET 1
+	*** 000040	83 56 fc 00 		adc	WORD PTR -4[bp],OFFSET 0
+					L00381:
+	*** 000044	83 7e fc 0f 		cmp	WORD PTR -4[bp],OFFSET 15
+	*** 000048	73 03 e9 e0 ff 		jb	L00378
+	*** 00004d	76 03 e9 00 00 		ja	L00388
+	*** 000052	81 7e fa 40 42 		cmp	WORD PTR -6[bp],OFFSET 16960
+	*** 000057	73 03 e9 d1 ff 		jb	L00378
+					L00388:
+					L00380:
+; Set_Video_Mode(TEXT_MODE);
+; Line 27
+	*** 00005c	6a 03 			push	OFFSET 3
+	*** 00005e	9a 00 00 00 00 		call	FAR PTR _Set_Video_Mode
+	*** 000063	83 c4 02 		add	sp,OFFSET 2
+; 
+; //do normal pixel load
+; printf("normal Mode");
+; Line 30
+	*** 000066	68 0a 00 		push	OFFSET L00382
+	*** 000069	9a 00 00 00 00 		call	FAR PTR _printf
+	*** 00006e	83 c4 02 		add	sp,OFFSET 2
+; getch();
+; Line 31
+	*** 000071	9a 00 00 00 00 		call	FAR PTR _getch
+; 
+; // set video mode to 320x200 256 color mode
+; Set_Video_Mode(VGA256);
+; Line 34
+	*** 000076	6a 13 			push	OFFSET 19
+	*** 000078	9a 00 00 00 00 		call	FAR PTR _Set_Video_Mode
+	*** 00007d	83 c4 02 		add	sp,OFFSET 2
+; 
+; for(count=0; count < 1000000; count++) {
+; Line 36
+	*** 000080	c7 46 fa 00 00 		mov	WORD PTR -6[bp],OFFSET 0
+	*** 000085	c7 46 fc 00 00 		mov	WORD PTR -4[bp],OFFSET 0
+	*** 00008a	e9 00 00 		jmp	L00386
+					L00383:
+;     Plot_Pixel(159,99,0x0C);
+; Line 37
+	*** 00008d	6a 0c 			push	OFFSET 12
+	*** 00008f	6a 63 			push	OFFSET 99
+	*** 000091	68 9f 00 		push	OFFSET 159
+	*** 000094	9a 00 00 00 00 		call	FAR PTR _Plot_Pixel
+	*** 000099	83 c4 06 		add	sp,OFFSET 6
+; }
+; Line 38
+					L00384:
+; Line 38
+	*** 00009c	83 46 fa 01 		add	WORD PTR -6[bp],OFFSET 1
+	*** 0000a0	83 56 fc 00 		adc	WORD PTR -4[bp],OFFSET 0
+					L00386:
+	*** 0000a4	83 7e fc 0f 		cmp	WORD PTR -4[bp],OFFSET 15
+	*** 0000a8	73 03 e9 e0 ff 		jb	L00383
+	*** 0000ad	76 03 e9 00 00 		ja	L00389
+	*** 0000b2	81 7e fa 40 42 		cmp	WORD PTR -6[bp],OFFSET 16960
+	*** 0000b7	73 03 e9 d1 ff 		jb	L00383
+					L00389:
+					L00385:
+; Set_Video_Mode(TEXT_MODE);
+; Line 39
+	*** 0000bc	6a 03 			push	OFFSET 3
+	*** 0000be	9a 00 00 00 00 		call	FAR PTR _Set_Video_Mode
+	*** 0000c3	83 c4 02 		add	sp,OFFSET 2
+; 
+; } // end main
+; Line 41
+; Line 41
+					L00375:
+	*** 0000c6	5f 			pop	di
+	*** 0000c7	5e 			pop	si
+	*** 0000c8	c9 			leave
+	*** 0000c9	cb 			ret	OFFSET 0
+Local Size: 6
+; Line 0

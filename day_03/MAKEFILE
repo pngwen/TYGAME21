@@ -1,4 +1,47 @@
+all: red.exe profile.exe blit2.exe fade.exe keycode.exe vgapal.exe draw.exe bounce.exe
 red.exe: red.obj gamelib.lib
 	link /ST:8192 /CO red,,,graphics.lib+gamelib.lib,,
 red.obj: red.c
 	cl -AM -Zi -c -Fc -Gs -G2 red.c
+	
+profile.exe: profile.obj gamelib.lib
+	link /ST:8192 /CO profile,,,graphics.lib+gamelib.lib,,
+	
+profile.obj: profile.c
+	cl -AM -Zi -c -Fc -Gs -G2 profile.c
+
+blit2.exe: blit2.obj gamelib.lib
+	link /ST:8192 /CO blit2,,,graphics.lib+gamelib.lib,,
+	
+blit2.obj: blit2.c
+	cl -AM -Zi -c -Fc -Gs -G2 blit2.c
+	
+fade.exe: fade.obj gamelib.lib
+	link /ST:8192 /CO fade,,,graphics.lib+gamelib.lib,,
+	
+fade.obj: fade.c
+	cl -AM -Zi -c -Fc -Gs -G2 fade.c
+	
+keycode.exe: keycode.obj gamelib.lib
+	link /ST:8192 /CO keycode,,,graphics.lib+gamelib.lib,,
+	
+keycode.obj: keycode.c
+	cl -AM -Zi -c -Fc -Gs -G2 keycode.c
+
+vgapal.exe: vgapal.obj gamelib.lib
+	link /ST:8192 /CO vgapal,,,graphics.lib+gamelib.lib,,
+	
+vgapal.obj: vgapal.c
+	cl -AM -Zi -c -Fc -Gs -G2 vgapal.c
+	
+draw.exe: draw.obj gamelib.lib
+	link /ST:8192 /CO draw,,,graphics.lib+gamelib.lib,,
+	
+draw.obj: draw.c
+	cl -AM -Zi -c -Fc -Gs -G2 draw.c
+	
+bounce.exe: bounce.obj gamelib.lib
+	link /ST:8192 /CO bounce,,,graphics.lib+gamelib.lib,,
+	
+bounce.obj: bounce.c
+	cl -AM -Zi -c -Fc -Gs -G2 bounce.c

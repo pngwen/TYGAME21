@@ -1,0 +1,53 @@
+Stack Allocation = 8192 bytes
+
+ Start  Stop   Length Name                   Class
+ 00000H 000F4H 000F5H FADE_TEXT              CODE
+ 000F6H 00507H 00412H GRAPH1_TEXT            CODE
+ 00508H 00E03H 008FCH _TEXT                  CODE
+ 00E10H 00E11H 00002H EMULATOR_TEXT          CODE
+ 00E12H 00E12H 00000H C_ETEXT                ENDCODE
+ 00E20H 00E20H 00000H EMULATOR_DATA          FAR_DATA
+ 00E20H 00E61H 00042H NULL                   BEGDATA
+ 00E62H 00F07H 000A6H _DATA                  DATA
+ 00F08H 00F09H 00002H XIQC                   DATA
+ 00F0AH 00F15H 0000CH DBDATA                 DATA
+ 00F16H 00F23H 0000EH CDATA                  DATA
+ 00F24H 00F24H 00000H XIFB                   DATA
+ 00F24H 00F24H 00000H XIF                    DATA
+ 00F24H 00F24H 00000H XIFE                   DATA
+ 00F24H 00F24H 00000H XIB                    DATA
+ 00F24H 00F24H 00000H XI                     DATA
+ 00F24H 00F24H 00000H XIE                    DATA
+ 00F24H 00F24H 00000H XPB                    DATA
+ 00F24H 00F24H 00000H XP                     DATA
+ 00F24H 00F24H 00000H XPE                    DATA
+ 00F24H 00F24H 00000H XCB                    DATA
+ 00F24H 00F24H 00000H XC                     DATA
+ 00F24H 00F24H 00000H XCE                    DATA
+ 00F24H 00F24H 00000H XCFB                   DATA
+ 00F24H 00F24H 00000H XCFCRT                 DATA
+ 00F24H 00F24H 00000H XCF                    DATA
+ 00F24H 00F24H 00000H XCFE                   DATA
+ 00F24H 00F24H 00000H XIFCB                  DATA
+ 00F24H 00F24H 00000H XIFU                   DATA
+ 00F24H 00F24H 00000H XIFL                   DATA
+ 00F24H 00F24H 00000H XIFM                   DATA
+ 00F24H 00F24H 00000H XIFCE                  DATA
+ 00F24H 00F24H 00000H CONST                  CONST
+ 00F24H 00F2BH 00008H HDR                    MSG
+ 00F2CH 01001H 000D6H MSG                    MSG
+ 01002H 01003H 00002H PAD                    MSG
+ 01004H 01004H 00001H EPAD                   MSG
+ 01006H 01006H 00000H _BSS                   BSS
+ 01006H 01006H 00000H XOB                    BSS
+ 01006H 01006H 00000H XO                     BSS
+ 01006H 01006H 00000H XOE                    BSS
+ 01006H 01006H 00000H XOFB                   BSS
+ 01006H 01006H 00000H XOF                    BSS
+ 01006H 01006H 00000H XOFE                   BSS
+ 01010H 0300FH 02000H STACK                  STACK
+
+ Origin   Group
+ 00E2:0   DGROUP
+
+Program entry point at 0050:0018
