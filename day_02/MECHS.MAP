@@ -1,98 +1,57 @@
 Stack Allocation = 8192 bytes
 
  Start  Stop   Length Name                   Class
- 00000H 01EF0H 01EF1H _TEXT                  CODE
- 01EF2H 02303H 00412H GRAPH1_TEXT            CODE
- 02304H 02AE4H 007E1H GRAPH4_TEXT            CODE
- 02AE6H 03672H 00B8DH GRAPH6_TEXT            CODE
- 03674H 0385BH 001E8H CONST                  DATA
- 0385CH 0385CH 00000H CONST2                 DATA
- 0385CH 03EEFH 00694H _DATA                  DATA
- 03EF0H 05B73H 01C84H _BSS                   BSS
- 05B74H 05B74H 00000H CONST                  CONST
+ 00000H 02F3DH 02F3EH MECHS_TEXT             CODE
+ 02F3EH 0334FH 00412H GRAPH1_TEXT            CODE
+ 03350H 03B30H 007E1H GRAPH4_TEXT            CODE
+ 03B32H 046BEH 00B8DH GRAPH6_TEXT            CODE
+ 046C0H 04A02H 00343H GRAPH9_TEXT            CODE
+ 04A04H 08DEAH 043E7H _TEXT                  CODE
+ 08DF0H 0B4EFH 02700H EMULATOR_TEXT          CODE
+ 0B4F0H 0B4F0H 00000H C_ETEXT                ENDCODE
+ 0B4F0H 0B65FH 00170H EMULATOR_DATA          FAR_DATA
+ 0B660H 0B6A1H 00042H NULL                   BEGDATA
+ 0B6A2H 0C543H 00EA2H _DATA                  DATA
+ 0C544H 0C545H 00002H XIQC                   DATA
+ 0C546H 0C551H 0000CH DBDATA                 DATA
+ 0C552H 0C55FH 0000EH CDATA                  DATA
+ 0C560H 0C560H 00000H XIB                    DATA
+ 0C560H 0C56BH 0000CH XI                     DATA
+ 0C56CH 0C56CH 00000H XIE                    DATA
+ 0C56CH 0C56CH 00000H XIFB                   DATA
+ 0C56CH 0C56CH 00000H XIF                    DATA
+ 0C56CH 0C56CH 00000H XIFE                   DATA
+ 0C56CH 0C56CH 00000H XPB                    DATA
+ 0C56CH 0C56FH 00004H XP                     DATA
+ 0C570H 0C570H 00000H XPE                    DATA
+ 0C570H 0C570H 00000H XCB                    DATA
+ 0C570H 0C570H 00000H XC                     DATA
+ 0C570H 0C570H 00000H XCE                    DATA
+ 0C570H 0C570H 00000H XCFB                   DATA
+ 0C570H 0C570H 00000H XCFCRT                 DATA
+ 0C570H 0C570H 00000H XCF                    DATA
+ 0C570H 0C570H 00000H XCFE                   DATA
+ 0C570H 0C570H 00000H XIFCB                  DATA
+ 0C570H 0C570H 00000H XIFU                   DATA
+ 0C570H 0C570H 00000H XIFL                   DATA
+ 0C570H 0C570H 00000H XIFM                   DATA
+ 0C570H 0C570H 00000H XIFCE                  DATA
+ 0C570H 0C57FH 00010H CONST                  CONST
+ 0C580H 0C587H 00008H HDR                    MSG
+ 0C588H 0C767H 001E0H MSG                    MSG
+ 0C768H 0C769H 00002H PAD                    MSG
+ 0C76AH 0C76AH 00001H EPAD                   MSG
+ 0C76CH 0C79DH 00032H _BSS                   BSS
+ 0C79EH 0C79EH 00000H XOB                    BSS
+ 0C79EH 0C79EH 00000H XO                     BSS
+ 0C79EH 0C79EH 00000H XOE                    BSS
+ 0C79EH 0C79EH 00000H XOFB                   BSS
+ 0C79EH 0C79EH 00000H XOF                    BSS
+ 0C79EH 0C79EH 00000H XOFE                   BSS
+ 0C7A0H 0E423H 01C84H c_common               BSS
+ 0E430H 1042FH 02000H STACK                  STACK
 
  Origin   Group
- 0367:0   DGROUP
+ 0B66:0   DGROUP
 
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: 'sprintf_' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: 'Voc_Unload_Sound_' : unresolved external
-gamelib.lib(graph6.c) : error L2029: '__fmemset' : unresolved external
-gamelib.lib(graph1.c) : error L2029: '__fmemset' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: 'Wait_For_Vsync_' : unresolved external
-gamelib.lib(graph4.c) : error L2029: '_fopen' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: 'Voc_Stop_Sound_' : unresolved external
-gamelib.lib(graph6.c) : error L2029: '_rand' : unresolved external
-gamelib.lib(graph4.c) : error L2029: '__filbuf' : unresolved external
-gamelib.lib(graph4.c) : error L2029: '_abs' : unresolved external
-gamelib.lib(graph1.c) : error L2029: '_abs' : unresolved external
-gamelib.lib(graph4.c) : error L2029: '_fseek' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: 'Delay_' : unresolved external
-gamelib.lib(graph6.c) : error L2029: '__fltused' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: 'Sprite_Init_' : unresolved external
-gamelib.lib(graph1.c) : error L2029: '__int86' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: 'PCX_Show_Buffer_' : unresolved external
-gamelib.lib(graph6.c) : error L2029: '__ffree' : unresolved external
-gamelib.lib(graph4.c) : error L2029: '__ffree' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: 'getch_' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: '__8087' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: 'rand_' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: 'Melt_' : unresolved external
-gamelib.lib(graph6.c) : error L2029: 'FIWRQQ' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: 'FIWRQQ' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: '_cstart_' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: 'PCX_Delete_' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: 'fopen_' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: '__init_87_emulator' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: 'PCX_Grab_Bitmap_' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: '__CHP' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: 'Voc_Load_Driver_' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: 'Voc_Load_Sound_' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: 'Draw_Sprite_DB_' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: 'Voc_Terminate_Driver_' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: 'Create_Double_Buffer_' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: 'Voc_Play_Sound_' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: 'Delete_Double_Buffer_' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: 'Voc_Set_Port_' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: 'fscanf_' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: 'Voc_Set_IRQ_' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: '_ct_voice_status' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: 'Voc_Set_Speaker_' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: 'Behind_Sprite_DB_' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: 'Voc_Set_Status_Addr_' : unresolved external
-gamelib.lib(graph6.c) : error L2029: '__inp' : unresolved external
-gamelib.lib(graph1.c) : error L2029: '__inp' : unresolved external
-gamelib.lib(graph1.c) : error L2029: '__outp' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: 'Erase_Sprite_DB_' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: '_ffree_' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: '_small_code_' : unresolved external
-gamelib.lib(graph6.c) : error L2029: '__fmemcpy' : unresolved external
-gamelib.lib(graph4.c) : error L2029: '__fmemcpy' : unresolved external
-gamelib.lib(graph4.c) : error L2029: '_printf' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: 'Fill_Double_Buffer_' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: 'Set_Palette_Register_' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: 'fclose_' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: 'Blit_String_DB_' : unresolved external
-gamelib.lib(graph6.c) : error L2029: '__fmalloc' : unresolved external
-gamelib.lib(graph4.c) : error L2029: '__fmalloc' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: 'Voc_Init_Driver_' : unresolved external
-gamelib.lib(graph6.c) : error L2029: 'FIDRQQ' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: 'FIDRQQ' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: 'PCX_Load_' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: '_fltused_' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: 'Set_Video_Mode_' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: '_dos_getvect_' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: '_fmemcpy_' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: '_fmalloc_' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: 'Voc_Get_Version_' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: '__argc' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: 'Show_Double_Buffer_' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: 'Plot_Pixel_Fast_DB_' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: 'printf_' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: '__STK' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: 'IF@DCOS' : unresolved external
-gamelib.lib(graph6.c) : error L2029: '__aFftol' : unresolved external
-gamelib.lib(graph4.c) : error L2029: '_fclose' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: 'Fade_Lights_' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: '_dos_setvect_' : unresolved external
-mechs.obj(C:\TYGAME21\DAY_02\MECHS.C) : error L2029: 'PCX_Init_' : unresolved external
-
+Program entry point at 04A0:0014
