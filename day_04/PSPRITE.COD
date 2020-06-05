@@ -1,0 +1,181 @@
+; File psprite.c
+; #include <stdio.h>
+; #include <string.h>
+; #include "graph3.h"
+; #include "graph4.h"
+; #include "better4.h"
+; 
+; int main()
+; {
+; Line 8
+					_main:
+	*** 000000	c8 00 00 00 		enter	OFFSET L00465,OFFSET 0
+	*** 000004	56 			push	si
+	*** 000005	57 			push	di
+; r = fffc
+; s = ff7a
+; c = ff78
+; p = fbf4
+; fname = fbe0
+; char fname[20];
+; Line 9
+; int r,c;  //row and column index
+; Line 10
+; sprite s;
+; Line 11
+; pcx_picture p;
+; Line 12
+; 
+; //get the file
+; printf("File: ");
+; Line 15
+	*** 000006	68 00 00 		push	OFFSET L00456
+	*** 000009	9a 00 00 00 00 		call	FAR PTR _printf
+	*** 00000e	83 c4 02 		add	sp,OFFSET 2
+; fgets(fname, 19, stdin);
+; Line 16
+	*** 000011	68 00 00 		push	OFFSET __iob
+	*** 000014	6a 13 			push	OFFSET 19
+	*** 000016	8d 86 e0 fb 		lea	ax,WORD PTR -1056[bp]
+	*** 00001a	50 			push	ax
+	*** 00001b	9a 00 00 00 00 		call	FAR PTR _fgets
+	*** 000020	83 c4 06 		add	sp,OFFSET 6
+; fname[strlen(fname)-1]='\0';
+; Line 17
+	*** 000023	8d 86 e0 fb 		lea	ax,WORD PTR -1056[bp]
+	*** 000027	50 			push	ax
+	*** 000028	9a 00 00 00 00 		call	FAR PTR _strlen
+	*** 00002d	83 c4 02 		add	sp,OFFSET 2
+	*** 000030	05 ff ff 		add	ax,OFFSET -1
+	*** 000033	8d 9e e0 fb 		lea	bx,WORD PTR -1056[bp]
+	*** 000037	03 d8 			add	bx,ax
+	*** 000039	c6 07 00 		mov	BYTE PTR ss:[bx],OFFSET 0
+; 
+; //get sprite width
+; printf("Width: ");
+; Line 20
+	*** 00003c	68 07 00 		push	OFFSET L00457
+	*** 00003f	9a 00 00 00 00 		call	FAR PTR _printf
+	*** 000044	83 c4 02 		add	sp,OFFSET 2
+; scanf("%d", &sprite_width);
+; Line 21
+	*** 000047	68 00 00 		push	OFFSET _sprite_width
+	*** 00004a	68 0f 00 		push	OFFSET L00458
+	*** 00004d	9a 00 00 00 00 		call	FAR PTR _scanf
+	*** 000052	83 c4 04 		add	sp,OFFSET 4
+; 
+; //get sprite height
+; printf("Height: ");
+; Line 24
+	*** 000055	68 12 00 		push	OFFSET L00459
+	*** 000058	9a 00 00 00 00 		call	FAR PTR _printf
+	*** 00005d	83 c4 02 		add	sp,OFFSET 2
+; scanf("%d", &sprite_height);
+; Line 25
+	*** 000060	68 00 00 		push	OFFSET _sprite_height
+	*** 000063	68 1b 00 		push	OFFSET L00460
+	*** 000066	9a 00 00 00 00 		call	FAR PTR _scanf
+	*** 00006b	83 c4 04 		add	sp,OFFSET 4
+; 
+; //get the row and column
+; printf("Row Index: ");
+; Line 28
+	*** 00006e	68 1e 00 		push	OFFSET L00461
+	*** 000071	9a 00 00 00 00 		call	FAR PTR _printf
+	*** 000076	83 c4 02 		add	sp,OFFSET 2
+; scanf("%d", &r);
+; Line 29
+	*** 000079	8d 46 fc 		lea	ax,WORD PTR -4[bp]
+	*** 00007c	50 			push	ax
+	*** 00007d	68 2a 00 		push	OFFSET L00462
+	*** 000080	9a 00 00 00 00 		call	FAR PTR _scanf
+	*** 000085	83 c4 04 		add	sp,OFFSET 4
+; printf("Column Index: ");
+; Line 30
+	*** 000088	68 2d 00 		push	OFFSET L00463
+	*** 00008b	9a 00 00 00 00 		call	FAR PTR _printf
+	*** 000090	83 c4 02 		add	sp,OFFSET 2
+; scanf("%d", &c);
+; Line 31
+	*** 000093	8d 86 78 ff 		lea	ax,WORD PTR -136[bp]
+	*** 000097	50 			push	ax
+	*** 000098	68 3c 00 		push	OFFSET L00464
+	*** 00009b	9a 00 00 00 00 		call	FAR PTR _scanf
+	*** 0000a0	83 c4 04 		add	sp,OFFSET 4
+; 
+; // load in the players imagery
+; PCX_Init((pcx_picture_ptr)&p);
+; Line 34
+	*** 0000a3	8d 86 f4 fb 		lea	ax,WORD PTR -1036[bp]
+	*** 0000a7	50 			push	ax
+	*** 0000a8	9a 00 00 00 00 		call	FAR PTR _PCX_Init
+	*** 0000ad	83 c4 02 		add	sp,OFFSET 2
+; PCX_Load(fname, (pcx_picture_ptr)&p,0);
+; Line 35
+	*** 0000b0	6a 00 			push	OFFSET 0
+	*** 0000b2	8d 86 f4 fb 		lea	ax,WORD PTR -1036[bp]
+	*** 0000b6	50 			push	ax
+	*** 0000b7	8d 86 e0 fb 		lea	ax,WORD PTR -1056[bp]
+	*** 0000bb	50 			push	ax
+	*** 0000bc	9a 00 00 00 00 		call	FAR PTR _PCX_Load
+	*** 0000c1	83 c4 06 		add	sp,OFFSET 6
+; 
+; //load the sprite
+; Sprite_Init((sprite_ptr)&s,302,91,0,0,0,0);
+; Line 38
+	*** 0000c4	6a 00 			push	OFFSET 0
+	*** 0000c6	6a 00 			push	OFFSET 0
+	*** 0000c8	6a 00 			push	OFFSET 0
+	*** 0000ca	6a 00 			push	OFFSET 0
+	*** 0000cc	6a 5b 			push	OFFSET 91
+	*** 0000ce	68 2e 01 		push	OFFSET 302
+	*** 0000d1	8d 86 7a ff 		lea	ax,WORD PTR -134[bp]
+	*** 0000d5	50 			push	ax
+	*** 0000d6	9a 00 00 00 00 		call	FAR PTR _Sprite_Init
+	*** 0000db	83 c4 0e 		add	sp,OFFSET 14
+; 
+; // grab the ship from the PCX file
+; PCX_Grab_Bitmap((pcx_picture_ptr)&p,(sprite_ptr)&s,0,c,r);
+; Line 41
+	*** 0000de	ff 76 fc 		push	WORD PTR -4[bp]
+	*** 0000e1	ff b6 78 ff 		push	WORD PTR -136[bp]
+	*** 0000e5	6a 00 			push	OFFSET 0
+	*** 0000e7	8d 86 7a ff 		lea	ax,WORD PTR -134[bp]
+	*** 0000eb	50 			push	ax
+	*** 0000ec	8d 86 f4 fb 		lea	ax,WORD PTR -1036[bp]
+	*** 0000f0	50 			push	ax
+	*** 0000f1	9a 00 00 00 00 		call	FAR PTR _PCX_Grab_Bitmap
+	*** 0000f6	83 c4 0a 		add	sp,OFFSET 10
+; 
+; //print the sprite info
+; Print_Sprite_Frame(&s, 0);
+; Line 44
+	*** 0000f9	6a 00 			push	OFFSET 0
+	*** 0000fb	8d 86 7a ff 		lea	ax,WORD PTR -134[bp]
+	*** 0000ff	50 			push	ax
+	*** 000100	9a 00 00 00 00 		call	FAR PTR _Print_Sprite_Frame
+	*** 000105	83 c4 04 		add	sp,OFFSET 4
+; 
+; //cleanup
+; PCX_Delete(&p);
+; Line 47
+	*** 000108	8d 86 f4 fb 		lea	ax,WORD PTR -1036[bp]
+	*** 00010c	50 			push	ax
+	*** 00010d	9a 00 00 00 00 		call	FAR PTR _PCX_Delete
+	*** 000112	83 c4 02 		add	sp,OFFSET 2
+; Sprite_Delete(&s);
+; Line 48
+	*** 000115	8d 86 7a ff 		lea	ax,WORD PTR -134[bp]
+	*** 000119	50 			push	ax
+	*** 00011a	9a 00 00 00 00 		call	FAR PTR _Sprite_Delete
+	*** 00011f	83 c4 02 		add	sp,OFFSET 2
+; }
+; Line 49
+; Line 49
+					L00450:
+	*** 000122	5f 			pop	di
+	*** 000123	5e 			pop	si
+	*** 000124	c9 			leave
+	*** 000125	cb 			ret	OFFSET 0
+Local Size: 1056
+; Line 0

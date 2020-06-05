@@ -1,0 +1,27 @@
+all: scale.exe ..\gamelib\gamelib.lib pcxfade.exe attank.exe starship.exe psprite.exe
+scale.exe: scale.obj better4.obj ..\gamelib\gamelib.lib
+	link /ST:8192 /CO scale,,,graphics.lib+..\gamelib\gamelib.lib,,
+scale.obj: scale.c
+	cl -AM -Zi -c -Fc -Gs -G2 scale.c
+attank.exe: attank.obj better4.obj ..\gamelib\gamelib.lib
+	link /ST:8192 /CO attank,,,graphics.lib+..\gamelib\gamelib.lib,,
+attank.obj: attank.c
+	cl -AM -Zi -c -Fc -Gs -G2 attank.c
+pcxfade.exe: pcxfade.obj better4.obj ..\gamelib\gamelib.lib
+	link /ST:8192 /CO pcxfade,,,graphics.lib+..\gamelib\gamelib.lib,,
+pcxfade.obj: pcxfade.c
+	cl -AM -Zi -c -Fc -Gs -G2 pcxfade.c
+starship.exe: starship.obj better4.obj ..\gamelib\gamelib.lib
+	link /ST:8192 /CO starship,,,graphics.lib+..\gamelib\gamelib.lib,,
+starship.obj: starship.c
+	cl -AM -Zi -c -Fc -Gs -G2 starship.c
+psprite.exe: psprite.obj better4.obj ..\gamelib\gamelib.lib
+	link /ST:8192 /CO psprite,,,graphics.lib+..\gamelib\gamelib.lib,,
+psprite.obj: psprite.c
+	cl -AM -Zi -c -Fc -Gs -G2 psprite.c
+	
+
+..\gamelib\gamelib.lib: better4.obj
+	lib ..\gamelib\gamelib.lib -+better4
+better4.obj: better4.c 
+	cl -AM -Zi -c -Fc -Gs -G2 better4.c

@@ -1,0 +1,654 @@
+; File starship.c
+; // I N C L U D E S ////////////////////////////////////////////////////////////
+; #include <io.h>
+; #include <conio.h>
+; #include <stdio.h>
+; #include <stdlib.h>
+; #include <dos.h>
+; #include <bios.h>
+; #include <fcntl.h>
+; #include <memory.h>
+; #include <malloc.h>
+; #include <math.h>
+; #include <string.h>
+; #include <graph.h>   // microsoft's stuff if we need it
+; 
+; #include "graph3.h"  // the module from day 3
+; #include "graph4.h"  // the module from day 4
+; #include "better4.h" // my better functions
+; 
+; // D E F I N E S //////////////////////////////////////////////////////////////
+; #define RED1 0x04
+; #define RED2 0x0C
+; #define RED_GLOW 0x20
+; 
+; #define NUM_STARS  75
+; 
+; 
+; typedef struct star
+; {
+;     int x;
+;     int y;
+;     unsigned int plane;
+; } star;
+; 
+; // G L O B A L S //////////////////////////////////////////////////////////////
+; unsigned char star_color[] = {8, 7, 15};
+; int star_dx[] = {2, 4, 6};
+; int star_dy[] = {0, 0, 0};
+; 
+; star stars[NUM_STARS];
+; 
+; // P R O T O T Y P E S ////////////////////////////////////////////////////////
+; void init_stars();
+; void update_stars();
+; 
+; // F U N C T I O N S //////////////////////////////////////////////////////////
+; int main()
+; {
+; Line 47
+					_main:
+	*** 000000	c8 00 00 00 		enter	OFFSET L00976,OFFSET 0
+	*** 000004	56 			push	si
+	*** 000005	57 			push	di
+; red2 = fffa
+; tx = fff8
+; ty = fff6
+; glow = fff2
+; ship = ff70
+; trajectory = ff58
+; tcount = ff56
+; dir = ff54
+; frame_counter = ff52
+; red1 = ff4e
+; fade_count = ff4c
+; ship_pcx = fbc8
+; pcx_picture ship_pcx;
+; Line 48
+; sprite ship;
+; Line 49
+; RGB_color red1, red2;
+; Line 50
+; RGB_color glow;
+; Line 51
+; unsigned int frame_counter=0;
+; Line 52
+	*** 000006	c7 86 52 ff 00 00 	mov	WORD PTR -174[bp],OFFSET 0
+; int dir=-1;
+; Line 53
+	*** 00000c	c7 86 54 ff ff ff 	mov	WORD PTR -172[bp],OFFSET -1
+; int fade_count=0;
+; Line 54
+	*** 000012	c7 86 4c ff 00 00 	mov	WORD PTR -180[bp],OFFSET 0
+; int trajectory [4][3] = { {0,0,0},
+; Line 55
+	*** 000018	c7 86 58 ff 00 00 	mov	WORD PTR -168[bp],OFFSET 0
+	*** 00001e	c7 86 5a ff 00 00 	mov	WORD PTR -166[bp],OFFSET 0
+	*** 000024	c7 86 5c ff 00 00 	mov	WORD PTR -164[bp],OFFSET 0
+;                          {1,2,4},
+; Line 56
+	*** 00002a	c7 86 5e ff 01 00 	mov	WORD PTR -162[bp],OFFSET 1
+	*** 000030	c7 86 60 ff 02 00 	mov	WORD PTR -160[bp],OFFSET 2
+	*** 000036	c7 86 62 ff 04 00 	mov	WORD PTR -158[bp],OFFSET 4
+; 			 {2,4,6},
+; Line 57
+	*** 00003c	c7 86 64 ff 02 00 	mov	WORD PTR -156[bp],OFFSET 2
+	*** 000042	c7 86 66 ff 04 00 	mov	WORD PTR -154[bp],OFFSET 4
+	*** 000048	c7 86 68 ff 06 00 	mov	WORD PTR -152[bp],OFFSET 6
+; 			 {-1, -2, -4} };
+; Line 58
+	*** 00004e	c7 86 6a ff ff ff 	mov	WORD PTR -150[bp],OFFSET -1
+	*** 000054	c7 86 6c ff fe ff 	mov	WORD PTR -148[bp],OFFSET -2
+	*** 00005a	c7 86 6e ff fc ff 	mov	WORD PTR -146[bp],OFFSET -4
+; int tx=2, ty=0;
+; Line 59
+	*** 000060	c7 46 f8 02 00 		mov	WORD PTR -8[bp],OFFSET 2
+	*** 000065	c7 46 f6 00 00 		mov	WORD PTR -10[bp],OFFSET 0
+; int tcount=0;
+; Line 60
+	*** 00006a	c7 86 56 ff 00 00 	mov	WORD PTR -170[bp],OFFSET 0
+; 
+; // set video mode to 320x200 256 color mode
+; Set_Video_Mode(VGA256);
+; Line 63
+	*** 000070	6a 13 			push	OFFSET 19
+	*** 000072	9a 00 00 00 00 		call	FAR PTR _Set_Video_Mode
+	*** 000077	83 c4 02 		add	sp,OFFSET 2
+; 
+; // load in the players imagery
+; PCX_Init((pcx_picture_ptr)&ship_pcx);
+; Line 66
+	*** 00007a	8d 86 c8 fb 		lea	ax,WORD PTR -1080[bp]
+	*** 00007e	50 			push	ax
+	*** 00007f	9a 00 00 00 00 		call	FAR PTR _PCX_Init
+	*** 000084	83 c4 02 		add	sp,OFFSET 2
+; PCX_Load("starship.pcx", (pcx_picture_ptr)&ship_pcx,1);
+; Line 67
+	*** 000087	6a 01 			push	OFFSET 1
+	*** 000089	8d 86 c8 fb 		lea	ax,WORD PTR -1080[bp]
+	*** 00008d	50 			push	ax
+	*** 00008e	68 00 00 		push	OFFSET L00946
+	*** 000091	9a 00 00 00 00 		call	FAR PTR _PCX_Load
+	*** 000096	83 c4 06 		add	sp,OFFSET 6
+; 
+; // initialize sprite size and data structure
+; sprite_width  = 16;
+; Line 70
+	*** 000099	c7 06 00 00 10 00 	mov	WORD PTR _sprite_width,OFFSET 16
+; sprite_height = 16;
+; Line 71
+	*** 00009f	c7 06 00 00 10 00 	mov	WORD PTR _sprite_height,OFFSET 16
+; 
+; // place the ship on the far right side of the screen
+; Sprite_Init((sprite_ptr)&ship,151,91,0,0,0,0);
+; Line 74
+	*** 0000a5	6a 00 			push	OFFSET 0
+	*** 0000a7	6a 00 			push	OFFSET 0
+	*** 0000a9	6a 00 			push	OFFSET 0
+	*** 0000ab	6a 00 			push	OFFSET 0
+	*** 0000ad	6a 5b 			push	OFFSET 91
+	*** 0000af	68 97 00 		push	OFFSET 151
+	*** 0000b2	8d 86 70 ff 		lea	ax,WORD PTR -144[bp]
+	*** 0000b6	50 			push	ax
+	*** 0000b7	9a 00 00 00 00 		call	FAR PTR _Sprite_Init
+	*** 0000bc	83 c4 0e 		add	sp,OFFSET 14
+; 
+; // grab the ship from the PCX file
+; PCX_Grab_Bitmap((pcx_picture_ptr)&ship_pcx,(sprite_ptr)&ship,0,0,0);
+; Line 77
+	*** 0000bf	6a 00 			push	OFFSET 0
+	*** 0000c1	6a 00 			push	OFFSET 0
+	*** 0000c3	6a 00 			push	OFFSET 0
+	*** 0000c5	8d 86 70 ff 		lea	ax,WORD PTR -144[bp]
+	*** 0000c9	50 			push	ax
+	*** 0000ca	8d 86 c8 fb 		lea	ax,WORD PTR -1080[bp]
+	*** 0000ce	50 			push	ax
+	*** 0000cf	9a 00 00 00 00 		call	FAR PTR _PCX_Grab_Bitmap
+	*** 0000d4	83 c4 0a 		add	sp,OFFSET 10
+; 
+; //get rid of the PCX
+; PCX_Delete((pcx_picture_ptr)&ship_pcx);
+; Line 80
+	*** 0000d7	8d 86 c8 fb 		lea	ax,WORD PTR -1080[bp]
+	*** 0000db	50 			push	ax
+	*** 0000dc	9a 00 00 00 00 		call	FAR PTR _PCX_Delete
+	*** 0000e1	83 c4 02 		add	sp,OFFSET 2
+; 
+; //grab our reds
+; Get_Palette_Register(RED1, &red1);
+; Line 83
+	*** 0000e4	8d 86 4e ff 		lea	ax,WORD PTR -178[bp]
+	*** 0000e8	50 			push	ax
+	*** 0000e9	6a 04 			push	OFFSET 4
+	*** 0000eb	9a 00 00 00 00 		call	FAR PTR _Get_Palette_Register
+	*** 0000f0	83 c4 04 		add	sp,OFFSET 4
+; Get_Palette_Register(RED2, &red2);
+; Line 84
+	*** 0000f3	8d 46 fa 		lea	ax,WORD PTR -6[bp]
+	*** 0000f6	50 			push	ax
+	*** 0000f7	6a 0c 			push	OFFSET 12
+	*** 0000f9	9a 00 00 00 00 		call	FAR PTR _Get_Palette_Register
+	*** 0000fe	83 c4 04 		add	sp,OFFSET 4
+; Get_Palette_Register(RED_GLOW, &glow);
+; Line 85
+	*** 000101	8d 46 f2 		lea	ax,WORD PTR -14[bp]
+	*** 000104	50 			push	ax
+	*** 000105	6a 20 			push	OFFSET 32
+	*** 000107	9a 00 00 00 00 		call	FAR PTR _Get_Palette_Register
+	*** 00010c	83 c4 04 		add	sp,OFFSET 4
+; 
+; init_stars();
+; Line 87
+	*** 00010f	9a 00 00 00 00 		call	FAR PTR _init_stars
+; 
+; while(!kbhit())
+; Line 89
+					L00948:
+	*** 000114	9a 00 00 00 00 		call	FAR PTR _kbhit
+	*** 000119	3d 00 00 		cmp	ax,OFFSET 0
+	*** 00011c	74 03 e9 00 00 		jne	L00949
+; {
+; Line 90
+; update_stars();
+; Line 91
+	*** 000121	9a 00 00 00 00 		call	FAR PTR _update_stars
+; Draw_Sprite(&ship);
+; Line 92
+	*** 000126	8d 86 70 ff 		lea	ax,WORD PTR -144[bp]
+	*** 00012a	50 			push	ax
+	*** 00012b	9a 00 00 00 00 		call	FAR PTR _Draw_Sprite
+	*** 000130	83 c4 02 		add	sp,OFFSET 2
+; 
+; //handle strobing red1 and red2
+; if(frame_counter & 0x03) {
+; Line 95
+	*** 000133	8b 86 52 ff 		mov	ax,WORD PTR -174[bp]
+	*** 000137	25 03 00 		and	ax,OFFSET 3
+	*** 00013a	3d 00 00 		cmp	ax,OFFSET 0
+	*** 00013d	75 03 e9 00 00 		je	L00951
+;     Set_Palette_Register(RED1, &red1);
+; Line 96
+	*** 000142	8d 86 4e ff 		lea	ax,WORD PTR -178[bp]
+	*** 000146	50 			push	ax
+	*** 000147	6a 04 			push	OFFSET 4
+	*** 000149	9a 00 00 00 00 		call	FAR PTR _Set_Palette_Register
+	*** 00014e	83 c4 04 		add	sp,OFFSET 4
+;     Set_Palette_Register(RED2, &red2);
+; Line 97
+	*** 000151	8d 46 fa 		lea	ax,WORD PTR -6[bp]
+	*** 000154	50 			push	ax
+	*** 000155	6a 0c 			push	OFFSET 12
+	*** 000157	9a 00 00 00 00 		call	FAR PTR _Set_Palette_Register
+	*** 00015c	83 c4 04 		add	sp,OFFSET 4
+; } else {
+; Line 98
+	*** 00015f	e9 00 00 		jmp	L00952
+					L00951:
+; Line 98
+;     Set_Palette_Register(RED1, &red2);
+; Line 99
+	*** 000162	8d 46 fa 		lea	ax,WORD PTR -6[bp]
+	*** 000165	50 			push	ax
+	*** 000166	6a 04 			push	OFFSET 4
+	*** 000168	9a 00 00 00 00 		call	FAR PTR _Set_Palette_Register
+	*** 00016d	83 c4 04 		add	sp,OFFSET 4
+;     Set_Palette_Register(RED2, &red1);
+; Line 100
+	*** 000170	8d 86 4e ff 		lea	ax,WORD PTR -178[bp]
+	*** 000174	50 			push	ax
+	*** 000175	6a 0c 			push	OFFSET 12
+	*** 000177	9a 00 00 00 00 		call	FAR PTR _Set_Palette_Register
+	*** 00017c	83 c4 04 		add	sp,OFFSET 4
+; }
+; Line 101
+					L00952:
+; 
+; //do the glowing thing
+; if(glow.red) glow.red += dir;
+; Line 104
+	*** 00017f	8a 46 f2 		mov	al,BYTE PTR -14[bp]
+	*** 000182	25 ff 00 		and	ax,OFFSET 255
+	*** 000185	3d 00 00 		cmp	ax,OFFSET 0
+	*** 000188	75 03 e9 00 00 		je	L00953
+	*** 00018d	8b 86 54 ff 		mov	ax,WORD PTR -172[bp]
+	*** 000191	00 46 f2 		add	BYTE PTR -14[bp],al
+; if(glow.green) glow.green += dir;
+; Line 105
+					L00953:
+	*** 000194	8a 46 f3 		mov	al,BYTE PTR -13[bp]
+	*** 000197	25 ff 00 		and	ax,OFFSET 255
+	*** 00019a	3d 00 00 		cmp	ax,OFFSET 0
+	*** 00019d	75 03 e9 00 00 		je	L00954
+	*** 0001a2	8b 86 54 ff 		mov	ax,WORD PTR -172[bp]
+	*** 0001a6	00 46 f3 		add	BYTE PTR -13[bp],al
+; if(glow.blue) glow.blue += dir;
+; Line 106
+					L00954:
+	*** 0001a9	8a 46 f4 		mov	al,BYTE PTR -12[bp]
+	*** 0001ac	25 ff 00 		and	ax,OFFSET 255
+	*** 0001af	3d 00 00 		cmp	ax,OFFSET 0
+	*** 0001b2	75 03 e9 00 00 		je	L00955
+	*** 0001b7	8b 86 54 ff 		mov	ax,WORD PTR -172[bp]
+	*** 0001bb	00 46 f4 		add	BYTE PTR -12[bp],al
+; Set_Palette_Register(RED_GLOW, &glow);
+; Line 107
+					L00955:
+	*** 0001be	8d 46 f2 		lea	ax,WORD PTR -14[bp]
+	*** 0001c1	50 			push	ax
+	*** 0001c2	6a 20 			push	OFFSET 32
+	*** 0001c4	9a 00 00 00 00 		call	FAR PTR _Set_Palette_Register
+	*** 0001c9	83 c4 04 		add	sp,OFFSET 4
+; fade_count++;
+; Line 108
+	*** 0001cc	83 86 4c ff 01 		add	WORD PTR -180[bp],OFFSET 1
+; if(fade_count == 25)
+; Line 109
+	*** 0001d1	83 be 4c ff 19 		cmp	WORD PTR -180[bp],OFFSET 25
+	*** 0001d6	74 03 e9 00 00 		jne	L00956
+; {
+; Line 110
+;     fade_count = 0;
+; Line 111
+	*** 0001db	c7 86 4c ff 00 00 	mov	WORD PTR -180[bp],OFFSET 0
+;     dir = -dir;
+; Line 112
+	*** 0001e1	8b 86 54 ff 		mov	ax,WORD PTR -172[bp]
+	*** 0001e5	f7 d8 			neg	ax
+	*** 0001e7	89 86 54 ff 		mov	WORD PTR -172[bp],ax
+; }
+; Line 113
+; 
+; //change star trajectory
+; tcount++;
+; Line 116
+					L00956:
+	*** 0001eb	83 86 56 ff 01 		add	WORD PTR -170[bp],OFFSET 1
+; if(tcount == 100)
+; Line 117
+	*** 0001f0	83 be 56 ff 64 		cmp	WORD PTR -170[bp],OFFSET 100
+	*** 0001f5	74 03 e9 00 00 		jne	L00957
+; {
+; Line 118
+;     tx = rand()%4;
+; Line 119
+	*** 0001fa	9a 00 00 00 00 		call	FAR PTR _rand
+	*** 0001ff	b9 04 00 		mov	cx,OFFSET 4
+	*** 000202	99 			cwd
+	*** 000203	f7 f9 			idiv	cx
+	*** 000205	89 56 f8 		mov	WORD PTR -8[bp],dx
+;     ty = rand()%4;
+; Line 120
+	*** 000208	9a 00 00 00 00 		call	FAR PTR _rand
+	*** 00020d	b9 04 00 		mov	cx,OFFSET 4
+	*** 000210	99 			cwd
+	*** 000211	f7 f9 			idiv	cx
+	*** 000213	89 56 f6 		mov	WORD PTR -10[bp],dx
+;     star_dx[0] = trajectory[tx][0];
+; Line 121
+	*** 000216	6b 46 f8 06 		_imul3 	ax,WORD PTR -8[bp],OFFSET 6
+	*** 00021a	8d 9e 58 ff 		lea	bx,WORD PTR -168[bp]
+	*** 00021e	03 d8 			add	bx,ax
+	*** 000220	8b 07 			mov	ax,WORD PTR ss:[bx]
+	*** 000222	a3 12 00 		mov	WORD PTR _star_dx,ax
+;     star_dx[1] = trajectory[tx][1];
+; Line 122
+	*** 000225	6b 46 f8 06 		_imul3 	ax,WORD PTR -8[bp],OFFSET 6
+	*** 000229	8d 9e 58 ff 		lea	bx,WORD PTR -168[bp]
+	*** 00022d	03 d8 			add	bx,ax
+	*** 00022f	8b 47 02 		mov	ax,WORD PTR ss:2[bx]
+	*** 000232	a3 14 00 		mov	WORD PTR _star_dx+2,ax
+;     star_dx[2] = trajectory[tx][2];
+; Line 123
+	*** 000235	6b 46 f8 06 		_imul3 	ax,WORD PTR -8[bp],OFFSET 6
+	*** 000239	8d 9e 58 ff 		lea	bx,WORD PTR -168[bp]
+	*** 00023d	03 d8 			add	bx,ax
+	*** 00023f	8b 47 04 		mov	ax,WORD PTR ss:4[bx]
+	*** 000242	a3 16 00 		mov	WORD PTR _star_dx+4,ax
+;     star_dy[0] = trajectory[ty][0];
+; Line 124
+	*** 000245	6b 46 f6 06 		_imul3 	ax,WORD PTR -10[bp],OFFSET 6
+	*** 000249	8d 9e 58 ff 		lea	bx,WORD PTR -168[bp]
+	*** 00024d	03 d8 			add	bx,ax
+	*** 00024f	8b 07 			mov	ax,WORD PTR ss:[bx]
+	*** 000251	a3 18 00 		mov	WORD PTR _star_dy,ax
+;     star_dy[1] = trajectory[ty][1];
+; Line 125
+	*** 000254	6b 46 f6 06 		_imul3 	ax,WORD PTR -10[bp],OFFSET 6
+	*** 000258	8d 9e 58 ff 		lea	bx,WORD PTR -168[bp]
+	*** 00025c	03 d8 			add	bx,ax
+	*** 00025e	8b 47 02 		mov	ax,WORD PTR ss:2[bx]
+	*** 000261	a3 1a 00 		mov	WORD PTR _star_dy+2,ax
+;     star_dy[2] = trajectory[ty][2];
+; Line 126
+	*** 000264	6b 46 f6 06 		_imul3 	ax,WORD PTR -10[bp],OFFSET 6
+	*** 000268	8d 9e 58 ff 		lea	bx,WORD PTR -168[bp]
+	*** 00026c	03 d8 			add	bx,ax
+	*** 00026e	8b 47 04 		mov	ax,WORD PTR ss:4[bx]
+	*** 000271	a3 1c 00 		mov	WORD PTR _star_dy+4,ax
+;     tcount = rand()%100;
+; Line 127
+	*** 000274	9a 00 00 00 00 		call	FAR PTR _rand
+	*** 000279	b9 64 00 		mov	cx,OFFSET 100
+	*** 00027c	99 			cwd
+	*** 00027d	f7 f9 			idiv	cx
+	*** 00027f	89 96 56 ff 		mov	WORD PTR -170[bp],dx
+; }
+; Line 128
+; 
+; frame_counter++;
+; Line 130
+					L00957:
+	*** 000283	83 86 52 ff 01 		add	WORD PTR -174[bp],OFFSET 1
+; Delay(1);
+; Line 131
+	*** 000288	6a 01 			push	OFFSET 1
+	*** 00028a	9a 00 00 00 00 		call	FAR PTR _Delay
+	*** 00028f	83 c4 02 		add	sp,OFFSET 2
+; }
+; Line 132
+; Line 132
+	*** 000292	e9 7f fe 		jmp	L00948
+					L00949:
+; 
+; // go back to text mode
+; Set_Video_Mode(TEXT_MODE);
+; Line 135
+	*** 000295	6a 03 			push	OFFSET 3
+	*** 000297	9a 00 00 00 00 		call	FAR PTR _Set_Video_Mode
+	*** 00029c	83 c4 02 		add	sp,OFFSET 2
+; }
+; Line 136
+; Line 136
+					L00933:
+	*** 00029f	5f 			pop	di
+	*** 0002a0	5e 			pop	si
+	*** 0002a1	c9 			leave
+	*** 0002a2	cb 			ret	OFFSET 0
+Local Size: 1080
+; Line 0
+; 
+; 
+; void init_stars()
+; {
+; int i;
+; 
+; for(i=0; i<NUM_STARS; i++) {
+;     stars[i].x = rand() % 320;
+;     stars[i].y = rand() % 200;
+;     stars[i].plane = rand() % 3;
+; }
+; }
+; 
+; 
+; void update_stars()
+; {
+; int i;
+; for(i=0; i<NUM_STARS; i++) {
+;     //erase the star
+;     Plot_Pixel_Fast(stars[i].x, stars[i].y, 0);
+; 
+;     //move the star
+;     stars[i].x += star_dx[stars[i].plane];
+;     if(stars[i].x < 0) {
+; 	stars[i].x += 320;
+;     } else if(stars[i].x >=320) {
+; 	stars[i].x -= 320;
+;     }
+;     stars[i].y += star_dy[stars[i].plane];
+;     if(stars[i].y < 0) {
+; 	stars[i].y += 200;
+;     } else if(stars[i].y >=200) {
+; 	stars[i].y -= 200;
+;     }
+; 
+;     //draw the star
+;     Plot_Pixel_Fast(stars[i].x, stars[i].y, star_color[stars[i].plane]);
+; }
+; }
+; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; Line 140
+					_init_stars:
+	*** 0002a4	c8 00 00 00 		enter	OFFSET L00977,OFFSET 0
+	*** 0002a8	56 			push	si
+	*** 0002a9	57 			push	di
+; i = fffc
+; ; Line 141
+; ; ; Line 143
+	*** 0002aa	c7 46 fc 00 00 		mov	WORD PTR -4[bp],OFFSET 0
+	*** 0002af	e9 00 00 		jmp	L00963
+					L00960:
+; ; Line 144
+	*** 0002b2	9a 00 00 00 00 		call	FAR PTR _rand
+	*** 0002b7	b9 40 01 		mov	cx,OFFSET 320
+	*** 0002ba	99 			cwd
+	*** 0002bb	f7 f9 			idiv	cx
+	*** 0002bd	6b 46 fc 06 		_imul3 	ax,WORD PTR -4[bp],OFFSET 6
+	*** 0002c1	8b d8 			mov	bx,ax
+	*** 0002c3	89 97 00 00 		mov	WORD PTR _stars[bx],dx
+; ; Line 145
+	*** 0002c7	9a 00 00 00 00 		call	FAR PTR _rand
+	*** 0002cc	b9 c8 00 		mov	cx,OFFSET 200
+	*** 0002cf	99 			cwd
+	*** 0002d0	f7 f9 			idiv	cx
+	*** 0002d2	6b 46 fc 06 		_imul3 	ax,WORD PTR -4[bp],OFFSET 6
+	*** 0002d6	bb 00 00 		mov	bx,OFFSET _stars
+	*** 0002d9	03 d8 			add	bx,ax
+	*** 0002db	89 57 02 		mov	WORD PTR 2[bx],dx
+; ; Line 146
+	*** 0002de	9a 00 00 00 00 		call	FAR PTR _rand
+	*** 0002e3	b9 03 00 		mov	cx,OFFSET 3
+	*** 0002e6	99 			cwd
+	*** 0002e7	f7 f9 			idiv	cx
+	*** 0002e9	6b 46 fc 06 		_imul3 	ax,WORD PTR -4[bp],OFFSET 6
+	*** 0002ed	bb 00 00 		mov	bx,OFFSET _stars
+	*** 0002f0	03 d8 			add	bx,ax
+	*** 0002f2	89 57 04 		mov	WORD PTR 4[bx],dx
+; ; Line 147
+					L00961:
+; Line 147
+	*** 0002f5	83 46 fc 01 		add	WORD PTR -4[bp],OFFSET 1
+					L00963:
+	*** 0002f9	83 7e fc 4b 		cmp	WORD PTR -4[bp],OFFSET 75
+	*** 0002fd	7d 03 e9 b0 ff 		jl	L00960
+					L00962:
+; ; Line 148
+; Line 148
+					L00958:
+	*** 000302	5f 			pop	di
+	*** 000303	5e 			pop	si
+	*** 000304	c9 			leave
+	*** 000305	cb 			ret	OFFSET 0
+Local Size: 4
+; Line 0
+; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; Line 152
+					_update_stars:
+	*** 000306	c8 00 00 00 		enter	OFFSET L00978,OFFSET 0
+	*** 00030a	56 			push	si
+	*** 00030b	57 			push	di
+; i = fffc
+; ; Line 153
+; ; Line 154
+	*** 00030c	c7 46 fc 00 00 		mov	WORD PTR -4[bp],OFFSET 0
+	*** 000311	e9 00 00 		jmp	L00969
+					L00966:
+; ; ; Line 156
+	*** 000314	6a 00 			push	OFFSET 0
+	*** 000316	6b 46 fc 06 		_imul3 	ax,WORD PTR -4[bp],OFFSET 6
+	*** 00031a	bb 00 00 		mov	bx,OFFSET _stars
+	*** 00031d	03 d8 			add	bx,ax
+	*** 00031f	ff 77 02 		push	WORD PTR 2[bx]
+	*** 000322	6b 46 fc 06 		_imul3 	ax,WORD PTR -4[bp],OFFSET 6
+	*** 000326	8b d8 			mov	bx,ax
+	*** 000328	ff b7 00 00 		push	WORD PTR _stars[bx]
+	*** 00032c	9a 00 00 00 00 		call	FAR PTR _Plot_Pixel_Fast
+	*** 000331	83 c4 06 		add	sp,OFFSET 6
+; ; ; ; Line 159
+	*** 000334	6b 46 fc 06 		_imul3 	ax,WORD PTR -4[bp],OFFSET 6
+	*** 000338	bb 00 00 		mov	bx,OFFSET _stars
+	*** 00033b	03 d8 			add	bx,ax
+	*** 00033d	8b 5f 04 		mov	bx,WORD PTR 4[bx]
+	*** 000340	d1 e3 			shl	bx,OFFSET 1
+	*** 000342	8b 87 12 00 		mov	ax,WORD PTR _star_dx[bx]
+	*** 000346	89 46 fa 		mov	WORD PTR -6[bp],ax
+	*** 000349	6b 46 fc 06 		_imul3 	ax,WORD PTR -4[bp],OFFSET 6
+	*** 00034d	8b 4e fa 		mov	cx,WORD PTR -6[bp]
+	*** 000350	8b d8 			mov	bx,ax
+	*** 000352	01 8f 00 00 		add	WORD PTR _stars[bx],cx
+; ; Line 160
+	*** 000356	6b 46 fc 06 		_imul3 	ax,WORD PTR -4[bp],OFFSET 6
+	*** 00035a	8b d8 			mov	bx,ax
+	*** 00035c	83 bf 00 00 00 		cmp	WORD PTR _stars[bx],OFFSET 0
+	*** 000361	7c 03 e9 00 00 		jge	L00970
+; ; Line 161
+	*** 000366	6b 46 fc 06 		_imul3 	ax,WORD PTR -4[bp],OFFSET 6
+	*** 00036a	8b d8 			mov	bx,ax
+	*** 00036c	81 87 00 00 40 01 	add	WORD PTR _stars[bx],OFFSET 320
+; ; Line 162
+	*** 000372	e9 00 00 		jmp	L00971
+					L00970:
+; Line 162
+	*** 000375	6b 46 fc 06 		_imul3 	ax,WORD PTR -4[bp],OFFSET 6
+	*** 000379	8b d8 			mov	bx,ax
+	*** 00037b	81 bf 00 00 40 01 	cmp	WORD PTR _stars[bx],OFFSET 320
+	*** 000381	7d 03 e9 00 00 		jl	L00972
+; ; Line 163
+	*** 000386	6b 46 fc 06 		_imul3 	ax,WORD PTR -4[bp],OFFSET 6
+	*** 00038a	8b d8 			mov	bx,ax
+	*** 00038c	81 af 00 00 40 01 	sub	WORD PTR _stars[bx],OFFSET 320
+; ; Line 164
+; ; Line 165
+					L00972:
+					L00971:
+	*** 000392	6b 46 fc 06 		_imul3 	ax,WORD PTR -4[bp],OFFSET 6
+	*** 000396	bb 00 00 		mov	bx,OFFSET _stars
+	*** 000399	03 d8 			add	bx,ax
+	*** 00039b	8b 5f 04 		mov	bx,WORD PTR 4[bx]
+	*** 00039e	d1 e3 			shl	bx,OFFSET 1
+	*** 0003a0	8b 87 18 00 		mov	ax,WORD PTR _star_dy[bx]
+	*** 0003a4	89 46 fa 		mov	WORD PTR -6[bp],ax
+	*** 0003a7	6b 46 fc 06 		_imul3 	ax,WORD PTR -4[bp],OFFSET 6
+	*** 0003ab	bb 00 00 		mov	bx,OFFSET _stars
+	*** 0003ae	03 d8 			add	bx,ax
+	*** 0003b0	8b 46 fa 		mov	ax,WORD PTR -6[bp]
+	*** 0003b3	01 47 02 		add	WORD PTR 2[bx],ax
+; ; Line 166
+	*** 0003b6	6b 46 fc 06 		_imul3 	ax,WORD PTR -4[bp],OFFSET 6
+	*** 0003ba	bb 00 00 		mov	bx,OFFSET _stars
+	*** 0003bd	03 d8 			add	bx,ax
+	*** 0003bf	83 7f 02 00 		cmp	WORD PTR 2[bx],OFFSET 0
+	*** 0003c3	7c 03 e9 00 00 		jge	L00973
+; ; Line 167
+	*** 0003c8	6b 46 fc 06 		_imul3 	ax,WORD PTR -4[bp],OFFSET 6
+	*** 0003cc	bb 00 00 		mov	bx,OFFSET _stars
+	*** 0003cf	03 d8 			add	bx,ax
+	*** 0003d1	81 47 02 c8 00 		add	WORD PTR 2[bx],OFFSET 200
+; ; Line 168
+	*** 0003d6	e9 00 00 		jmp	L00974
+					L00973:
+; Line 168
+	*** 0003d9	6b 46 fc 06 		_imul3 	ax,WORD PTR -4[bp],OFFSET 6
+	*** 0003dd	bb 00 00 		mov	bx,OFFSET _stars
+	*** 0003e0	03 d8 			add	bx,ax
+	*** 0003e2	81 7f 02 c8 00 		cmp	WORD PTR 2[bx],OFFSET 200
+	*** 0003e7	7d 03 e9 00 00 		jl	L00975
+; ; Line 169
+	*** 0003ec	6b 46 fc 06 		_imul3 	ax,WORD PTR -4[bp],OFFSET 6
+	*** 0003f0	bb 00 00 		mov	bx,OFFSET _stars
+	*** 0003f3	03 d8 			add	bx,ax
+	*** 0003f5	81 6f 02 c8 00 		sub	WORD PTR 2[bx],OFFSET 200
+; ; Line 170
+; ; ; ; Line 173
+					L00975:
+					L00974:
+	*** 0003fa	6b 46 fc 06 		_imul3 	ax,WORD PTR -4[bp],OFFSET 6
+	*** 0003fe	bb 00 00 		mov	bx,OFFSET _stars
+	*** 000401	03 d8 			add	bx,ax
+	*** 000403	8b 5f 04 		mov	bx,WORD PTR 4[bx]
+	*** 000406	8a 87 0e 00 		mov	al,BYTE PTR _star_color[bx]
+	*** 00040a	25 ff 00 		and	ax,OFFSET 255
+	*** 00040d	50 			push	ax
+	*** 00040e	6b 46 fc 06 		_imul3 	ax,WORD PTR -4[bp],OFFSET 6
+	*** 000412	bb 00 00 		mov	bx,OFFSET _stars
+	*** 000415	03 d8 			add	bx,ax
+	*** 000417	ff 77 02 		push	WORD PTR 2[bx]
+	*** 00041a	6b 46 fc 06 		_imul3 	ax,WORD PTR -4[bp],OFFSET 6
+	*** 00041e	8b d8 			mov	bx,ax
+	*** 000420	ff b7 00 00 		push	WORD PTR _stars[bx]
+	*** 000424	9a 00 00 00 00 		call	FAR PTR _Plot_Pixel_Fast
+	*** 000429	83 c4 06 		add	sp,OFFSET 6
+; ; Line 174
+					L00967:
+; Line 174
+	*** 00042c	83 46 fc 01 		add	WORD PTR -4[bp],OFFSET 1
+					L00969:
+	*** 000430	83 7e fc 4b 		cmp	WORD PTR -4[bp],OFFSET 75
+	*** 000434	7d 03 e9 db fe 		jl	L00966
+					L00968:
+; ; Line 175
+; Line 175
+					L00964:
+	*** 000439	5f 			pop	di
+	*** 00043a	5e 			pop	si
+	*** 00043b	c9 			leave
+	*** 00043c	cb 			ret	OFFSET 0
+Local Size: 6
+; Line 0

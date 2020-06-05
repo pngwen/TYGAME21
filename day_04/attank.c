@@ -17,6 +17,7 @@
 
 #include "graph3.h"  // the module from day 3
 #include "graph4.h"  // the module from day 4
+#include "better4.h"
 
 // D E F I N E S ////////////////////////////////////////////////////////////
 
@@ -34,6 +35,8 @@ long index;          // used as a loop index
 sprite tank1,  // the player sprite
        tank2;  // the enemy sprite
 
+fizzler f1,f2;
+int fcount;
 pcx_picture background_pcx,  // this pcx structure holds background imagery
             objects_pcx;     // this pcx structure holds forground imagery
 
@@ -326,8 +329,17 @@ while(!done)
 
      if (Sprite_Collide((sprite_ptr)&tank1,(sprite_ptr)&tank2))
         {
-        // do something spectacular
-
+        // fizzle out
+	Sprite_Fizzle_Frame(&f1, &tank1);
+	Sprite_Fizzle_Frame(&f2, &tank2);
+	Delay(1);
+	for(fcount=1; fcount < 25; fcount++) {
+	    Sprite_Fizzle_Frame(&f1, NULL);
+	    Sprite_Fizzle_Frame(&f2, NULL);
+	    Delay(1);
+	}
+	Delay(17);
+	done=1;
 
         } // end if collision
 

@@ -1,0 +1,1134 @@
+; File attank.c
+; 
+; // I N C L U D E S ///////////////////////////////////////////////////////////
+; 
+; #include <io.h>
+; #include <conio.h>
+; #include <stdio.h>
+; #include <stdlib.h>
+; #include <dos.h>
+; #include <bios.h>
+; #include <fcntl.h>
+; #include <memory.h>
+; #include <malloc.h>
+; #include <math.h>
+; #include <string.h>
+; 
+; #include <graph.h>   // microsoft's stuff if we need it
+; 
+; #include "graph3.h"  // the module from day 3
+; #include "graph4.h"  // the module from day 4
+; #include "better4.h"
+; 
+; // D E F I N E S ////////////////////////////////////////////////////////////
+; 
+; #define TANK_SPEED  4
+; #define PI          (float)3.14159
+; 
+; // M A I N ///////////////////////////////////////////////////////////////////
+; 
+; void main(void)
+; {
+; Line 30
+					_main:
+	*** 000000	c8 00 00 00 		enter	OFFSET L00988,OFFSET 0
+	*** 000004	56 			push	si
+	*** 000005	57 			push	di
+; f2 = ff78
+; tank1 = fef6
+; fcount = fef4
+; done = fef2
+; tank2_direction = fef0
+; tank1_direction = feee
+; tank2 = fe6c
+; index = fe68
+; objects_pcx = fae4
+; dy = fae0
+; background_pcx = f75c
+; dx = f758
+; angle = f754
+; f1 = f6ce
+; 
+; 
+; long index;          // used as a loop index
+; Line 33
+; 
+; sprite tank1,  // the player sprite
+; Line 35
+;        tank2;  // the enemy sprite
+; Line 36
+; 
+; fizzler f1,f2;
+; Line 38
+; int fcount;
+; Line 39
+; pcx_picture background_pcx,  // this pcx structure holds background imagery
+; Line 40
+;             objects_pcx;     // this pcx structure holds forground imagery
+; Line 41
+; 
+; 
+; int tank1_direction=0,  // the tanks current direction, also the current frame
+; Line 44
+	*** 000006	c7 86 ee fe 00 00 	mov	WORD PTR -274[bp],OFFSET 0
+;     tank2_direction=0,  // 0 - is straight up North
+; Line 45
+	*** 00000c	c7 86 f0 fe 00 00 	mov	WORD PTR -272[bp],OFFSET 0
+;     done=0;             // system exit flag
+; Line 46
+	*** 000012	c7 86 f2 fe 00 00 	mov	WORD PTR -270[bp],OFFSET 0
+; 
+; 
+; float dx,              // motion variables
+; Line 49
+;       dy,
+; Line 50
+;       angle;
+; Line 51
+; 
+; // S E C T I O N  1 //////////////////////////////////////////////////////
+; 
+; // set video mode to 320x200 256 color mode
+; 
+; Set_Video_Mode(VGA256);
+; Line 57
+	*** 000018	6a 13 			push	OFFSET 19
+	*** 00001a	9a 00 00 00 00 		call	FAR PTR _Set_Video_Mode
+	*** 00001f	83 c4 02 		add	sp,OFFSET 2
+; 
+; // load in background
+; 
+; PCX_Init((pcx_picture_ptr)&background_pcx);
+; Line 61
+	*** 000022	8d 86 5c f7 		lea	ax,WORD PTR -2212[bp]
+	*** 000026	50 			push	ax
+	*** 000027	9a 00 00 00 00 		call	FAR PTR _PCX_Init
+	*** 00002c	83 c4 02 		add	sp,OFFSET 2
+; 
+; PCX_Load("outpost.pcx", (pcx_picture_ptr)&background_pcx,1);
+; Line 63
+	*** 00002f	6a 01 			push	OFFSET 1
+	*** 000031	8d 86 5c f7 		lea	ax,WORD PTR -2212[bp]
+	*** 000035	50 			push	ax
+	*** 000036	68 00 00 		push	OFFSET L00935
+	*** 000039	9a 00 00 00 00 		call	FAR PTR _PCX_Load
+	*** 00003e	83 c4 06 		add	sp,OFFSET 6
+; 
+; PCX_Show_Buffer((pcx_picture_ptr)&background_pcx);
+; Line 65
+	*** 000041	8d 86 5c f7 		lea	ax,WORD PTR -2212[bp]
+	*** 000045	50 			push	ax
+	*** 000046	9a 00 00 00 00 		call	FAR PTR _PCX_Show_Buffer
+	*** 00004b	83 c4 02 		add	sp,OFFSET 2
+; 
+; // put up title
+; 
+; Blit_String(90,2,7,"A T T A N K ! ! !",1);
+; Line 69
+	*** 00004e	6a 01 			push	OFFSET 1
+	*** 000050	68 0c 00 		push	OFFSET L00936
+	*** 000053	6a 07 			push	OFFSET 7
+	*** 000055	6a 02 			push	OFFSET 2
+	*** 000057	6a 5a 			push	OFFSET 90
+	*** 000059	9a 00 00 00 00 		call	FAR PTR _Blit_String
+	*** 00005e	83 c4 0a 		add	sp,OFFSET 10
+; 
+; PCX_Delete((pcx_picture_ptr)&background_pcx);
+; Line 71
+	*** 000061	8d 86 5c f7 		lea	ax,WORD PTR -2212[bp]
+	*** 000065	50 			push	ax
+	*** 000066	9a 00 00 00 00 		call	FAR PTR _PCX_Delete
+	*** 00006b	83 c4 02 		add	sp,OFFSET 2
+; 
+; // load the .PCX file with the tank cells
+; 
+; // load in the players imagery
+; 
+; PCX_Init((pcx_picture_ptr)&objects_pcx);
+; Line 77
+	*** 00006e	8d 86 e4 fa 		lea	ax,WORD PTR -1308[bp]
+	*** 000072	50 			push	ax
+	*** 000073	9a 00 00 00 00 		call	FAR PTR _PCX_Init
+	*** 000078	83 c4 02 		add	sp,OFFSET 2
+; 
+; PCX_Load("tanks.pcx", (pcx_picture_ptr)&objects_pcx,0);
+; Line 79
+	*** 00007b	6a 00 			push	OFFSET 0
+	*** 00007d	8d 86 e4 fa 		lea	ax,WORD PTR -1308[bp]
+	*** 000081	50 			push	ax
+	*** 000082	68 1e 00 		push	OFFSET L00937
+	*** 000085	9a 00 00 00 00 		call	FAR PTR _PCX_Load
+	*** 00008a	83 c4 06 		add	sp,OFFSET 6
+; 
+; // S E C T I O N  2 //////////////////////////////////////////////////////
+; 
+; // initialize sprite size and data structure
+; 
+; sprite_width  = 16;
+; Line 85
+	*** 00008d	c7 06 00 00 10 00 	mov	WORD PTR _sprite_width,OFFSET 16
+; sprite_height = 16;
+; Line 86
+	*** 000093	c7 06 00 00 10 00 	mov	WORD PTR _sprite_height,OFFSET 16
+; 
+; // place tank1 (player) in bottom of screen
+; 
+; Sprite_Init((sprite_ptr)&tank1,160,150,0,0,0,0);
+; Line 90
+	*** 000099	6a 00 			push	OFFSET 0
+	*** 00009b	6a 00 			push	OFFSET 0
+	*** 00009d	6a 00 			push	OFFSET 0
+	*** 00009f	6a 00 			push	OFFSET 0
+	*** 0000a1	68 96 00 		push	OFFSET 150
+	*** 0000a4	68 a0 00 		push	OFFSET 160
+	*** 0000a7	8d 86 f6 fe 		lea	ax,WORD PTR -266[bp]
+	*** 0000ab	50 			push	ax
+	*** 0000ac	9a 00 00 00 00 		call	FAR PTR _Sprite_Init
+	*** 0000b1	83 c4 0e 		add	sp,OFFSET 14
+; 
+; // grab all 16 images from the tanks pcx picture
+; 
+; for (index=0; index<16; index++)
+; Line 94
+	*** 0000b4	c7 86 68 fe 00 00 	mov	WORD PTR -408[bp],OFFSET 0
+	*** 0000ba	c7 86 6a fe 00 00 	mov	WORD PTR -406[bp],OFFSET 0
+	*** 0000c0	e9 00 00 		jmp	L00941
+					L00938:
+;     {
+; Line 95
+; 
+;     PCX_Grab_Bitmap((pcx_picture_ptr)&objects_pcx,(sprite_ptr)&tank1,index,index,0);
+; Line 97
+	*** 0000c3	6a 00 			push	OFFSET 0
+	*** 0000c5	8b 86 68 fe 		mov	ax,WORD PTR -408[bp]
+	*** 0000c9	8b 96 6a fe 		mov	dx,WORD PTR -406[bp]
+	*** 0000cd	50 			push	ax
+	*** 0000ce	8b 86 68 fe 		mov	ax,WORD PTR -408[bp]
+	*** 0000d2	8b 96 6a fe 		mov	dx,WORD PTR -406[bp]
+	*** 0000d6	50 			push	ax
+	*** 0000d7	8d 86 f6 fe 		lea	ax,WORD PTR -266[bp]
+	*** 0000db	50 			push	ax
+	*** 0000dc	8d 86 e4 fa 		lea	ax,WORD PTR -1308[bp]
+	*** 0000e0	50 			push	ax
+	*** 0000e1	9a 00 00 00 00 		call	FAR PTR _PCX_Grab_Bitmap
+	*** 0000e6	83 c4 0a 		add	sp,OFFSET 10
+; 
+;     } // end for index
+; Line 99
+					L00939:
+; Line 99
+	*** 0000e9	83 86 68 fe 01 		add	WORD PTR -408[bp],OFFSET 1
+	*** 0000ee	83 96 6a fe 00 		adc	WORD PTR -406[bp],OFFSET 0
+					L00941:
+	*** 0000f3	83 be 6a fe 00 		cmp	WORD PTR -406[bp],OFFSET 0
+	*** 0000f8	7d 03 e9 c6 ff 		jl	L00938
+	*** 0000fd	7e 03 e9 00 00 		jg	L00989
+	*** 000102	83 be 68 fe 10 		cmp	WORD PTR -408[bp],OFFSET 16
+	*** 000107	73 03 e9 b7 ff 		jb	L00938
+					L00989:
+					L00940:
+; 
+; // place tank2 (enemy) in top of screen
+; 
+; Sprite_Init((sprite_ptr)&tank2,160,50,0,0,0,0);
+; Line 103
+	*** 00010c	6a 00 			push	OFFSET 0
+	*** 00010e	6a 00 			push	OFFSET 0
+	*** 000110	6a 00 			push	OFFSET 0
+	*** 000112	6a 00 			push	OFFSET 0
+	*** 000114	6a 32 			push	OFFSET 50
+	*** 000116	68 a0 00 		push	OFFSET 160
+	*** 000119	8d 86 6c fe 		lea	ax,WORD PTR -404[bp]
+	*** 00011d	50 			push	ax
+	*** 00011e	9a 00 00 00 00 		call	FAR PTR _Sprite_Init
+	*** 000123	83 c4 0e 		add	sp,OFFSET 14
+; 
+; // grab all 16 images from the tanks pcx picture
+; 
+; for (index=0; index<16; index++)
+; Line 107
+	*** 000126	c7 86 68 fe 00 00 	mov	WORD PTR -408[bp],OFFSET 0
+	*** 00012c	c7 86 6a fe 00 00 	mov	WORD PTR -406[bp],OFFSET 0
+	*** 000132	e9 00 00 		jmp	L00945
+					L00942:
+;     {
+; Line 108
+; 
+;     PCX_Grab_Bitmap((pcx_picture_ptr)&objects_pcx,(sprite_ptr)&tank2,index,index,1);
+; Line 110
+	*** 000135	6a 01 			push	OFFSET 1
+	*** 000137	8b 86 68 fe 		mov	ax,WORD PTR -408[bp]
+	*** 00013b	8b 96 6a fe 		mov	dx,WORD PTR -406[bp]
+	*** 00013f	50 			push	ax
+	*** 000140	8b 86 68 fe 		mov	ax,WORD PTR -408[bp]
+	*** 000144	8b 96 6a fe 		mov	dx,WORD PTR -406[bp]
+	*** 000148	50 			push	ax
+	*** 000149	8d 86 6c fe 		lea	ax,WORD PTR -404[bp]
+	*** 00014d	50 			push	ax
+	*** 00014e	8d 86 e4 fa 		lea	ax,WORD PTR -1308[bp]
+	*** 000152	50 			push	ax
+	*** 000153	9a 00 00 00 00 		call	FAR PTR _PCX_Grab_Bitmap
+	*** 000158	83 c4 0a 		add	sp,OFFSET 10
+; 
+;     } // end for index
+; Line 112
+					L00943:
+; Line 112
+	*** 00015b	83 86 68 fe 01 		add	WORD PTR -408[bp],OFFSET 1
+	*** 000160	83 96 6a fe 00 		adc	WORD PTR -406[bp],OFFSET 0
+					L00945:
+	*** 000165	83 be 6a fe 00 		cmp	WORD PTR -406[bp],OFFSET 0
+	*** 00016a	7d 03 e9 c6 ff 		jl	L00942
+	*** 00016f	7e 03 e9 00 00 		jg	L00990
+	*** 000174	83 be 68 fe 10 		cmp	WORD PTR -408[bp],OFFSET 16
+	*** 000179	73 03 e9 b7 ff 		jb	L00942
+					L00990:
+					L00944:
+; 
+; // kill the pcx memory and buffers now that were done
+; 
+; PCX_Delete((pcx_picture_ptr)&objects_pcx);
+; Line 116
+	*** 00017e	8d 86 e4 fa 		lea	ax,WORD PTR -1308[bp]
+	*** 000182	50 			push	ax
+	*** 000183	9a 00 00 00 00 		call	FAR PTR _PCX_Delete
+	*** 000188	83 c4 02 		add	sp,OFFSET 2
+; 
+; // S E C T I O N  3 //////////////////////////////////////////////////
+; 
+; // point the tanks straight up
+; 
+; tank1.curr_frame = tank1_direction;
+; Line 122
+	*** 00018b	8b 86 ee fe 		mov	ax,WORD PTR -274[bp]
+	*** 00018f	89 86 6a ff 		mov	WORD PTR -150[bp],ax
+; tank2.curr_frame = tank2_direction;
+; Line 123
+	*** 000193	8b 86 f0 fe 		mov	ax,WORD PTR -272[bp]
+	*** 000197	89 86 e0 fe 		mov	WORD PTR -288[bp],ax
+; 
+; // scan the background under tanks on first iteration
+; 
+; Behind_Sprite((sprite_ptr)&tank1); // player
+; Line 127
+	*** 00019b	8d 86 f6 fe 		lea	ax,WORD PTR -266[bp]
+	*** 00019f	50 			push	ax
+	*** 0001a0	9a 00 00 00 00 		call	FAR PTR _Behind_Sprite
+	*** 0001a5	83 c4 02 		add	sp,OFFSET 2
+; Behind_Sprite((sprite_ptr)&tank2); // enemy
+; Line 128
+	*** 0001a8	8d 86 6c fe 		lea	ax,WORD PTR -404[bp]
+	*** 0001ac	50 			push	ax
+	*** 0001ad	9a 00 00 00 00 		call	FAR PTR _Behind_Sprite
+	*** 0001b2	83 c4 02 		add	sp,OFFSET 2
+; 
+; // wait for exit, this is the main event loop
+; 
+; while(!done)
+; Line 132
+	*** 0001b5	e9 00 00 		jmp	L00949
+					L00946:
+;      {
+; Line 133
+; 
+; // S E C T I O N  4 //////////////////////////////////////////////////
+; 
+;      // erase the players tank
+; 
+;      Erase_Sprite((sprite_ptr)&tank1);
+; Line 139
+	*** 0001b8	8d 86 f6 fe 		lea	ax,WORD PTR -266[bp]
+	*** 0001bc	50 			push	ax
+	*** 0001bd	9a 00 00 00 00 		call	FAR PTR _Erase_Sprite
+	*** 0001c2	83 c4 02 		add	sp,OFFSET 2
+; 
+;      // erase the enemy tank
+; 
+;      Erase_Sprite((sprite_ptr)&tank2);
+; Line 143
+	*** 0001c5	8d 86 6c fe 		lea	ax,WORD PTR -404[bp]
+	*** 0001c9	50 			push	ax
+	*** 0001ca	9a 00 00 00 00 		call	FAR PTR _Erase_Sprite
+	*** 0001cf	83 c4 02 		add	sp,OFFSET 2
+; 
+; // S E C T I O N  5 //////////////////////////////////////////////////
+; 
+;      // test if user wants to translate or rotate tank
+; 
+;      if (kbhit())
+; Line 149
+	*** 0001d2	9a 00 00 00 00 		call	FAR PTR _kbhit
+	*** 0001d7	3d 00 00 		cmp	ax,OFFSET 0
+	*** 0001da	75 03 e9 00 00 		je	L00950
+;         {
+; Line 150
+; 
+;         // reset translation factors
+; 
+;         dx=dy=0;
+; Line 154
+	*** 0001df	b8 00 00 		mov	ax,OFFSET 0
+	*** 0001e2	99 			cwd
+	*** 0001e3	89 86 c6 f6 		mov	WORD PTR -2362[bp],ax
+	*** 0001e7	89 96 c8 f6 		mov	WORD PTR -2360[bp],dx
+	*** 0001eb	9b db 86 c6 f6 		fldi	DWORD PTR -2362[bp]
+	*** 0001f0	9b d9 9e e0 fa 		fstp	DWORD PTR -1312[bp]
+	*** 0001f5	9b d9 86 e0 fa 		fld	DWORD PTR -1312[bp]
+	*** 0001fa	9b d9 9e 58 f7 		fstp	DWORD PTR -2216[bp]
+; 
+;         // test what key was pressed
+; 
+;         switch(getch())
+; Line 158
+	*** 000201	9a 00 00 00 00 		call	FAR PTR _getch
+	*** 000206	e9 00 00 		jmp	L00951
+;               {
+; Line 159
+; 
+;               case '6': // rotate right
+; Line 161
+					L00955:
+;                    {
+; Line 162
+;                    // change direction of tank, make sure to wrap around
+; 
+;                    if (++tank1_direction > 15)
+; Line 165
+	*** 000209	83 86 ee fe 01 		add	WORD PTR -274[bp],OFFSET 1
+	*** 00020e	8b 86 ee fe 		mov	ax,WORD PTR -274[bp]
+	*** 000212	3d 0f 00 		cmp	ax,OFFSET 15
+	*** 000215	7f 03 e9 00 00 		jle	L00956
+;                       tank1_direction=0;
+; Line 166
+	*** 00021a	c7 86 ee fe 00 00 	mov	WORD PTR -274[bp],OFFSET 0
+; 
+;                    } break;
+; Line 168
+					L00956:
+	*** 000220	e9 00 00 		jmp	L00952
+; 
+;               case '4': // rotate left
+; Line 170
+					L00957:
+;                    {
+; Line 171
+;                    // change direction of tank, make sure to wrap around
+; 
+;                    if (--tank1_direction < 0)
+; Line 174
+	*** 000223	83 ae ee fe 01 		sub	WORD PTR -274[bp],OFFSET 1
+	*** 000228	8b 86 ee fe 		mov	ax,WORD PTR -274[bp]
+	*** 00022c	3d 00 00 		cmp	ax,OFFSET 0
+	*** 00022f	7c 03 e9 00 00 		jge	L00958
+;                       tank1_direction=15;
+; Line 175
+	*** 000234	c7 86 ee fe 0f 00 	mov	WORD PTR -274[bp],OFFSET 15
+; 
+;                    } break;
+; Line 177
+					L00958:
+	*** 00023a	e9 00 00 		jmp	L00952
+; 
+;               case '8': // move foward
+; Line 179
+					L00959:
+;                    {
+; Line 180
+;                    // based on direction variable compute translation factors
+; 
+;                    // compute angle in radians
+; 
+;                    angle =  (90+360-22.5*(float)tank1_direction);
+; Line 185
+	*** 00023d	b8 c2 01 		mov	ax,OFFSET 450
+	*** 000240	99 			cwd
+	*** 000241	89 86 c6 f6 		mov	WORD PTR -2362[bp],ax
+	*** 000245	89 96 c8 f6 		mov	WORD PTR -2360[bp],dx
+	*** 000249	9b db 86 c6 f6 		fldi	DWORD PTR -2362[bp]
+	*** 00024e	8b 86 ee fe 		mov	ax,WORD PTR -274[bp]
+	*** 000254	99 			cwd
+	*** 000255	89 86 be f6 		mov	WORD PTR -2370[bp],ax
+	*** 000259	89 96 c0 f6 		mov	WORD PTR -2368[bp],dx
+	*** 00025d	9b db 86 be f6 		fldi	DWORD PTR -2370[bp]
+	*** 000262	9b dd 06 00 00 		fld	QWORD PTR con0
+	*** 000267	9b de c9 		fmulp	ST(1),ST(0)
+	*** 00026a	9b de e9 		fsubp	ST(1),ST(0)
+	*** 00026d	9b d9 9e 54 f7 		fstp	DWORD PTR -2220[bp]
+; 
+;                    // compute factors based on angle and speed
+; 
+;                    dx = TANK_SPEED * cos(PI*angle/180);
+; Line 189
+	*** 000274	b8 04 00 		mov	ax,OFFSET 4
+	*** 000277	99 			cwd
+	*** 000278	89 86 c6 f6 		mov	WORD PTR -2362[bp],ax
+	*** 00027c	89 96 c8 f6 		mov	WORD PTR -2360[bp],dx
+	*** 000280	9b db 86 c6 f6 		fldi	DWORD PTR -2362[bp]
+	*** 000285	9b db be bc f6 		fstp	TBYTE PTR -2372[bp]
+	*** 00028a	83 ec 08 		sub	sp,OFFSET 8
+	*** 00028f	9b d9 86 54 f7 		fld	DWORD PTR -2220[bp]
+	*** 000294	9b d9 06 08 00 		fld	DWORD PTR con0+8
+	*** 000299	9b de c9 		fmulp	ST(1),ST(0)
+	*** 00029c	b8 b4 00 		mov	ax,OFFSET 180
+	*** 00029f	99 			cwd
+	*** 0002a0	89 86 b4 f6 		mov	WORD PTR -2380[bp],ax
+	*** 0002a4	89 96 b6 f6 		mov	WORD PTR -2378[bp],dx
+	*** 0002a8	9b db 86 b4 f6 		fldi	DWORD PTR -2380[bp]
+	*** 0002ad	9b de f9 		fdivp	ST(1),ST(0)
+	*** 0002b0	8b dc 			mov	bx,sp
+	*** 0002b2	9b dd 1f 		fstp	QWORD PTR ss:[bx]
+	*** 0002b5	9a 00 00 00 00 		call	FAR PTR _cos
+	*** 0002bc	83 c4 08 		add	sp,OFFSET 8
+	*** 0002bf	9b db ae bc f6 		fld	TBYTE PTR -2372[bp]
+	*** 0002c4	8b d8 			mov	bx,ax
+	*** 0002c8	9b dc 0f 		fmul	ST(0),QWORD PTR [bx]
+	*** 0002cb	9b d9 9e 58 f7 		fstp	DWORD PTR -2216[bp]
+;                    dy = TANK_SPEED * sin(PI*angle/180);
+; Line 190
+	*** 0002d2	b8 04 00 		mov	ax,OFFSET 4
+	*** 0002d5	99 			cwd
+	*** 0002d6	89 86 c6 f6 		mov	WORD PTR -2362[bp],ax
+	*** 0002da	89 96 c8 f6 		mov	WORD PTR -2360[bp],dx
+	*** 0002de	9b db 86 c6 f6 		fldi	DWORD PTR -2362[bp]
+	*** 0002e3	9b db be bc f6 		fstp	TBYTE PTR -2372[bp]
+	*** 0002e8	83 ec 08 		sub	sp,OFFSET 8
+	*** 0002ed	9b d9 86 54 f7 		fld	DWORD PTR -2220[bp]
+	*** 0002f2	9b d9 06 08 00 		fld	DWORD PTR con0+8
+	*** 0002f7	9b de c9 		fmulp	ST(1),ST(0)
+	*** 0002fa	b8 b4 00 		mov	ax,OFFSET 180
+	*** 0002fd	99 			cwd
+	*** 0002fe	89 86 b4 f6 		mov	WORD PTR -2380[bp],ax
+	*** 000302	89 96 b6 f6 		mov	WORD PTR -2378[bp],dx
+	*** 000306	9b db 86 b4 f6 		fldi	DWORD PTR -2380[bp]
+	*** 00030b	9b de f9 		fdivp	ST(1),ST(0)
+	*** 00030e	8b dc 			mov	bx,sp
+	*** 000310	9b dd 1f 		fstp	QWORD PTR ss:[bx]
+	*** 000313	9a 00 00 00 00 		call	FAR PTR _sin
+	*** 00031a	83 c4 08 		add	sp,OFFSET 8
+	*** 00031d	9b db ae bc f6 		fld	TBYTE PTR -2372[bp]
+	*** 000322	8b d8 			mov	bx,ax
+	*** 000326	9b dc 0f 		fmul	ST(0),QWORD PTR [bx]
+	*** 000329	9b d9 9e e0 fa 		fstp	DWORD PTR -1312[bp]
+; 
+;                    } break;
+; Line 192
+	*** 000330	e9 00 00 		jmp	L00952
+; 
+;               case '2': // move backward
+; Line 194
+					L00960:
+;                    {
+; Line 195
+;                    // based on direction variable compute translation factors
+; 
+;                    // compute angle in radians
+; 
+;                    angle =  (90+360-22.5*(float)tank1_direction);
+; Line 200
+	*** 000333	b8 c2 01 		mov	ax,OFFSET 450
+	*** 000336	99 			cwd
+	*** 000337	89 86 c6 f6 		mov	WORD PTR -2362[bp],ax
+	*** 00033b	89 96 c8 f6 		mov	WORD PTR -2360[bp],dx
+	*** 00033f	9b db 86 c6 f6 		fldi	DWORD PTR -2362[bp]
+	*** 000344	8b 86 ee fe 		mov	ax,WORD PTR -274[bp]
+	*** 00034a	99 			cwd
+	*** 00034b	89 86 be f6 		mov	WORD PTR -2370[bp],ax
+	*** 00034f	89 96 c0 f6 		mov	WORD PTR -2368[bp],dx
+	*** 000353	9b db 86 be f6 		fldi	DWORD PTR -2370[bp]
+	*** 000358	9b dd 06 00 00 		fld	QWORD PTR con0
+	*** 00035d	9b de c9 		fmulp	ST(1),ST(0)
+	*** 000360	9b de e9 		fsubp	ST(1),ST(0)
+	*** 000363	9b d9 9e 54 f7 		fstp	DWORD PTR -2220[bp]
+; 
+;                    // compute factors based on angle and speed
+; 
+;                    dx = TANK_SPEED * cos(PI*angle/180);
+; Line 204
+	*** 00036a	b8 04 00 		mov	ax,OFFSET 4
+	*** 00036d	99 			cwd
+	*** 00036e	89 86 c6 f6 		mov	WORD PTR -2362[bp],ax
+	*** 000372	89 96 c8 f6 		mov	WORD PTR -2360[bp],dx
+	*** 000376	9b db 86 c6 f6 		fldi	DWORD PTR -2362[bp]
+	*** 00037b	9b db be bc f6 		fstp	TBYTE PTR -2372[bp]
+	*** 000380	83 ec 08 		sub	sp,OFFSET 8
+	*** 000385	9b d9 86 54 f7 		fld	DWORD PTR -2220[bp]
+	*** 00038a	9b d9 06 08 00 		fld	DWORD PTR con0+8
+	*** 00038f	9b de c9 		fmulp	ST(1),ST(0)
+	*** 000392	b8 b4 00 		mov	ax,OFFSET 180
+	*** 000395	99 			cwd
+	*** 000396	89 86 b4 f6 		mov	WORD PTR -2380[bp],ax
+	*** 00039a	89 96 b6 f6 		mov	WORD PTR -2378[bp],dx
+	*** 00039e	9b db 86 b4 f6 		fldi	DWORD PTR -2380[bp]
+	*** 0003a3	9b de f9 		fdivp	ST(1),ST(0)
+	*** 0003a6	8b dc 			mov	bx,sp
+	*** 0003a8	9b dd 1f 		fstp	QWORD PTR ss:[bx]
+	*** 0003ab	9a 00 00 00 00 		call	FAR PTR _cos
+	*** 0003b2	83 c4 08 		add	sp,OFFSET 8
+	*** 0003b5	9b db ae bc f6 		fld	TBYTE PTR -2372[bp]
+	*** 0003ba	8b d8 			mov	bx,ax
+	*** 0003be	9b dc 0f 		fmul	ST(0),QWORD PTR [bx]
+	*** 0003c1	9b d9 9e 58 f7 		fstp	DWORD PTR -2216[bp]
+;                    dy = TANK_SPEED * sin(PI*angle/180);
+; Line 205
+	*** 0003c8	b8 04 00 		mov	ax,OFFSET 4
+	*** 0003cb	99 			cwd
+	*** 0003cc	89 86 c6 f6 		mov	WORD PTR -2362[bp],ax
+	*** 0003d0	89 96 c8 f6 		mov	WORD PTR -2360[bp],dx
+	*** 0003d4	9b db 86 c6 f6 		fldi	DWORD PTR -2362[bp]
+	*** 0003d9	9b db be bc f6 		fstp	TBYTE PTR -2372[bp]
+	*** 0003de	83 ec 08 		sub	sp,OFFSET 8
+	*** 0003e3	9b d9 86 54 f7 		fld	DWORD PTR -2220[bp]
+	*** 0003e8	9b d9 06 08 00 		fld	DWORD PTR con0+8
+	*** 0003ed	9b de c9 		fmulp	ST(1),ST(0)
+	*** 0003f0	b8 b4 00 		mov	ax,OFFSET 180
+	*** 0003f3	99 			cwd
+	*** 0003f4	89 86 b4 f6 		mov	WORD PTR -2380[bp],ax
+	*** 0003f8	89 96 b6 f6 		mov	WORD PTR -2378[bp],dx
+	*** 0003fc	9b db 86 b4 f6 		fldi	DWORD PTR -2380[bp]
+	*** 000401	9b de f9 		fdivp	ST(1),ST(0)
+	*** 000404	8b dc 			mov	bx,sp
+	*** 000406	9b dd 1f 		fstp	QWORD PTR ss:[bx]
+	*** 000409	9a 00 00 00 00 		call	FAR PTR _sin
+	*** 000410	83 c4 08 		add	sp,OFFSET 8
+	*** 000413	9b db ae bc f6 		fld	TBYTE PTR -2372[bp]
+	*** 000418	8b d8 			mov	bx,ax
+	*** 00041c	9b dc 0f 		fmul	ST(0),QWORD PTR [bx]
+	*** 00041f	9b d9 9e e0 fa 		fstp	DWORD PTR -1312[bp]
+; 
+;                    } break;
+; Line 207
+	*** 000426	e9 00 00 		jmp	L00952
+; 
+;               case 'q': // quit
+; Line 209
+					L00961:
+;                    {
+; Line 210
+;                    // set exit flag true
+; 
+;                    done=1;
+; Line 213
+	*** 000429	c7 86 f2 fe 01 00 	mov	WORD PTR -270[bp],OFFSET 1
+; 
+;                    } break;
+; Line 215
+	*** 00042f	e9 00 00 		jmp	L00952
+; 
+;               default:break;
+; Line 217
+					L00962:
+	*** 000432	e9 00 00 		jmp	L00952
+; 
+;               } // end switch
+; Line 219
+; Line 219
+	*** 000435	e9 00 00 		jmp	L00952
+					L00951:
+	*** 000438	3d 32 00 		cmp	ax,OFFSET 50
+	*** 00043b	75 03 e9 f3 fe 		je	L00960
+	*** 000440	3d 34 00 		cmp	ax,OFFSET 52
+	*** 000443	75 03 e9 db fd 		je	L00957
+	*** 000448	3d 36 00 		cmp	ax,OFFSET 54
+	*** 00044b	75 03 e9 b9 fd 		je	L00955
+	*** 000450	3d 38 00 		cmp	ax,OFFSET 56
+	*** 000453	75 03 e9 e5 fd 		je	L00959
+	*** 000458	3d 71 00 		cmp	ax,OFFSET 113
+	*** 00045b	75 03 e9 c9 ff 		je	L00961
+	*** 000460	e9 cf ff 		jmp	L00962
+					L00952:
+; 
+; // S E C T I O N  6 //////////////////////////////////////////////////
+; 
+;         // do the translation
+; 
+;         tank1.x+=(int)(dx+.5);
+; Line 225
+	*** 000463	9b d9 86 58 f7 		fld	DWORD PTR -2216[bp]
+	*** 000468	9b dd 06 0c 00 		fld	QWORD PTR con0+12
+	*** 00046d	9b de c1 		faddp	ST(1),ST(0)
+	*** 000470	9a 00 00 00 00 		call	FAR PTR __aFftol
+	*** 000475	03 86 f6 fe 		add	ax,WORD PTR -266[bp]
+	*** 000479	89 86 f6 fe 		mov	WORD PTR -266[bp],ax
+;         tank1.y-=(int)(dy+.5);
+; Line 226
+	*** 00047d	9b d9 86 e0 fa 		fld	DWORD PTR -1312[bp]
+	*** 000482	9b dd 06 0c 00 		fld	QWORD PTR con0+12
+	*** 000487	9b de c1 		faddp	ST(1),ST(0)
+	*** 00048a	9a 00 00 00 00 		call	FAR PTR __aFftol
+	*** 00048f	8b 8e f8 fe 		mov	cx,WORD PTR -264[bp]
+	*** 000493	2b c8 			sub	cx,ax
+	*** 000495	89 8e f8 fe 		mov	WORD PTR -264[bp],cx
+; 
+;         // test if player bumped into edge, if so push him back
+; 
+;         // set the frame based on new direction
+; 
+;         tank1.curr_frame = tank1_direction;
+; Line 232
+	*** 000499	8b 86 ee fe 		mov	ax,WORD PTR -274[bp]
+	*** 00049d	89 86 6a ff 		mov	WORD PTR -150[bp],ax
+; 
+;         } // end if kbhit
+; Line 234
+; 
+; // S E C T I O N  7 //////////////////////////////////////////////////
+; 
+;      // now move the enemy tank
+; 
+;      // test if it's time to turn
+; 
+;      if (rand()%10==1)
+; Line 242
+					L00950:
+	*** 0004a1	9a 00 00 00 00 		call	FAR PTR _rand
+	*** 0004a6	b9 0a 00 		mov	cx,OFFSET 10
+	*** 0004a9	99 			cwd
+	*** 0004aa	f7 f9 			idiv	cx
+	*** 0004ac	83 fa 01 		cmp	dx,OFFSET 1
+	*** 0004af	74 03 e9 00 00 		jne	L00963
+;         {
+; Line 243
+; 
+;         // select direction to turn
+; 
+;         switch(rand()%2)
+; Line 247
+	*** 0004b4	9a 00 00 00 00 		call	FAR PTR _rand
+	*** 0004b9	b9 02 00 		mov	cx,OFFSET 2
+	*** 0004bc	99 			cwd
+	*** 0004bd	f7 f9 			idiv	cx
+	*** 0004bf	8b c2 			mov	ax,dx
+	*** 0004c1	e9 00 00 		jmp	L00964
+;               {
+; Line 248
+; 
+;               case 0: // turn right
+; Line 250
+					L00968:
+;                    {
+; Line 251
+; 
+;                    if (++tank2_direction > 15)
+; Line 253
+	*** 0004c4	83 86 f0 fe 01 		add	WORD PTR -272[bp],OFFSET 1
+	*** 0004c9	8b 86 f0 fe 		mov	ax,WORD PTR -272[bp]
+	*** 0004cd	3d 0f 00 		cmp	ax,OFFSET 15
+	*** 0004d0	7f 03 e9 00 00 		jle	L00969
+;                       tank2_direction=0;
+; Line 254
+	*** 0004d5	c7 86 f0 fe 00 00 	mov	WORD PTR -272[bp],OFFSET 0
+; 
+;                    } break;
+; Line 256
+					L00969:
+	*** 0004db	e9 00 00 		jmp	L00965
+; 
+;               case 1: // turn left
+; Line 258
+					L00970:
+;                    {
+; Line 259
+; 
+;                    if (--tank2_direction < 0)
+; Line 261
+	*** 0004de	83 ae f0 fe 01 		sub	WORD PTR -272[bp],OFFSET 1
+	*** 0004e3	8b 86 f0 fe 		mov	ax,WORD PTR -272[bp]
+	*** 0004e7	3d 00 00 		cmp	ax,OFFSET 0
+	*** 0004ea	7c 03 e9 00 00 		jge	L00971
+;                       tank2_direction=15;
+; Line 262
+	*** 0004ef	c7 86 f0 fe 0f 00 	mov	WORD PTR -272[bp],OFFSET 15
+; 
+;                    } break;
+; Line 264
+					L00971:
+	*** 0004f5	e9 00 00 		jmp	L00965
+; 
+;               default:break;
+; Line 266
+					L00972:
+	*** 0004f8	e9 00 00 		jmp	L00965
+; 
+;               } // end switch
+; Line 268
+; Line 268
+	*** 0004fb	e9 00 00 		jmp	L00965
+					L00964:
+	*** 0004fe	3d 00 00 		cmp	ax,OFFSET 0
+	*** 000501	75 03 e9 be ff 		je	L00968
+	*** 000506	3d 01 00 		cmp	ax,OFFSET 1
+	*** 000509	75 03 e9 d0 ff 		je	L00970
+	*** 00050e	e9 e7 ff 		jmp	L00972
+					L00965:
+; 
+;         // set the frame based on new direction
+; 
+;         tank2.curr_frame = tank2_direction;
+; Line 272
+	*** 000511	8b 86 f0 fe 		mov	ax,WORD PTR -272[bp]
+	*** 000515	89 86 e0 fe 		mov	WORD PTR -288[bp],ax
+; 
+;         } // end if
+; Line 274
+; 
+; // S E C T I O N  8 //////////////////////////////////////////////////
+; 
+;      // compute angle in radians
+; 
+;      angle =  (90+360-22.5*(float)tank2_direction);
+; Line 280
+					L00963:
+	*** 000519	b8 c2 01 		mov	ax,OFFSET 450
+	*** 00051c	99 			cwd
+	*** 00051d	89 86 c6 f6 		mov	WORD PTR -2362[bp],ax
+	*** 000521	89 96 c8 f6 		mov	WORD PTR -2360[bp],dx
+	*** 000525	9b db 86 c6 f6 		fldi	DWORD PTR -2362[bp]
+	*** 00052a	8b 86 f0 fe 		mov	ax,WORD PTR -272[bp]
+	*** 000530	99 			cwd
+	*** 000531	89 86 be f6 		mov	WORD PTR -2370[bp],ax
+	*** 000535	89 96 c0 f6 		mov	WORD PTR -2368[bp],dx
+	*** 000539	9b db 86 be f6 		fldi	DWORD PTR -2370[bp]
+	*** 00053e	9b dd 06 00 00 		fld	QWORD PTR con0
+	*** 000543	9b de c9 		fmulp	ST(1),ST(0)
+	*** 000546	9b de e9 		fsubp	ST(1),ST(0)
+	*** 000549	9b d9 9e 54 f7 		fstp	DWORD PTR -2220[bp]
+; 
+;      // compute factors based on angle and speed
+; 
+;      dx = (TANK_SPEED+rand()%2) * cos(PI*angle/180);
+; Line 284
+	*** 000550	9a 00 00 00 00 		call	FAR PTR _rand
+	*** 000555	b9 02 00 		mov	cx,OFFSET 2
+	*** 000558	99 			cwd
+	*** 000559	f7 f9 			idiv	cx
+	*** 00055b	8b c2 			mov	ax,dx
+	*** 00055d	05 04 00 		add	ax,OFFSET 4
+	*** 000560	99 			cwd
+	*** 000561	89 86 c6 f6 		mov	WORD PTR -2362[bp],ax
+	*** 000565	89 96 c8 f6 		mov	WORD PTR -2360[bp],dx
+	*** 000569	9b db 86 c6 f6 		fldi	DWORD PTR -2362[bp]
+	*** 00056e	9b db be bc f6 		fstp	TBYTE PTR -2372[bp]
+	*** 000573	83 ec 08 		sub	sp,OFFSET 8
+	*** 000578	9b d9 86 54 f7 		fld	DWORD PTR -2220[bp]
+	*** 00057d	9b d9 06 08 00 		fld	DWORD PTR con0+8
+	*** 000582	9b de c9 		fmulp	ST(1),ST(0)
+	*** 000585	b8 b4 00 		mov	ax,OFFSET 180
+	*** 000588	99 			cwd
+	*** 000589	89 86 b4 f6 		mov	WORD PTR -2380[bp],ax
+	*** 00058d	89 96 b6 f6 		mov	WORD PTR -2378[bp],dx
+	*** 000591	9b db 86 b4 f6 		fldi	DWORD PTR -2380[bp]
+	*** 000596	9b de f9 		fdivp	ST(1),ST(0)
+	*** 000599	8b dc 			mov	bx,sp
+	*** 00059b	9b dd 1f 		fstp	QWORD PTR ss:[bx]
+	*** 00059e	9a 00 00 00 00 		call	FAR PTR _cos
+	*** 0005a5	83 c4 08 		add	sp,OFFSET 8
+	*** 0005a8	9b db ae bc f6 		fld	TBYTE PTR -2372[bp]
+	*** 0005ad	8b d8 			mov	bx,ax
+	*** 0005b1	9b dc 0f 		fmul	ST(0),QWORD PTR [bx]
+	*** 0005b4	9b d9 9e 58 f7 		fstp	DWORD PTR -2216[bp]
+;      dy = (TANK_SPEED+rand()%2) * sin(PI*angle/180);
+; Line 285
+	*** 0005bb	9a 00 00 00 00 		call	FAR PTR _rand
+	*** 0005c0	b9 02 00 		mov	cx,OFFSET 2
+	*** 0005c3	99 			cwd
+	*** 0005c4	f7 f9 			idiv	cx
+	*** 0005c6	8b c2 			mov	ax,dx
+	*** 0005c8	05 04 00 		add	ax,OFFSET 4
+	*** 0005cb	99 			cwd
+	*** 0005cc	89 86 c6 f6 		mov	WORD PTR -2362[bp],ax
+	*** 0005d0	89 96 c8 f6 		mov	WORD PTR -2360[bp],dx
+	*** 0005d4	9b db 86 c6 f6 		fldi	DWORD PTR -2362[bp]
+	*** 0005d9	9b db be bc f6 		fstp	TBYTE PTR -2372[bp]
+	*** 0005de	83 ec 08 		sub	sp,OFFSET 8
+	*** 0005e3	9b d9 86 54 f7 		fld	DWORD PTR -2220[bp]
+	*** 0005e8	9b d9 06 08 00 		fld	DWORD PTR con0+8
+	*** 0005ed	9b de c9 		fmulp	ST(1),ST(0)
+	*** 0005f0	b8 b4 00 		mov	ax,OFFSET 180
+	*** 0005f3	99 			cwd
+	*** 0005f4	89 86 b4 f6 		mov	WORD PTR -2380[bp],ax
+	*** 0005f8	89 96 b6 f6 		mov	WORD PTR -2378[bp],dx
+	*** 0005fc	9b db 86 b4 f6 		fldi	DWORD PTR -2380[bp]
+	*** 000601	9b de f9 		fdivp	ST(1),ST(0)
+	*** 000604	8b dc 			mov	bx,sp
+	*** 000606	9b dd 1f 		fstp	QWORD PTR ss:[bx]
+	*** 000609	9a 00 00 00 00 		call	FAR PTR _sin
+	*** 000610	83 c4 08 		add	sp,OFFSET 8
+	*** 000613	9b db ae bc f6 		fld	TBYTE PTR -2372[bp]
+	*** 000618	8b d8 			mov	bx,ax
+	*** 00061c	9b dc 0f 		fmul	ST(0),QWORD PTR [bx]
+	*** 00061f	9b d9 9e e0 fa 		fstp	DWORD PTR -1312[bp]
+; 
+;      // do the translation
+; 
+;      tank2.x+=(int)(dx+.5);
+; Line 289
+	*** 000626	9b d9 86 58 f7 		fld	DWORD PTR -2216[bp]
+	*** 00062b	9b dd 06 0c 00 		fld	QWORD PTR con0+12
+	*** 000630	9b de c1 		faddp	ST(1),ST(0)
+	*** 000633	9a 00 00 00 00 		call	FAR PTR __aFftol
+	*** 000638	03 86 6c fe 		add	ax,WORD PTR -404[bp]
+	*** 00063c	89 86 6c fe 		mov	WORD PTR -404[bp],ax
+;      tank2.y-=(int)(dy+.5);
+; Line 290
+	*** 000640	9b d9 86 e0 fa 		fld	DWORD PTR -1312[bp]
+	*** 000645	9b dd 06 0c 00 		fld	QWORD PTR con0+12
+	*** 00064a	9b de c1 		faddp	ST(1),ST(0)
+	*** 00064d	9a 00 00 00 00 		call	FAR PTR __aFftol
+	*** 000652	8b 8e 6e fe 		mov	cx,WORD PTR -402[bp]
+	*** 000656	2b c8 			sub	cx,ax
+	*** 000658	89 8e 6e fe 		mov	WORD PTR -402[bp],cx
+; 
+; // S E C T I O N  9 //////////////////////////////////////////////////
+; 
+;      // test if enemy has hit an edge, if so warp to other side
+; 
+;      if (tank2.x > (320-(int)sprite_width) )
+; Line 296
+	*** 00065c	a1 00 00 		mov	ax,WORD PTR _sprite_width
+	*** 00065f	b9 40 01 		mov	cx,OFFSET 320
+	*** 000662	2b c8 			sub	cx,ax
+	*** 000664	39 8e 6c fe 		cmp	WORD PTR -404[bp],cx
+	*** 000668	7f 03 e9 00 00 		jle	L00973
+;         tank2.x = 0;
+; Line 297
+	*** 00066d	c7 86 6c fe 00 00 	mov	WORD PTR -404[bp],OFFSET 0
+; 
+;      else
+; Line 299
+	*** 000673	e9 00 00 		jmp	L00974
+					L00973:
+; Line 299
+;      if (tank2.x < 0 )
+; Line 300
+	*** 000676	83 be 6c fe 00 		cmp	WORD PTR -404[bp],OFFSET 0
+	*** 00067b	7c 03 e9 00 00 		jge	L00975
+;         tank2.x = 319-(int)sprite_width;
+; Line 301
+	*** 000680	a1 00 00 		mov	ax,WORD PTR _sprite_width
+	*** 000683	b9 3f 01 		mov	cx,OFFSET 319
+	*** 000686	2b c8 			sub	cx,ax
+	*** 000688	89 8e 6c fe 		mov	WORD PTR -404[bp],cx
+; 
+;      if (tank2.y > (200-(int)sprite_height) )
+; Line 303
+					L00975:
+					L00974:
+	*** 00068c	a1 00 00 		mov	ax,WORD PTR _sprite_height
+	*** 00068f	b9 c8 00 		mov	cx,OFFSET 200
+	*** 000692	2b c8 			sub	cx,ax
+	*** 000694	39 8e 6e fe 		cmp	WORD PTR -402[bp],cx
+	*** 000698	7f 03 e9 00 00 		jle	L00976
+;         tank2.y = 0;
+; Line 304
+	*** 00069d	c7 86 6e fe 00 00 	mov	WORD PTR -402[bp],OFFSET 0
+; 
+;      else
+; Line 306
+	*** 0006a3	e9 00 00 		jmp	L00977
+					L00976:
+; Line 306
+;      if (tank2.y < 0 )
+; Line 307
+	*** 0006a6	83 be 6e fe 00 		cmp	WORD PTR -402[bp],OFFSET 0
+	*** 0006ab	7c 03 e9 00 00 		jge	L00978
+;         tank2.y = 199-(int)sprite_height;
+; Line 308
+	*** 0006b0	a1 00 00 		mov	ax,WORD PTR _sprite_height
+	*** 0006b3	b9 c7 00 		mov	cx,OFFSET 199
+	*** 0006b6	2b c8 			sub	cx,ax
+	*** 0006b8	89 8e 6e fe 		mov	WORD PTR -402[bp],cx
+; 
+; // S E C T I O N  10 //////////////////////////////////////////////////
+; 
+;      // scan background under players tank
+; 
+;      Behind_Sprite((sprite_ptr)&tank1);
+; Line 314
+					L00978:
+					L00977:
+	*** 0006bc	8d 86 f6 fe 		lea	ax,WORD PTR -266[bp]
+	*** 0006c0	50 			push	ax
+	*** 0006c1	9a 00 00 00 00 		call	FAR PTR _Behind_Sprite
+	*** 0006c6	83 c4 02 		add	sp,OFFSET 2
+; 
+;      // scan background under emeny tank
+; 
+;      Behind_Sprite((sprite_ptr)&tank2);
+; Line 318
+	*** 0006c9	8d 86 6c fe 		lea	ax,WORD PTR -404[bp]
+	*** 0006cd	50 			push	ax
+	*** 0006ce	9a 00 00 00 00 		call	FAR PTR _Behind_Sprite
+	*** 0006d3	83 c4 02 		add	sp,OFFSET 2
+; 
+;      // draw players tank
+; 
+;      Draw_Sprite((sprite_ptr)&tank1);
+; Line 322
+	*** 0006d6	8d 86 f6 fe 		lea	ax,WORD PTR -266[bp]
+	*** 0006da	50 			push	ax
+	*** 0006db	9a 00 00 00 00 		call	FAR PTR _Draw_Sprite
+	*** 0006e0	83 c4 02 		add	sp,OFFSET 2
+; 
+;      // draw enemy tank
+; 
+;      Draw_Sprite((sprite_ptr)&tank2);
+; Line 326
+	*** 0006e3	8d 86 6c fe 		lea	ax,WORD PTR -404[bp]
+	*** 0006e7	50 			push	ax
+	*** 0006e8	9a 00 00 00 00 		call	FAR PTR _Draw_Sprite
+	*** 0006ed	83 c4 02 		add	sp,OFFSET 2
+; 
+;      // test for collision
+; 
+;      if (Sprite_Collide((sprite_ptr)&tank1,(sprite_ptr)&tank2))
+; Line 330
+	*** 0006f0	8d 86 6c fe 		lea	ax,WORD PTR -404[bp]
+	*** 0006f4	50 			push	ax
+	*** 0006f5	8d 86 f6 fe 		lea	ax,WORD PTR -266[bp]
+	*** 0006f9	50 			push	ax
+	*** 0006fa	9a 00 00 00 00 		call	FAR PTR _Sprite_Collide
+	*** 0006ff	83 c4 04 		add	sp,OFFSET 4
+	*** 000702	3d 00 00 		cmp	ax,OFFSET 0
+	*** 000705	75 03 e9 00 00 		je	L00979
+;         {
+; Line 331
+;         // fizzle out
+; 	Sprite_Fizzle_Frame(&f1, &tank1);
+; Line 333
+	*** 00070a	8d 86 f6 fe 		lea	ax,WORD PTR -266[bp]
+	*** 00070e	50 			push	ax
+	*** 00070f	8d 86 ce f6 		lea	ax,WORD PTR -2354[bp]
+	*** 000713	50 			push	ax
+	*** 000714	9a 00 00 00 00 		call	FAR PTR _Sprite_Fizzle_Frame
+	*** 000719	83 c4 04 		add	sp,OFFSET 4
+; 	Sprite_Fizzle_Frame(&f2, &tank2);
+; Line 334
+	*** 00071c	8d 86 6c fe 		lea	ax,WORD PTR -404[bp]
+	*** 000720	50 			push	ax
+	*** 000721	8d 86 78 ff 		lea	ax,WORD PTR -136[bp]
+	*** 000725	50 			push	ax
+	*** 000726	9a 00 00 00 00 		call	FAR PTR _Sprite_Fizzle_Frame
+	*** 00072b	83 c4 04 		add	sp,OFFSET 4
+; 	Delay(1);
+; Line 335
+	*** 00072e	6a 01 			push	OFFSET 1
+	*** 000730	9a 00 00 00 00 		call	FAR PTR _Delay
+	*** 000735	83 c4 02 		add	sp,OFFSET 2
+; 	for(fcount=1; fcount < 25; fcount++) {
+; Line 336
+	*** 000738	c7 86 f4 fe 01 00 	mov	WORD PTR -268[bp],OFFSET 1
+	*** 00073e	e9 00 00 		jmp	L00983
+					L00980:
+; 	    Sprite_Fizzle_Frame(&f1, NULL);
+; Line 337
+	*** 000741	6a 00 			push	OFFSET 0
+	*** 000743	8d 86 ce f6 		lea	ax,WORD PTR -2354[bp]
+	*** 000747	50 			push	ax
+	*** 000748	9a 00 00 00 00 		call	FAR PTR _Sprite_Fizzle_Frame
+	*** 00074d	83 c4 04 		add	sp,OFFSET 4
+; 	    Sprite_Fizzle_Frame(&f2, NULL);
+; Line 338
+	*** 000750	6a 00 			push	OFFSET 0
+	*** 000752	8d 86 78 ff 		lea	ax,WORD PTR -136[bp]
+	*** 000756	50 			push	ax
+	*** 000757	9a 00 00 00 00 		call	FAR PTR _Sprite_Fizzle_Frame
+	*** 00075c	83 c4 04 		add	sp,OFFSET 4
+; 	    Delay(1);
+; Line 339
+	*** 00075f	6a 01 			push	OFFSET 1
+	*** 000761	9a 00 00 00 00 		call	FAR PTR _Delay
+	*** 000766	83 c4 02 		add	sp,OFFSET 2
+; 	}
+; Line 340
+					L00981:
+; Line 340
+	*** 000769	83 86 f4 fe 01 		add	WORD PTR -268[bp],OFFSET 1
+					L00983:
+	*** 00076e	83 be f4 fe 19 		cmp	WORD PTR -268[bp],OFFSET 25
+	*** 000773	7d 03 e9 c9 ff 		jl	L00980
+					L00982:
+; 	Delay(17);
+; Line 341
+	*** 000778	6a 11 			push	OFFSET 17
+	*** 00077a	9a 00 00 00 00 		call	FAR PTR _Delay
+	*** 00077f	83 c4 02 		add	sp,OFFSET 2
+; 	done=1;
+; Line 342
+	*** 000782	c7 86 f2 fe 01 00 	mov	WORD PTR -270[bp],OFFSET 1
+; 
+;         } // end if collision
+; Line 344
+; 
+;      // delay main loop for a sec so that user can see a solid image
+; 
+;      Delay(2); // wait 55ms approx. or 1/18.2 sec
+; Line 348
+					L00979:
+	*** 000788	6a 02 			push	OFFSET 2
+	*** 00078a	9a 00 00 00 00 		call	FAR PTR _Delay
+	*** 00078f	83 c4 02 		add	sp,OFFSET 2
+; 
+;      } // end while
+; Line 350
+					L00947:
+; Line 350
+					L00949:
+	*** 000792	83 be f2 fe 00 		cmp	WORD PTR -270[bp],OFFSET 0
+	*** 000797	75 03 e9 1c fa 		je	L00946
+					L00948:
+; 
+; // S E C T I O N  11 //////////////////////////////////////////////////
+; 
+; // disolve the screen...in one line I might add!
+; 
+; for (index=0; index<=300000; index++,Plot_Pixel_Fast(rand()%320, rand()%200, 0));
+; Line 356
+	*** 00079c	c7 86 68 fe 00 00 	mov	WORD PTR -408[bp],OFFSET 0
+	*** 0007a2	c7 86 6a fe 00 00 	mov	WORD PTR -406[bp],OFFSET 0
+	*** 0007a8	e9 00 00 		jmp	L00984
+					L00985:
+	*** 0007ab	8b 86 68 fe 		mov	ax,WORD PTR -408[bp]
+	*** 0007af	8b 96 6a fe 		mov	dx,WORD PTR -406[bp]
+	*** 0007b3	83 86 68 fe 01 		add	WORD PTR -408[bp],OFFSET 1
+	*** 0007b8	83 96 6a fe 00 		adc	WORD PTR -406[bp],OFFSET 0
+	*** 0007bd	6a 00 			push	OFFSET 0
+	*** 0007bf	9a 00 00 00 00 		call	FAR PTR _rand
+	*** 0007c4	b9 c8 00 		mov	cx,OFFSET 200
+	*** 0007c7	99 			cwd
+	*** 0007c8	f7 f9 			idiv	cx
+	*** 0007ca	52 			push	dx
+	*** 0007cb	9a 00 00 00 00 		call	FAR PTR _rand
+	*** 0007d0	b9 40 01 		mov	cx,OFFSET 320
+	*** 0007d3	99 			cwd
+	*** 0007d4	f7 f9 			idiv	cx
+	*** 0007d6	52 			push	dx
+	*** 0007d7	9a 00 00 00 00 		call	FAR PTR _Plot_Pixel_Fast
+	*** 0007dc	83 c4 06 		add	sp,OFFSET 6
+					L00984:
+	*** 0007df	83 be 6a fe 04 		cmp	WORD PTR -406[bp],OFFSET 4
+	*** 0007e4	7e 03 e9 00 00 		jg	L00986
+	*** 0007e9	7d 03 e9 00 00 		jl	L00995
+	*** 0007ee	81 be 68 fe e0 93 	cmp	WORD PTR -408[bp],OFFSET -27680
+	*** 0007f4	76 03 e9 00 00 		ja	L00986
+					L00995:
+	*** 0007f9	e9 af ff 		jmp	L00985
+					L00986:
+; 
+; // go back to text mode
+; 
+; Set_Video_Mode(TEXT_MODE);
+; Line 360
+	*** 0007fc	6a 03 			push	OFFSET 3
+	*** 0007fe	9a 00 00 00 00 		call	FAR PTR _Set_Video_Mode
+	*** 000803	83 c4 02 		add	sp,OFFSET 2
+; 
+; } // end main
+; Line 362
+; Line 362
+					L00920:
+	*** 000806	5f 			pop	di
+	*** 000807	5e 			pop	si
+	*** 000808	c9 			leave
+	*** 000809	cb 			ret	OFFSET 0
+Local Size: 2380
+; Line 0

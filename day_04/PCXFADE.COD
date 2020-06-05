@@ -1,0 +1,102 @@
+; File pcxfade.c
+; // I N C L U D E S ////////////////////////////////////////////////////////////
+; #include <stdio.h>
+; #include <stdlib.h>
+; #include <conio.h>
+; 
+; #include "graph3.h" // this is all we need to include so that the program
+;                     // knows all the #defines, structures, prototypes etc.
+; #include "graph4.h"
+; #include "better4.h"
+; 
+; void main(int argc, char **argv)
+; {
+; Line 12
+; argc = 0006
+; argv = 0008
+					_main:
+	*** 000000	c8 00 00 00 		enter	OFFSET L00479,OFFSET 0
+	*** 000004	56 			push	si
+	*** 000005	57 			push	di
+; background_pcx = fc7a
+; pcx_picture background_pcx;  // this pcx structure holds background imagery
+; Line 13
+; 
+; if(argc != 2) {
+; Line 15
+	*** 000006	83 7e 06 02 		cmp	WORD PTR 6[bp],OFFSET 2
+	*** 00000a	75 03 e9 00 00 		je	L00473
+;     printf("Usage: %s [pcxfile]\n", argv[0]);
+; Line 16
+	*** 00000f	8b 5e 08 		mov	bx,WORD PTR 8[bp]
+	*** 000012	ff 37 			push	WORD PTR [bx]
+	*** 000014	68 00 00 		push	OFFSET L00474
+	*** 000017	9a 00 00 00 00 		call	FAR PTR _printf
+	*** 00001c	83 c4 04 		add	sp,OFFSET 4
+;     return;
+; Line 17
+	*** 00001f	e9 00 00 		jmp	L00471
+; }
+; Line 18
+; 
+; //graphic mode
+; Set_Video_Mode(VGA256);
+; Line 21
+					L00473:
+	*** 000022	6a 13 			push	OFFSET 19
+	*** 000024	9a 00 00 00 00 		call	FAR PTR _Set_Video_Mode
+	*** 000029	83 c4 02 		add	sp,OFFSET 2
+; 
+; //load and display the image
+; PCX_Init((pcx_picture_ptr)&background_pcx);
+; Line 24
+	*** 00002c	8d 86 7a fc 		lea	ax,WORD PTR -902[bp]
+	*** 000030	50 			push	ax
+	*** 000031	9a 00 00 00 00 		call	FAR PTR _PCX_Init
+	*** 000036	83 c4 02 		add	sp,OFFSET 2
+; PCX_Load(argv[1], (pcx_picture_ptr)&background_pcx,1);
+; Line 25
+	*** 000039	6a 01 			push	OFFSET 1
+	*** 00003b	8d 86 7a fc 		lea	ax,WORD PTR -902[bp]
+	*** 00003f	50 			push	ax
+	*** 000040	8b 5e 08 		mov	bx,WORD PTR 8[bp]
+	*** 000043	ff 77 02 		push	WORD PTR 2[bx]
+	*** 000046	9a 00 00 00 00 		call	FAR PTR _PCX_Load
+	*** 00004b	83 c4 06 		add	sp,OFFSET 6
+; PCX_Show_Buffer((pcx_picture_ptr)&background_pcx);
+; Line 26
+	*** 00004e	8d 86 7a fc 		lea	ax,WORD PTR -902[bp]
+	*** 000052	50 			push	ax
+	*** 000053	9a 00 00 00 00 		call	FAR PTR _PCX_Show_Buffer
+	*** 000058	83 c4 02 		add	sp,OFFSET 2
+; 
+; while(!kbhit()) { } //wait for keypress
+; Line 28
+					L00476:
+	*** 00005b	9a 00 00 00 00 		call	FAR PTR _kbhit
+	*** 000060	3d 00 00 		cmp	ax,OFFSET 0
+	*** 000063	74 03 e9 00 00 		jne	L00477
+; Line 28
+	*** 000068	e9 f0 ff 		jmp	L00476
+					L00477:
+; 
+; Better_Fade();
+; Line 30
+	*** 00006b	9a 00 00 00 00 		call	FAR PTR _Better_Fade
+; 
+; //text mode
+; Set_Video_Mode(TEXT_MODE);
+; Line 33
+	*** 000070	6a 03 			push	OFFSET 3
+	*** 000072	9a 00 00 00 00 		call	FAR PTR _Set_Video_Mode
+	*** 000077	83 c4 02 		add	sp,OFFSET 2
+; }
+; Line 34
+; Line 34
+					L00471:
+	*** 00007a	5f 			pop	di
+	*** 00007b	5e 			pop	si
+	*** 00007c	c9 			leave
+	*** 00007d	cb 			ret	OFFSET 0
+Local Size: 902
+; Line 0

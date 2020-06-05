@@ -1,0 +1,116 @@
+_Add_Fixed........graph8            _Add_Task.........graph11
+_Assign_Float.....graph8            _Assign_Integer...graph8
+_Behind_Sprite....graph4            _Behind_Sprite_DB..graph6
+_Better_Behind_Sprite..better4      _Better_Draw_Sprite..better4
+_Better_Erase_Sprite..better4       _Better_Scale_Sprite..better4
+_Bline............graph5            _Bline_DB.........graph14
+_Blit_Char........graph3            _Blit_Char_DB.....graph6
+_Blit_String......graph3            _Blit_String_DB...graph6
+_buffer_height....graph6            _buffer_size......graph6
+_Buttons..........graph7j           _Buttons_Bios.....graph7j
+_Change_Timer.....graph11           _Clip_Line........graph5
+_Create_Double_Buffer..graph6       _Create_Tables....graph5
+_Delay............graph3            _Delete_Double_Buffer..graph6
+_Delete_Keyboard..graph11           _Delete_Task......graph11
+_Disolve..........graph6            _Div_Fixed........graph8
+_double_buffer....graph6            _Draw_Boundary....graph5
+_Draw_Polygon.....graph5            _Draw_Polygon_Clip..graph5
+_Draw_Polygon_Clip_DB..graph14      _Draw_Polygon_DB..graph14
+_Draw_Sprite......graph4            _Draw_Sprite_DB...graph6
+_Erase_Sprite.....graph4            _Erase_Sprite_DB..graph6
+_Fade_Lights......graph6            _Fill_Double_Buffer..graph6
+_Get_Ascii_Key....graph7k           _Get_Control_Keys..graph7k
+_Get_Palette_Register..graph3       _Get_Pixel........graph4
+_Get_Scan_Code....graph7k           _H_Line...........graph3
+_H_Line_Fast......graph3            _Initialize_Kernal..graph11
+_Install_Keyboard..graph11          _Joystick.........graph7j
+_Joystick_Available..graph7j        _Joystick_Bios....graph7j
+_Joystick_Calibrate..graph7j        _key_table........graph11
+_Melt.............graph6            _Multi_Kernal.....graph11
+_Mul_Fixed........graph8            _New_Key_Int......graph11
+_num_tasks........graph11           _PCX_Delete.......graph4
+_PCX_Grab_Bitmap..graph4            _PCX_Init.........graph4
+_PCX_Load.........graph4            _PCX_Show_Buffer..graph4
+_Plot_Pixel.......graph3            _Plot_Pixel_Fast..graph3
+_Plot_Pixel_Fast_DB..graph6         _poly_clip_max_x..graph5
+_poly_clip_max_y..graph5            _poly_clip_min_x..graph5
+_poly_clip_min_y..graph5            _Print_Fixed......graph8
+_rom_char_set.....graph3            _Rotate_Polygon...graph5
+_Scale_Polygon....graph5            _Scale_Sprite.....graph6
+_Set_Palette_Register..graph3       _Set_Video_Mode...graph3
+_Sheer............graph6            _Show_Double_Buffer..graph6
+_Sprite_Collide...graph4            _Sprite_Delete....graph4
+_sprite_height....graph4            _Sprite_Init......graph4
+_sprite_width.....graph4            _Squeeze_Mouse....graph7m
+_Start_Kernal.....graph11           _Stop_Kernal......graph11
+_Sub_Fixed........graph8            _Translate_Polygon..graph5
+_video_buffer.....graph3            _video_buffer_w...graph3
+_Voc_Break_Sound..graph9            _Voc_Continue_Sound..graph9
+_Voc_Get_Version..graph9            _Voc_Init_Driver..graph9
+_Voc_Load_Driver..graph9            _Voc_Load_Sound...graph9
+_Voc_Pause_Sound..graph9            _Voc_Play_Sound...graph9
+_Voc_Set_IRQ......graph9            _Voc_Set_Port.....graph9
+_Voc_Set_Speaker..graph9            _Voc_Set_Status_Addr..graph9
+_Voc_Stop_Sound...graph9            _Voc_Terminate_Driver..graph9
+_Voc_Unload_Sound..graph9           _V_Line...........graph3
+_Wait_For_Vsync...graph6            
+
+graph3            Offset: 00000010H  Code and data size: 1485H
+  _Blit_Char        _Blit_String      _Delay            _Get_Palette_Register
+  _H_Line           _H_Line_Fast      _Plot_Pixel       _Plot_Pixel_Fast
+  _rom_char_set     _Set_Palette_Register               _Set_Video_Mode
+  _video_buffer     _video_buffer_w   _V_Line         
+
+graph4            Offset: 00001b20H  Code and data size: 1caeH
+  _Behind_Sprite    _Draw_Sprite      _Erase_Sprite     _Get_Pixel
+  _PCX_Delete       _PCX_Grab_Bitmap  _PCX_Init         _PCX_Load
+  _PCX_Show_Buffer  _Sprite_Collide   _Sprite_Delete    _sprite_height
+  _Sprite_Init      _sprite_width   
+
+graph7k           Offset: 000040e0H  Code and data size: a87H
+  _Get_Ascii_Key    _Get_Control_Keys                   _Get_Scan_Code
+
+graph7m           Offset: 00004e50H  Code and data size: b2bH
+  _Squeeze_Mouse  
+
+graph7j           Offset: 00005c50H  Code and data size: ff2H
+  _Buttons          _Buttons_Bios     _Joystick         _Joystick_Available
+  _Joystick_Bios    _Joystick_Calibrate               
+
+graph6            Offset: 00007330H  Code and data size: 2257H
+  _Behind_Sprite_DB                   _Blit_Char_DB     _Blit_String_DB
+  _buffer_height    _buffer_size      _Create_Double_Buffer
+  _Delete_Double_Buffer               _Disolve          _double_buffer
+  _Draw_Sprite_DB   _Erase_Sprite_DB  _Fade_Lights      _Fill_Double_Buffer
+  _Melt             _Plot_Pixel_Fast_DB                 _Scale_Sprite
+  _Sheer            _Show_Double_Buffer                 _Wait_For_Vsync
+
+graph5            Offset: 0000a1e0H  Code and data size: 244fH
+  _Bline            _Clip_Line        _Create_Tables    _Draw_Boundary
+  _Draw_Polygon     _Draw_Polygon_Clip                  _poly_clip_max_x
+  _poly_clip_max_y  _poly_clip_min_x  _poly_clip_min_y  _Rotate_Polygon
+  _Scale_Polygon    _Translate_Polygon                
+
+graph8            Offset: 0000d570H  Code and data size: 5a9H
+  _Add_Fixed        _Assign_Float     _Assign_Integer   _Div_Fixed
+  _Mul_Fixed        _Print_Fixed      _Sub_Fixed      
+
+graph14           Offset: 0000def0H  Code and data size: 162fH
+  _Bline_DB         _Draw_Polygon_Clip_DB               _Draw_Polygon_DB
+
+graph11           Offset: 0000fa50H  Code and data size: 17e2H
+  _Add_Task         _Change_Timer     _Delete_Keyboard  _Delete_Task
+  _Initialize_Kernal                  _Install_Keyboard
+  _key_table        _Multi_Kernal     _New_Key_Int      _num_tasks
+  _Start_Kernal     _Stop_Kernal    
+
+graph9            Offset: 00011a50H  Code and data size: 113fH
+  _Voc_Break_Sound  _Voc_Continue_Sound                 _Voc_Get_Version
+  _Voc_Init_Driver  _Voc_Load_Driver  _Voc_Load_Sound   _Voc_Pause_Sound
+  _Voc_Play_Sound   _Voc_Set_IRQ      _Voc_Set_Port     _Voc_Set_Speaker
+  _Voc_Set_Status_Addr                _Voc_Stop_Sound   _Voc_Terminate_Driver
+  _Voc_Unload_Sound                 
+
+better4           Offset: 00013430H  Code and data size: 15e1H
+  _Better_Behind_Sprite               _Better_Draw_Sprite
+  _Better_Erase_Sprite                _Better_Scale_Sprite

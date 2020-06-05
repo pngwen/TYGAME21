@@ -1,0 +1,979 @@
+; File better4.c
+; #include <io.h>
+; #include <conio.h>
+; #include <stdio.h>
+; #include <stdlib.h>
+; #include <dos.h>
+; #include <bios.h>
+; #include <fcntl.h>
+; #include <memory.h>
+; #include <malloc.h>
+; #include <math.h>
+; #include <string.h>
+; 
+; #include <graph.h>   // microsoft's stuff if we need it
+; 
+; #include "graph3.h"
+; #include "graph4.h"
+; #include "better4.h"
+; 
+; void Better_Behind_Sprite(sprite_ptr sprite)
+; {
+; Line 20
+; sprite = 0006
+					_Better_Behind_Sprite:
+	*** 000000	c8 00 00 00 		enter	OFFSET L01032,OFFSET 0
+	*** 000004	56 			push	si
+	*** 000005	57 			push	di
+; old_sprite_width = fffc
+; old_sprite_height = fffa
+; int old_sprite_width, old_sprite_height;
+; Line 21
+; 
+; //preserve the sprite dimensions
+; old_sprite_width = sprite_width;
+; Line 24
+	*** 000006	a1 00 00 		mov	ax,WORD PTR _sprite_width
+	*** 000009	89 46 fc 		mov	WORD PTR -4[bp],ax
+; old_sprite_height = sprite_height;
+; Line 25
+	*** 00000c	a1 00 00 		mov	ax,WORD PTR _sprite_height
+	*** 00000f	89 46 fa 		mov	WORD PTR -6[bp],ax
+; 
+; //set the proper width and height
+; sprite_width = sprite->width;
+; Line 28
+	*** 000012	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000015	8b 47 08 		mov	ax,WORD PTR 8[bx]
+	*** 000018	a3 00 00 		mov	WORD PTR _sprite_width,ax
+; sprite_height = sprite->height;
+; Line 29
+	*** 00001b	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 00001e	8b 47 0a 		mov	ax,WORD PTR 10[bx]
+	*** 000021	a3 00 00 		mov	WORD PTR _sprite_height,ax
+; 
+; Behind_Sprite(sprite);
+; Line 31
+	*** 000024	ff 76 06 		push	WORD PTR 6[bp]
+	*** 000027	9a 00 00 00 00 		call	FAR PTR _Behind_Sprite
+	*** 00002c	83 c4 02 		add	sp,OFFSET 2
+; 
+; //restore the sprite dimensions
+; sprite_width = old_sprite_width;
+; Line 34
+	*** 00002f	8b 46 fc 		mov	ax,WORD PTR -4[bp]
+	*** 000032	a3 00 00 		mov	WORD PTR _sprite_width,ax
+; sprite_height = old_sprite_height;
+; Line 35
+	*** 000035	8b 46 fa 		mov	ax,WORD PTR -6[bp]
+	*** 000038	a3 00 00 		mov	WORD PTR _sprite_height,ax
+; }
+; Line 36
+; Line 36
+					L00926:
+	*** 00003b	5f 			pop	di
+	*** 00003c	5e 			pop	si
+	*** 00003d	c9 			leave
+	*** 00003e	cb 			ret	OFFSET 0
+Local Size: 6
+; Line 0
+; 
+; 
+; void Better_Erase_Sprite(sprite_ptr sprite)
+; {
+; int old_sprite_width, old_sprite_height;
+; 
+; //preserve the sprite dimensions
+; old_sprite_width = sprite_width;
+; old_sprite_height = sprite_height;
+; 
+; //set the proper width and height
+; sprite_width = sprite->width;
+; sprite_height = sprite->height;
+; 
+; Erase_Sprite(sprite);
+; 
+; //restore the sprite dimensions
+; sprite_width = old_sprite_width;
+; sprite_height = old_sprite_height;
+; }
+; 
+; 
+; void Better_Draw_Sprite(sprite_ptr sprite)
+; {
+; int old_sprite_width, old_sprite_height;
+; 
+; //preserve the sprite dimensions
+; old_sprite_width = sprite_width;
+; old_sprite_height = sprite_height;
+; 
+; //set the proper width and height
+; sprite_width = sprite->width;
+; sprite_height = sprite->height;
+; 
+; Draw_Sprite(sprite);
+; 
+; //restore the sprite dimensions
+; sprite_width = old_sprite_width;
+; sprite_height = old_sprite_height;
+; }
+; Line 40
+; sprite = 0006
+					_Better_Erase_Sprite:
+	*** 000040	c8 00 00 00 		enter	OFFSET L01033,OFFSET 0
+	*** 000044	56 			push	si
+	*** 000045	57 			push	di
+; old_sprite_width = fffc
+; old_sprite_height = fffa
+; 
+; Line 41
+; 
+; //functions I have written on day 4
+; void Better_Scale_Sprite(sprite_ptr dest, sprite_ptr src, int scale)
+; Line 44
+	*** 000046	a1 00 00 		mov	ax,WORD PTR _sprite_width
+	*** 000049	89 46 fc 		mov	WORD PTR -4[bp],ax
+; {
+; Line 45
+	*** 00004c	a1 00 00 		mov	ax,WORD PTR _sprite_height
+	*** 00004f	89 46 fa 		mov	WORD PTR -6[bp],ax
+; int sprite_frame;
+; int i,j;
+; int x,y;
+; Line 48
+	*** 000052	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000055	8b 47 08 		mov	ax,WORD PTR 8[bx]
+	*** 000058	a3 00 00 		mov	WORD PTR _sprite_width,ax
+; int fx,fy;
+; Line 49
+	*** 00005b	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 00005e	8b 47 0a 		mov	ax,WORD PTR 10[bx]
+	*** 000061	a3 00 00 		mov	WORD PTR _sprite_height,ax
+; unsigned char pixel;
+; 
+; Line 51
+	*** 000064	ff 76 06 		push	WORD PTR 6[bp]
+	*** 000067	9a 00 00 00 00 		call	FAR PTR _Erase_Sprite
+	*** 00006c	83 c4 02 		add	sp,OFFSET 2
+; // Initialize the destination sprite
+; Sprite_Init(dest,
+;             src->x,
+; Line 54
+	*** 00006f	8b 46 fc 		mov	ax,WORD PTR -4[bp]
+	*** 000072	a3 00 00 		mov	WORD PTR _sprite_width,ax
+;             src->y,
+; Line 55
+	*** 000075	8b 46 fa 		mov	ax,WORD PTR -6[bp]
+	*** 000078	a3 00 00 		mov	WORD PTR _sprite_height,ax
+; 	    src->anim_clock,
+; Line 56
+; Line 56
+					L00931:
+	*** 00007b	5f 			pop	di
+	*** 00007c	5e 			pop	si
+	*** 00007d	c9 			leave
+	*** 00007e	cb 			ret	OFFSET 0
+Local Size: 6
+; Line 0
+; 	    src->anim_speed,
+; 	    src->motion_clock,
+; 	    src->motion_speed);
+; dest->width = src->width * scale;
+; dest->height = src->height * scale;
+; 
+; //reallocate space for the background
+; _ffree(dest->background);
+; dest->background = (char far *)_fmalloc(dest->width * dest->height +1);
+; 
+; //copy the sprite frames
+; for(sprite_frame=0; sprite_frame < src->num_frames; sprite_frame++) {
+;     //allocate space for the frame
+;     dest->frames[sprite_frame] = (char far *)_fmalloc(dest->width * dest->height + 1);
+;     dest->num_frames++;
+; 
+;     //copy the frame, scaling the pixels as they go
+;     for(y=0; y<src->height; y++) {
+; 	fy = y * scale;
+;         for(x=0; x<src->width; x++) {
+; 	    pixel = src->frames[sprite_frame][y*src->width + x];
+; 	    fx = x*scale;
+; 	    for(i=0; i<scale; i++) {
+; 	        for(j=0; j<scale; j++) {
+; 		    dest->frames[sprite_frame][(fy+i) * dest->width + fx+j]=pixel;
+; 	        }
+; 	    }
+;         }
+;     }
+; }
+; }
+; 
+; 
+; void Better_Fade()
+; {
+; RGB_color color;  
+; int done;
+; int i;
+; 
+; // fade to black
+; do {
+;     //assume this is the last time
+;     done = 1;
+; 
+;     //decrement every register
+;     for(i=0; i<=255; i++) {
+;         Get_Palette_Register(i, &color);
+; 	if(color.red) {
+; 	    done = 0;
+; 	    color.red--;
+; 	}
+; 	if(color.green) {
+; 	    done = 0;
+; 	    color.green--;
+; 	}
+; 	if(color.blue) {
+; 	    done = 0;
+; 	    color.blue--;
+; 	}
+; 	Set_Palette_Register(i, &color);
+; Line 60
+; sprite = 0006
+					_Better_Draw_Sprite:
+	*** 000080	c8 00 00 00 		enter	OFFSET L01034,OFFSET 0
+	*** 000084	56 			push	si
+	*** 000085	57 			push	di
+; old_sprite_width = fffc
+; old_sprite_height = fffa
+;     }
+; Line 61
+;     Delay(2); //sloooowly
+; } while(!done);
+; }
+; Line 64
+	*** 000086	a1 00 00 		mov	ax,WORD PTR _sprite_width
+	*** 000089	89 46 fc 		mov	WORD PTR -4[bp],ax
+; 
+; Line 65
+	*** 00008c	a1 00 00 		mov	ax,WORD PTR _sprite_height
+	*** 00008f	89 46 fa 		mov	WORD PTR -6[bp],ax
+; 
+; void Copy_Sprite(sprite_ptr dest, sprite_ptr src)
+; {
+; Line 68
+	*** 000092	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000095	8b 47 08 		mov	ax,WORD PTR 8[bx]
+	*** 000098	a3 00 00 		mov	WORD PTR _sprite_width,ax
+; //scale with factor 1 is practically a sprite copy
+; Line 69
+	*** 00009b	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 00009e	8b 47 0a 		mov	ax,WORD PTR 10[bx]
+	*** 0000a1	a3 00 00 		mov	WORD PTR _sprite_height,ax
+; Better_Scale_Sprite(dest, src, 1);
+; 
+; Line 71
+	*** 0000a4	ff 76 06 		push	WORD PTR 6[bp]
+	*** 0000a7	9a 00 00 00 00 		call	FAR PTR _Draw_Sprite
+	*** 0000ac	83 c4 02 		add	sp,OFFSET 2
+; //We just need to grab a few more fields
+; dest->x_old = src->x_old;
+; dest->y_old = src->y_old;
+; Line 74
+	*** 0000af	8b 46 fc 		mov	ax,WORD PTR -4[bp]
+	*** 0000b2	a3 00 00 		mov	WORD PTR _sprite_width,ax
+; dest->curr_frame = src->curr_frame;
+; Line 75
+	*** 0000b5	8b 46 fa 		mov	ax,WORD PTR -6[bp]
+	*** 0000b8	a3 00 00 		mov	WORD PTR _sprite_height,ax
+; dest->state = src->state;
+; Line 76
+; Line 76
+					L00936:
+	*** 0000bb	5f 			pop	di
+	*** 0000bc	5e 			pop	si
+	*** 0000bd	c9 			leave
+	*** 0000be	cb 			ret	OFFSET 0
+Local Size: 6
+; Line 0
+; _fmemcpy(dest->background, src->background, dest->width * dest->height +1);
+; }
+; 
+; 
+; void Sprite_Fizzle_Frame(fizzler_ptr f, sprite_ptr sprite)
+; {
+; //produce a single frame of fizzle
+; int j;
+; 
+; //initialize
+; if(sprite) {
+;   //first we need to copy the sprite
+;   Copy_Sprite(&(f->fizzy), sprite);
+;   f->i=0;
+;   f->len = sprite->width * sprite->height + 1;
+; }else if(f->i >= 25) {
+;   //already fizzled
+;   return;
+; }
+; 
+; //and away we go!
+; for(j=f->i; j<f->len; j+=25) {
+;   f->fizzy.frames[f->fizzy.curr_frame][(j+rand())%f->len] = 0;
+; }
+; Better_Erase_Sprite(&(f->fizzy));
+; Better_Behind_Sprite(&(f->fizzy));
+; Better_Draw_Sprite(&(f->fizzy));
+; 
+; f->i += 1;
+; if(f->i==25) {
+;   Better_Erase_Sprite(&(f->fizzy));
+;   Sprite_Delete(&(f->fizzy));
+; }
+; 
+; }
+; 
+; 
+; void Sprite_Fizzle(sprite_ptr sprite)
+; {
+; int i;
+; fizzler f;
+; 
+; Sprite_Fizzle_Frame(&f, sprite);
+; 
+; for(i=1; i<25; i++){
+;   Sprite_Fizzle_Frame(&f, NULL);
+;   Delay(1);
+; }
+; }
+; 
+; 
+; void Print_Sprite_Frame(sprite_ptr sprite, int frame)
+; {
+; int i;
+; 
+; //print the color indexes for each non-zero part of the frame
+; for(i=0; i<sprite->width*sprite->height; i++) {
+; if(i%sprite->width== 0) { printf("\n"); }
+; if(sprite->frames[frame][i]) {
+;   printf("%02x ", sprite->frames[frame][i]);
+; } else {
+;   printf("   ");
+; }
+; }
+; }
+; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; Line 81
+; dest = 0006
+; src = 0008
+; scale = 000a
+					_Better_Scale_Sprite:
+	*** 0000c0	c8 00 00 00 		enter	OFFSET L01035,OFFSET 0
+	*** 0000c4	56 			push	si
+	*** 0000c5	57 			push	di
+; fx = fffc
+; fy = fffa
+; y = fff8
+; pixel = fff6
+; x = fff4
+; i = fff2
+; j = fff0
+; sprite_frame = ffee
+; ; Line 82
+; ; Line 83
+; ; Line 84
+; ; Line 85
+; ; Line 86
+; ; ; ; Line 89
+; ; Line 90
+; ; Line 91
+; ; Line 92
+; ; Line 93
+; ; Line 94
+; ; Line 95
+	*** 0000c6	8b 5e 08 		mov	bx,WORD PTR 8[bp]
+	*** 0000c9	ff 77 10 		push	WORD PTR 16[bx]
+	*** 0000cc	8b 5e 08 		mov	bx,WORD PTR 8[bp]
+	*** 0000cf	ff 77 12 		push	WORD PTR 18[bx]
+	*** 0000d2	8b 5e 08 		mov	bx,WORD PTR 8[bp]
+	*** 0000d5	ff 77 0e 		push	WORD PTR 14[bx]
+	*** 0000d8	8b 5e 08 		mov	bx,WORD PTR 8[bp]
+	*** 0000db	ff 77 0c 		push	WORD PTR 12[bx]
+	*** 0000de	8b 5e 08 		mov	bx,WORD PTR 8[bp]
+	*** 0000e1	ff 77 02 		push	WORD PTR 2[bx]
+	*** 0000e4	8b 5e 08 		mov	bx,WORD PTR 8[bp]
+	*** 0000e7	ff 37 			push	WORD PTR [bx]
+	*** 0000e9	ff 76 06 		push	WORD PTR 6[bp]
+	*** 0000ec	9a 00 00 00 00 		call	FAR PTR _Sprite_Init
+	*** 0000f1	83 c4 0e 		add	sp,OFFSET 14
+; ; Line 96
+	*** 0000f4	8b 5e 08 		mov	bx,WORD PTR 8[bp]
+	*** 0000f7	8b 47 08 		mov	ax,WORD PTR 8[bx]
+	*** 0000fa	f7 6e 0a 		imul	WORD PTR 10[bp]
+	*** 0000fd	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000100	89 47 08 		mov	WORD PTR 8[bx],ax
+; ; Line 97
+	*** 000103	8b 5e 08 		mov	bx,WORD PTR 8[bp]
+	*** 000106	8b 47 0a 		mov	ax,WORD PTR 10[bx]
+	*** 000109	f7 6e 0a 		imul	WORD PTR 10[bp]
+	*** 00010c	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 00010f	89 47 0a 		mov	WORD PTR 10[bx],ax
+; ; ; ; Line 100
+	*** 000112	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000115	ff 77 7c 		push	WORD PTR 124[bx]
+	*** 000118	ff 77 7a 		push	WORD PTR 122[bx]
+	*** 00011b	9a 00 00 00 00 		call	FAR PTR __ffree
+	*** 000120	83 c4 04 		add	sp,OFFSET 4
+; ; Line 101
+	*** 000123	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000126	8b 47 08 		mov	ax,WORD PTR 8[bx]
+	*** 000129	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 00012c	f7 6f 0a 		imul	WORD PTR 10[bx]
+	*** 00012f	05 01 00 		add	ax,OFFSET 1
+	*** 000132	50 			push	ax
+	*** 000133	9a 00 00 00 00 		call	FAR PTR __fmalloc
+	*** 000138	83 c4 02 		add	sp,OFFSET 2
+	*** 00013b	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 00013e	89 47 7a 		mov	WORD PTR 122[bx],ax
+	*** 000141	89 57 7c 		mov	WORD PTR 124[bx],dx
+; ; ; ; Line 104
+	*** 000144	c7 46 ee 00 00 		mov	WORD PTR -18[bp],OFFSET 0
+	*** 000149	e9 00 00 		jmp	L00954
+					L00955:
+	*** 00014c	83 46 ee 01 		add	WORD PTR -18[bp],OFFSET 1
+					L00954:
+	*** 000150	8b 5e 08 		mov	bx,WORD PTR 8[bp]
+	*** 000153	8b 47 76 		mov	ax,WORD PTR 118[bx]
+	*** 000156	39 46 ee 		cmp	WORD PTR -18[bp],ax
+	*** 000159	7c 03 e9 00 00 		jge	L00956
+; ; ; Line 106
+	*** 00015e	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000161	8b 47 08 		mov	ax,WORD PTR 8[bx]
+	*** 000164	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000167	f7 6f 0a 		imul	WORD PTR 10[bx]
+	*** 00016a	05 01 00 		add	ax,OFFSET 1
+	*** 00016d	50 			push	ax
+	*** 00016e	9a 00 00 00 00 		call	FAR PTR __fmalloc
+	*** 000173	83 c4 02 		add	sp,OFFSET 2
+	*** 000176	b9 14 00 		mov	cx,OFFSET 20
+	*** 000179	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 00017c	03 d9 			add	bx,cx
+	*** 00017e	8b 76 ee 		mov	si,WORD PTR -18[bp]
+	*** 000181	d1 e6 			shl	si,OFFSET 1
+	*** 000183	d1 e6 			shl	si,OFFSET 1
+	*** 000185	03 de 			add	bx,si
+	*** 000187	89 07 			mov	WORD PTR [bx],ax
+	*** 000189	89 57 02 		mov	WORD PTR 2[bx],dx
+; ; Line 107
+	*** 00018c	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 00018f	83 47 76 01 		add	WORD PTR 118[bx],OFFSET 1
+; ; ; ; Line 110
+	*** 000193	c7 46 f8 00 00 		mov	WORD PTR -8[bp],OFFSET 0
+	*** 000198	e9 00 00 		jmp	L00958
+					L00959:
+	*** 00019b	83 46 f8 01 		add	WORD PTR -8[bp],OFFSET 1
+					L00958:
+	*** 00019f	8b 5e 08 		mov	bx,WORD PTR 8[bp]
+	*** 0001a2	8b 47 0a 		mov	ax,WORD PTR 10[bx]
+	*** 0001a5	39 46 f8 		cmp	WORD PTR -8[bp],ax
+	*** 0001a8	7c 03 e9 00 00 		jge	L00960
+; ; Line 111
+	*** 0001ad	8b 46 f8 		mov	ax,WORD PTR -8[bp]
+	*** 0001b0	f7 6e 0a 		imul	WORD PTR 10[bp]
+	*** 0001b3	89 46 fa 		mov	WORD PTR -6[bp],ax
+; ; Line 112
+	*** 0001b6	c7 46 f4 00 00 		mov	WORD PTR -12[bp],OFFSET 0
+	*** 0001bb	e9 00 00 		jmp	L00962
+					L00963:
+	*** 0001be	83 46 f4 01 		add	WORD PTR -12[bp],OFFSET 1
+					L00962:
+	*** 0001c2	8b 5e 08 		mov	bx,WORD PTR 8[bp]
+	*** 0001c5	8b 47 08 		mov	ax,WORD PTR 8[bx]
+	*** 0001c8	39 46 f4 		cmp	WORD PTR -12[bp],ax
+	*** 0001cb	7c 03 e9 00 00 		jge	L00964
+; ; Line 113
+	*** 0001d0	8b 5e 08 		mov	bx,WORD PTR 8[bp]
+	*** 0001d3	8b 46 f8 		mov	ax,WORD PTR -8[bp]
+	*** 0001d6	f7 6f 08 		imul	WORD PTR 8[bx]
+	*** 0001d9	03 46 f4 		add	ax,WORD PTR -12[bp]
+	*** 0001dc	b9 14 00 		mov	cx,OFFSET 20
+	*** 0001df	8b 5e 08 		mov	bx,WORD PTR 8[bp]
+	*** 0001e2	03 d9 			add	bx,cx
+	*** 0001e4	8b 56 ee 		mov	dx,WORD PTR -18[bp]
+	*** 0001e7	d1 e2 			shl	dx,OFFSET 1
+	*** 0001e9	d1 e2 			shl	dx,OFFSET 1
+	*** 0001eb	03 da 			add	bx,dx
+	*** 0001ed	8b 4f 02 		mov	cx,WORD PTR 2[bx]
+	*** 0001f0	8b 1f 			mov	bx,WORD PTR [bx]
+	*** 0001f2	03 d8 			add	bx,ax
+	*** 0001f4	8e c1 			mov	es,cx
+	*** 0001f6	26 8a 07 		mov	al,BYTE PTR es:[bx]
+	*** 0001f9	88 46 f6 		mov	BYTE PTR -10[bp],al
+; ; Line 114
+	*** 0001fc	8b 46 f4 		mov	ax,WORD PTR -12[bp]
+	*** 0001ff	f7 6e 0a 		imul	WORD PTR 10[bp]
+	*** 000202	89 46 fc 		mov	WORD PTR -4[bp],ax
+; ; Line 115
+	*** 000205	c7 46 f2 00 00 		mov	WORD PTR -14[bp],OFFSET 0
+	*** 00020a	e9 00 00 		jmp	L00969
+					L00966:
+; ; Line 116
+	*** 00020d	c7 46 f0 00 00 		mov	WORD PTR -16[bp],OFFSET 0
+	*** 000212	e9 00 00 		jmp	L00973
+					L00970:
+; ; Line 117
+	*** 000215	8a 46 f6 		mov	al,BYTE PTR -10[bp]
+	*** 000218	8b 4e fa 		mov	cx,WORD PTR -6[bp]
+	*** 00021b	03 4e f2 		add	cx,WORD PTR -14[bp]
+	*** 00021e	89 46 ec 		mov	WORD PTR -20[bp],ax
+	*** 000221	8b c1 			mov	ax,cx
+	*** 000223	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000226	f7 6f 08 		imul	WORD PTR 8[bx]
+	*** 000229	03 46 fc 		add	ax,WORD PTR -4[bp]
+	*** 00022c	03 46 f0 		add	ax,WORD PTR -16[bp]
+	*** 00022f	b9 14 00 		mov	cx,OFFSET 20
+	*** 000232	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000235	03 d9 			add	bx,cx
+	*** 000237	8b 56 ee 		mov	dx,WORD PTR -18[bp]
+	*** 00023a	d1 e2 			shl	dx,OFFSET 1
+	*** 00023c	d1 e2 			shl	dx,OFFSET 1
+	*** 00023e	03 da 			add	bx,dx
+	*** 000240	8b 4f 02 		mov	cx,WORD PTR 2[bx]
+	*** 000243	8b 1f 			mov	bx,WORD PTR [bx]
+	*** 000245	03 d8 			add	bx,ax
+	*** 000247	8e c1 			mov	es,cx
+	*** 000249	8b 46 ec 		mov	ax,WORD PTR -20[bp]
+	*** 00024c	26 88 07 		mov	BYTE PTR es:[bx],al
+; ; Line 118
+					L00971:
+; Line 118
+	*** 00024f	83 46 f0 01 		add	WORD PTR -16[bp],OFFSET 1
+					L00973:
+	*** 000253	8b 46 0a 		mov	ax,WORD PTR 10[bp]
+	*** 000256	39 46 f0 		cmp	WORD PTR -16[bp],ax
+	*** 000259	7d 03 e9 b7 ff 		jl	L00970
+					L00972:
+; ; Line 119
+					L00967:
+; Line 119
+	*** 00025e	83 46 f2 01 		add	WORD PTR -14[bp],OFFSET 1
+					L00969:
+	*** 000262	8b 46 0a 		mov	ax,WORD PTR 10[bp]
+	*** 000265	39 46 f2 		cmp	WORD PTR -14[bp],ax
+	*** 000268	7d 03 e9 a0 ff 		jl	L00966
+					L00968:
+; ; Line 120
+; Line 120
+	*** 00026d	e9 4e ff 		jmp	L00963
+					L00964:
+; ; Line 121
+; Line 121
+	*** 000270	e9 28 ff 		jmp	L00959
+					L00960:
+; ; Line 122
+; Line 122
+	*** 000273	e9 d6 fe 		jmp	L00955
+					L00956:
+; ; Line 123
+; Line 123
+					L00945:
+	*** 000276	5f 			pop	di
+	*** 000277	5e 			pop	si
+	*** 000278	c9 			leave
+	*** 000279	cb 			ret	OFFSET 0
+Local Size: 20
+; Line 0
+; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; Line 127
+					_Better_Fade:
+	*** 00027a	c8 00 00 00 		enter	OFFSET L01036,OFFSET 0
+	*** 00027e	56 			push	si
+	*** 00027f	57 			push	di
+; done = fffc
+; color = fff8
+; i = fff6
+; ; Line 128
+; ; Line 129
+; ; Line 130
+; ; ; ; Line 133
+					L00978:
+; ; ; Line 135
+	*** 000280	c7 46 fc 01 00 		mov	WORD PTR -4[bp],OFFSET 1
+; ; ; ; Line 138
+	*** 000285	c7 46 f6 00 00 		mov	WORD PTR -10[bp],OFFSET 0
+	*** 00028a	e9 00 00 		jmp	L00984
+					L00981:
+; ; Line 139
+	*** 00028d	8d 46 f8 		lea	ax,WORD PTR -8[bp]
+	*** 000290	50 			push	ax
+	*** 000291	ff 76 f6 		push	WORD PTR -10[bp]
+	*** 000294	9a 00 00 00 00 		call	FAR PTR _Get_Palette_Register
+	*** 000299	83 c4 04 		add	sp,OFFSET 4
+; ; Line 140
+	*** 00029c	8a 46 f8 		mov	al,BYTE PTR -8[bp]
+	*** 00029f	25 ff 00 		and	ax,OFFSET 255
+	*** 0002a2	3d 00 00 		cmp	ax,OFFSET 0
+	*** 0002a5	75 03 e9 00 00 		je	L00985
+; ; Line 141
+	*** 0002aa	c7 46 fc 00 00 		mov	WORD PTR -4[bp],OFFSET 0
+; ; Line 142
+	*** 0002af	80 6e f8 01 		sub	BYTE PTR -8[bp],OFFSET 1
+; ; Line 143
+; ; Line 144
+					L00985:
+	*** 0002b3	8a 46 f9 		mov	al,BYTE PTR -7[bp]
+	*** 0002b6	25 ff 00 		and	ax,OFFSET 255
+	*** 0002b9	3d 00 00 		cmp	ax,OFFSET 0
+	*** 0002bc	75 03 e9 00 00 		je	L00986
+; ; Line 145
+	*** 0002c1	c7 46 fc 00 00 		mov	WORD PTR -4[bp],OFFSET 0
+; ; Line 146
+	*** 0002c6	80 6e f9 01 		sub	BYTE PTR -7[bp],OFFSET 1
+; ; Line 147
+; ; Line 148
+					L00986:
+	*** 0002ca	8a 46 fa 		mov	al,BYTE PTR -6[bp]
+	*** 0002cd	25 ff 00 		and	ax,OFFSET 255
+	*** 0002d0	3d 00 00 		cmp	ax,OFFSET 0
+	*** 0002d3	75 03 e9 00 00 		je	L00987
+; ; Line 149
+	*** 0002d8	c7 46 fc 00 00 		mov	WORD PTR -4[bp],OFFSET 0
+; ; Line 150
+	*** 0002dd	80 6e fa 01 		sub	BYTE PTR -6[bp],OFFSET 1
+; ; Line 151
+; ; Line 152
+					L00987:
+	*** 0002e1	8d 46 f8 		lea	ax,WORD PTR -8[bp]
+	*** 0002e4	50 			push	ax
+	*** 0002e5	ff 76 f6 		push	WORD PTR -10[bp]
+	*** 0002e8	9a 00 00 00 00 		call	FAR PTR _Set_Palette_Register
+	*** 0002ed	83 c4 04 		add	sp,OFFSET 4
+; ; Line 153
+					L00982:
+; Line 153
+	*** 0002f0	83 46 f6 01 		add	WORD PTR -10[bp],OFFSET 1
+					L00984:
+	*** 0002f4	81 7e f6 ff 00 		cmp	WORD PTR -10[bp],OFFSET 255
+	*** 0002f9	7f 03 e9 8f ff 		jle	L00981
+					L00983:
+; ; Line 154
+	*** 0002fe	6a 02 			push	OFFSET 2
+	*** 000300	9a 00 00 00 00 		call	FAR PTR _Delay
+	*** 000305	83 c4 02 		add	sp,OFFSET 2
+; ; Line 155
+					L00979:
+	*** 000308	83 7e fc 00 		cmp	WORD PTR -4[bp],OFFSET 0
+	*** 00030c	75 03 e9 6f ff 		je	L00978
+; Line 155
+					L00980:
+; ; Line 156
+; Line 156
+					L00974:
+	*** 000311	5f 			pop	di
+	*** 000312	5e 			pop	si
+	*** 000313	c9 			leave
+	*** 000314	cb 			ret	OFFSET 0
+Local Size: 10
+; Line 0
+; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; Line 160
+; dest = 0006
+; src = 0008
+					_Copy_Sprite:
+	*** 000316	c8 00 00 00 		enter	OFFSET L01037,OFFSET 0
+	*** 00031a	56 			push	si
+	*** 00031b	57 			push	di
+; ; ; Line 162
+	*** 00031c	6a 01 			push	OFFSET 1
+	*** 00031e	ff 76 08 		push	WORD PTR 8[bp]
+	*** 000321	ff 76 06 		push	WORD PTR 6[bp]
+	*** 000324	9a 00 00 00 00 		call	FAR PTR _Better_Scale_Sprite
+	*** 000329	83 c4 06 		add	sp,OFFSET 6
+; ; ; ; Line 165
+	*** 00032c	8b 5e 08 		mov	bx,WORD PTR 8[bp]
+	*** 00032f	8b 47 04 		mov	ax,WORD PTR 4[bx]
+	*** 000332	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000335	89 47 04 		mov	WORD PTR 4[bx],ax
+; ; Line 166
+	*** 000338	8b 5e 08 		mov	bx,WORD PTR 8[bp]
+	*** 00033b	8b 47 06 		mov	ax,WORD PTR 6[bx]
+	*** 00033e	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000341	89 47 06 		mov	WORD PTR 6[bx],ax
+; ; Line 167
+	*** 000344	8b 5e 08 		mov	bx,WORD PTR 8[bp]
+	*** 000347	8b 47 74 		mov	ax,WORD PTR 116[bx]
+	*** 00034a	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 00034d	89 47 74 		mov	WORD PTR 116[bx],ax
+; ; Line 168
+	*** 000350	8b 5e 08 		mov	bx,WORD PTR 8[bp]
+	*** 000353	8b 47 78 		mov	ax,WORD PTR 120[bx]
+	*** 000356	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000359	89 47 78 		mov	WORD PTR 120[bx],ax
+; ; Line 169
+	*** 00035c	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 00035f	8b 47 08 		mov	ax,WORD PTR 8[bx]
+	*** 000362	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000365	f7 6f 0a 		imul	WORD PTR 10[bx]
+	*** 000368	05 01 00 		add	ax,OFFSET 1
+	*** 00036b	50 			push	ax
+	*** 00036c	8b 5e 08 		mov	bx,WORD PTR 8[bp]
+	*** 00036f	ff 77 7c 		push	WORD PTR 124[bx]
+	*** 000372	ff 77 7a 		push	WORD PTR 122[bx]
+	*** 000375	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000378	ff 77 7c 		push	WORD PTR 124[bx]
+	*** 00037b	ff 77 7a 		push	WORD PTR 122[bx]
+	*** 00037e	9a 00 00 00 00 		call	FAR PTR __fmemcpy
+	*** 000383	83 c4 0a 		add	sp,OFFSET 10
+; ; Line 170
+; Line 170
+					L00992:
+	*** 000386	5f 			pop	di
+	*** 000387	5e 			pop	si
+	*** 000388	c9 			leave
+	*** 000389	cb 			ret	OFFSET 0
+Local Size: 2
+; Line 0
+; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; Line 174
+; f = 0006
+; sprite = 0008
+					_Sprite_Fizzle_Frame:
+	*** 00038a	c8 00 00 00 		enter	OFFSET L01038,OFFSET 0
+	*** 00038e	56 			push	si
+	*** 00038f	57 			push	di
+; j = fffc
+; ; ; Line 176
+; ; ; ; Line 179
+	*** 000390	83 7e 08 00 		cmp	WORD PTR 8[bp],OFFSET 0
+	*** 000394	75 03 e9 00 00 		je	L00999
+; ; ; Line 181
+	*** 000399	ff 76 08 		push	WORD PTR 8[bp]
+	*** 00039c	ff 76 06 		push	WORD PTR 6[bp]
+	*** 00039f	9a 00 00 00 00 		call	FAR PTR _Copy_Sprite
+	*** 0003a4	83 c4 04 		add	sp,OFFSET 4
+; ; Line 182
+	*** 0003a7	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 0003aa	c7 87 82 00 00 00 	mov	WORD PTR 130[bx],OFFSET 0
+; ; Line 183
+	*** 0003b0	8b 5e 08 		mov	bx,WORD PTR 8[bp]
+	*** 0003b3	8b 47 08 		mov	ax,WORD PTR 8[bx]
+	*** 0003b6	8b 5e 08 		mov	bx,WORD PTR 8[bp]
+	*** 0003b9	f7 6f 0a 		imul	WORD PTR 10[bx]
+	*** 0003bc	05 01 00 		add	ax,OFFSET 1
+	*** 0003bf	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 0003c2	89 87 84 00 		mov	WORD PTR 132[bx],ax
+; ; Line 184
+	*** 0003c6	e9 00 00 		jmp	L01000
+					L00999:
+; Line 184
+	*** 0003c9	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 0003cc	83 bf 82 00 19 		cmp	WORD PTR 130[bx],OFFSET 25
+	*** 0003d1	7d 03 e9 00 00 		jl	L01001
+; ; ; Line 186
+	*** 0003d6	e9 00 00 		jmp	L00997
+; ; Line 187
+; ; ; ; Line 190
+					L01001:
+					L01000:
+	*** 0003d9	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 0003dc	8b 87 82 00 		mov	ax,WORD PTR 130[bx]
+	*** 0003e0	89 46 fc 		mov	WORD PTR -4[bp],ax
+	*** 0003e3	e9 00 00 		jmp	L01002
+					L01003:
+	*** 0003e6	83 46 fc 19 		add	WORD PTR -4[bp],OFFSET 25
+					L01002:
+	*** 0003ea	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 0003ed	8b 87 84 00 		mov	ax,WORD PTR 132[bx]
+	*** 0003f1	39 46 fc 		cmp	WORD PTR -4[bp],ax
+	*** 0003f4	7c 03 e9 00 00 		jge	L01004
+; ; Line 191
+	*** 0003f9	9a 00 00 00 00 		call	FAR PTR _rand
+	*** 0003fe	03 46 fc 		add	ax,WORD PTR -4[bp]
+	*** 000401	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000404	99 			cwd
+	*** 000405	f7 bf 84 00 		idiv	WORD PTR 132[bx]
+	*** 000409	b8 14 00 		mov	ax,OFFSET 20
+	*** 00040c	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 00040f	03 d8 			add	bx,ax
+	*** 000411	89 5e fa 		mov	WORD PTR -6[bp],bx
+	*** 000414	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000417	8b 47 74 		mov	ax,WORD PTR 116[bx]
+	*** 00041a	d1 e0 			shl	ax,OFFSET 1
+	*** 00041c	d1 e0 			shl	ax,OFFSET 1
+	*** 00041e	8b 5e fa 		mov	bx,WORD PTR -6[bp]
+	*** 000421	03 d8 			add	bx,ax
+	*** 000423	8b 4f 02 		mov	cx,WORD PTR 2[bx]
+	*** 000426	8b 1f 			mov	bx,WORD PTR [bx]
+	*** 000428	03 da 			add	bx,dx
+	*** 00042a	8e c1 			mov	es,cx
+	*** 00042c	26 c6 07 00 		mov	BYTE PTR es:[bx],OFFSET 0
+; ; Line 192
+; Line 192
+	*** 000430	e9 b3 ff 		jmp	L01003
+					L01004:
+; ; Line 193
+	*** 000433	ff 76 06 		push	WORD PTR 6[bp]
+	*** 000436	9a 00 00 00 00 		call	FAR PTR _Better_Erase_Sprite
+	*** 00043b	83 c4 02 		add	sp,OFFSET 2
+; ; Line 194
+	*** 00043e	ff 76 06 		push	WORD PTR 6[bp]
+	*** 000441	9a 00 00 00 00 		call	FAR PTR _Better_Behind_Sprite
+	*** 000446	83 c4 02 		add	sp,OFFSET 2
+; ; Line 195
+	*** 000449	ff 76 06 		push	WORD PTR 6[bp]
+	*** 00044c	9a 00 00 00 00 		call	FAR PTR _Better_Draw_Sprite
+	*** 000451	83 c4 02 		add	sp,OFFSET 2
+; ; ; Line 197
+	*** 000454	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000457	83 87 82 00 01 		add	WORD PTR 130[bx],OFFSET 1
+; ; Line 198
+	*** 00045c	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 00045f	83 bf 82 00 19 		cmp	WORD PTR 130[bx],OFFSET 25
+	*** 000464	74 03 e9 00 00 		jne	L01006
+; ; Line 199
+	*** 000469	ff 76 06 		push	WORD PTR 6[bp]
+	*** 00046c	9a 00 00 00 00 		call	FAR PTR _Better_Erase_Sprite
+	*** 000471	83 c4 02 		add	sp,OFFSET 2
+; ; Line 200
+	*** 000474	ff 76 06 		push	WORD PTR 6[bp]
+	*** 000477	9a 00 00 00 00 		call	FAR PTR _Sprite_Delete
+	*** 00047c	83 c4 02 		add	sp,OFFSET 2
+; ; Line 201
+; ; ; Line 203
+					L01006:
+; Line 203
+					L00997:
+	*** 00047f	5f 			pop	di
+	*** 000480	5e 			pop	si
+	*** 000481	c9 			leave
+	*** 000482	cb 			ret	OFFSET 0
+Local Size: 6
+; Line 0
+; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; Line 207
+; sprite = 0006
+					_Sprite_Fizzle:
+	*** 000484	c8 00 00 00 		enter	OFFSET L01039,OFFSET 0
+	*** 000488	56 			push	si
+	*** 000489	57 			push	di
+; f = ff78
+; i = ff76
+; ; Line 208
+; ; Line 209
+; ; ; Line 211
+	*** 00048a	ff 76 06 		push	WORD PTR 6[bp]
+	*** 00048d	8d 86 78 ff 		lea	ax,WORD PTR -136[bp]
+	*** 000491	50 			push	ax
+	*** 000492	9a 00 00 00 00 		call	FAR PTR _Sprite_Fizzle_Frame
+	*** 000497	83 c4 04 		add	sp,OFFSET 4
+; ; ; Line 213
+	*** 00049a	c7 86 76 ff 01 00 	mov	WORD PTR -138[bp],OFFSET 1
+	*** 0004a0	e9 00 00 		jmp	L01015
+					L01012:
+; ; Line 214
+	*** 0004a3	6a 00 			push	OFFSET 0
+	*** 0004a5	8d 86 78 ff 		lea	ax,WORD PTR -136[bp]
+	*** 0004a9	50 			push	ax
+	*** 0004aa	9a 00 00 00 00 		call	FAR PTR _Sprite_Fizzle_Frame
+	*** 0004af	83 c4 04 		add	sp,OFFSET 4
+; ; Line 215
+	*** 0004b2	6a 01 			push	OFFSET 1
+	*** 0004b4	9a 00 00 00 00 		call	FAR PTR _Delay
+	*** 0004b9	83 c4 02 		add	sp,OFFSET 2
+; ; Line 216
+					L01013:
+; Line 216
+	*** 0004bc	83 86 76 ff 01 		add	WORD PTR -138[bp],OFFSET 1
+					L01015:
+	*** 0004c1	83 be 76 ff 19 		cmp	WORD PTR -138[bp],OFFSET 25
+	*** 0004c6	7d 03 e9 d8 ff 		jl	L01012
+					L01014:
+; ; Line 217
+; Line 217
+					L01009:
+	*** 0004cb	5f 			pop	di
+	*** 0004cc	5e 			pop	si
+	*** 0004cd	c9 			leave
+	*** 0004ce	cb 			ret	OFFSET 0
+Local Size: 138
+; Line 0
+; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; Line 221
+; sprite = 0006
+; frame = 0008
+					_Print_Sprite_Frame:
+	*** 0004d0	c8 00 00 00 		enter	OFFSET L01040,OFFSET 0
+	*** 0004d4	56 			push	si
+	*** 0004d5	57 			push	di
+; i = fffc
+; ; Line 222
+; ; ; ; Line 225
+	*** 0004d6	c7 46 fc 00 00 		mov	WORD PTR -4[bp],OFFSET 0
+	*** 0004db	e9 00 00 		jmp	L01022
+					L01023:
+	*** 0004de	83 46 fc 01 		add	WORD PTR -4[bp],OFFSET 1
+					L01022:
+	*** 0004e2	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 0004e5	8b 47 08 		mov	ax,WORD PTR 8[bx]
+	*** 0004e8	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 0004eb	f7 6f 0a 		imul	WORD PTR 10[bx]
+	*** 0004ee	39 46 fc 		cmp	WORD PTR -4[bp],ax
+	*** 0004f1	7c 03 e9 00 00 		jge	L01024
+; ; Line 226
+	*** 0004f6	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 0004f9	8b 46 fc 		mov	ax,WORD PTR -4[bp]
+	*** 0004fc	99 			cwd
+	*** 0004fd	f7 7f 08 		idiv	WORD PTR 8[bx]
+	*** 000500	83 fa 00 		cmp	dx,OFFSET 0
+	*** 000503	74 03 e9 00 00 		jne	L01026
+	*** 000508	68 00 00 		push	OFFSET L01027
+	*** 00050b	9a 00 00 00 00 		call	FAR PTR _printf
+	*** 000510	83 c4 02 		add	sp,OFFSET 2
+; ; Line 227
+					L01026:
+	*** 000513	b8 14 00 		mov	ax,OFFSET 20
+	*** 000516	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000519	03 d8 			add	bx,ax
+	*** 00051b	8b 46 08 		mov	ax,WORD PTR 8[bp]
+	*** 00051e	d1 e0 			shl	ax,OFFSET 1
+	*** 000520	d1 e0 			shl	ax,OFFSET 1
+	*** 000522	03 d8 			add	bx,ax
+	*** 000524	8b 4f 02 		mov	cx,WORD PTR 2[bx]
+	*** 000527	8b 1f 			mov	bx,WORD PTR [bx]
+	*** 000529	8b 46 fc 		mov	ax,WORD PTR -4[bp]
+	*** 00052c	03 d8 			add	bx,ax
+	*** 00052e	8e c1 			mov	es,cx
+	*** 000530	26 80 3f 00 		cmp	BYTE PTR es:[bx],OFFSET 0
+	*** 000534	75 03 e9 00 00 		je	L01028
+; ; Line 228
+	*** 000539	b8 14 00 		mov	ax,OFFSET 20
+	*** 00053c	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 00053f	03 d8 			add	bx,ax
+	*** 000541	8b 46 08 		mov	ax,WORD PTR 8[bp]
+	*** 000544	d1 e0 			shl	ax,OFFSET 1
+	*** 000546	d1 e0 			shl	ax,OFFSET 1
+	*** 000548	03 d8 			add	bx,ax
+	*** 00054a	8b 4f 02 		mov	cx,WORD PTR 2[bx]
+	*** 00054d	8b 1f 			mov	bx,WORD PTR [bx]
+	*** 00054f	8b 46 fc 		mov	ax,WORD PTR -4[bp]
+	*** 000552	03 d8 			add	bx,ax
+	*** 000554	8e c1 			mov	es,cx
+	*** 000556	26 8a 07 		mov	al,BYTE PTR es:[bx]
+	*** 000559	98 			cbw
+	*** 00055a	50 			push	ax
+	*** 00055b	68 02 00 		push	OFFSET L01029
+	*** 00055e	9a 00 00 00 00 		call	FAR PTR _printf
+	*** 000563	83 c4 04 		add	sp,OFFSET 4
+; ; Line 229
+	*** 000566	e9 00 00 		jmp	L01030
+					L01028:
+; Line 229
+; ; Line 230
+	*** 000569	68 08 00 		push	OFFSET L01031
+	*** 00056c	9a 00 00 00 00 		call	FAR PTR _printf
+	*** 000571	83 c4 02 		add	sp,OFFSET 2
+; ; Line 231
+					L01030:
+; ; Line 232
+; Line 232
+	*** 000574	e9 67 ff 		jmp	L01023
+					L01024:
+; ; Line 233
+; Line 233
+					L01020:
+	*** 000577	5f 			pop	di
+	*** 000578	5e 			pop	si
+	*** 000579	c9 			leave
+	*** 00057a	cb 			ret	OFFSET 0
+Local Size: 4
+; Line 0

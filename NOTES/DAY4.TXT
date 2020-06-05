@@ -1,0 +1,79 @@
+Day 4 June 2, 2020
+==================
+This daybwas devoted to sprite infirmation. This included a fair number of 
+low level details such as the format of PCX files and the layout of sprite
+sheets. There was also the development of pcx functions, a sprkte ADT, and
+lots of support functions.
+
+Because these fynctiins are provided in the game library, we really do not
+have to directly interact with these, however I think knowing how it works
+is nice. I am sue this will enable me to do some cool effects.
+
+Exercise
+========
+1. Write a functuon that scales a sprite.
+   I have done this, however there was a bit of challenge brought about
+   by issues in the way the book's sprite engine was created.  Even though
+   sprites have a field which indicates their dimensions, the Sprite_Draw,
+   Sprite_Erase, and Sprite_Behind functions don't use those fields.  
+   
+   So I am going to make my own wrappers for these so I can use my 
+   scaled sprites.  These functions are in better4.h and better4.c
+   which I am adding to the game library.
+   
+   Also, my sprite scaler only scales up.  Maybe I could fix that in the 
+   future.
+   
+2. Write a program that places a PCX file on the screen and then fades to
+   black when a key is pressed.
+   
+   Very simple.  So I made it take a command line parameter so it views 
+   any pcx file.  Should come in handy!  I also already had the fade 
+   code from day3, so I made a function Better_Fade which I added to my
+   gamelib.
+   
+3. Write a function named Sprite_Fizz() that makes a sprite fizzle away in
+   25 cycles.
+   
+   I interpreted "fizzle" as having random pixels removed until it was gone.
+   I did this by building a loop that would touch each pixel and then adding
+   a bit of randomness to the proceedings.
+   
+   I may want to revisit this one so that it produces a single frame of fizzling.
+   Also, I find the naming convention (or lack thereof) in the gamelib
+   to be a bit frustrating.  I spent a lot of time dealing with 
+   Sprite_Delete vs Delete_Sprite type issues because the library uses both 
+   approaches in different contexts.
+   
+   On the whole, however, this was a fun little thing to do.
+   I applied this to my scale.c program so that the sprite fizzles out 
+   once the user presses a button.
+   
+4. When the tanks collide in the Attank!!! demo, nothing happens.  
+   Make something spectacular happen when the tanks colide.
+   
+   I made both tanks fizzle away.  I did this by creating a struct with the
+   local fizzle variables, and then I made a fizzle frame function that does
+   one frame worth of fizzling.  I made the original function do the full
+   fizzle in a loop.  In the tank game, I manually run two fizzlers.
+   
+   It works like a champ!  When the tanks collide, they both fizzle away.
+   
+5. Create a starfield that looks like the one in the shuttle.exe program,
+   that is, one that swings around.  Then place a sprite of a spaceship
+   with glowing engines in the center of the starfield. (Hint: use
+   color-register animation to make the engines glow.)
+   
+   Ok, so this was pure fun.  I made my engines be a little "trekish", but
+   I have moving lines going down toward the back.  The black glows red.
+   The engine animation was accomplished strictly through palette animation
+   which is pretty cool.
+   
+   The starfield was fairly easy.  I made a simplified version of the 
+   starfield from day 3, and then just added a delta y component.  I 
+   set up 4 trajectories which rotate out at random for both x and y
+   (16 total overall trajectories) and the timer is random too.  
+   
+   I could clean up the code a bit, and I am seeing some things I would 
+   change about the book's gamelib.  I think after day 21, I will write my
+   own library!
