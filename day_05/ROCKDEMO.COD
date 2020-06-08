@@ -1,0 +1,4480 @@
+; File rockdemo.c
+; 
+; // I N C L U D E S ///////////////////////////////////////////////////////////
+; 
+; #include <io.h>
+; #include <conio.h>
+; #include <stdio.h>
+; #include <stdlib.h>
+; #include <dos.h>
+; #include <bios.h>
+; #include <fcntl.h>
+; #include <memory.h>
+; #include <malloc.h>
+; #include <math.h>
+; #include <string.h>
+; 
+; #include "graph3.h"  // include our graphics stuff
+; #include "graph4.h"
+; 
+; // D E F I N E S /////////////////////////////////////////////////////////////
+; 
+; // global clipping region default value
+; 
+; #define POLY_CLIP_MIN_X   0
+; #define POLY_CLIP_MIN_Y   0
+; 
+; #define POLY_CLIP_MAX_X   319
+; #define POLY_CLIP_MAX_Y   199
+; 
+; #define MAX_VERTICES      16   // maximum numbr of vertices in a polygon
+; 
+; 
+; 
+; #define NUM_ROCKS         10   // number of rocks in asteroid field
+; 
+; #define FRICTION          .2   // friction of space, yes believe it or not
+;                                // space has friction to both energy and matter.
+;                                // even in deepest space there are approx. 4
+;                                // hydrogen atoms per cubic CM and the wave
+;                                // impedence or energy friction is 377 ohms
+;                                // that's why light maxes out at 186,300 MPS
+; 
+; #define NUM_MISSILES	20
+; #define MISSILE_SPEED   8.0f
+; // S T R U C T U R E S ///////////////////////////////////////////////////////
+; 
+; typedef struct vertex_typ
+;         {
+; 
+;         float x,y;        // the vertex in 2-D
+; 
+;         } vertex, *vertex_ptr;
+; 
+; 
+; typedef struct missile_typ
+; {
+;     float vx, vy;           //velocity vector
+;     float x, y;             //position
+;     unsigned int active;    //whether the missile is active
+; } missile;
+; 
+; //////////////////////////////////////////////////////////////////////////////
+; 
+; // the polygon structure
+; 
+; typedef struct polygon_typ
+;         {
+; 
+;         int b_color;                    // border color
+;         int i_color;                    // interior color
+;         int closed;                     // is the polygon closed
+;         int filled;                     // is this polygon filled
+; 
+;         int lxo,lyo;                    // local origin of polygon
+;         int num_vertices;               // number of defined vertices
+;         vertex vertices[MAX_VERTICES];  // the vertices of the polygon
+; 
+;         } polygon, *polygon_ptr;
+; 
+; // a moving object
+; 
+; typedef struct object_typ
+;         {
+;         int state;          // state of rock
+; 
+;         int rotation_rate;  // angle to rotate object per frame
+; 
+;         int xv,yv;          // velocity vector
+; 
+;         polygon rock;       // one polygon per rock
+; 
+;         } object, *object_ptr;
+; 
+; // P R O T O T Y P E S ///////////////////////////////////////////////////////
+; 
+; void Bline(int xo, int yo, int x1,int y1, unsigned char color);
+; void missile_init();
+; void missile_fire(polygon *ship, int angle);
+; void missile_update();
+; 
+; // G L O B A L S  ////////////////////////////////////////////////////////////
+; 
+; float sin_look[361],   // look up tables for sin and cosine
+;       cos_look[361];
+; 
+; // the clipping region, set it to default on start up
+; 
+; int poly_clip_min_x = POLY_CLIP_MIN_X,
+;     poly_clip_min_y = POLY_CLIP_MIN_Y,
+; 
+;     poly_clip_max_x = POLY_CLIP_MAX_X,
+;     poly_clip_max_y = POLY_CLIP_MAX_Y;
+; 
+; // the asteroid field
+; 
+; object rocks[NUM_ROCKS];
+; 
+; missile missiles[NUM_MISSILES];
+; 
+; // F U N C T I O N S /////////////////////////////////////////////////////////
+; 
+; void Create_Tables()
+; {
+; Line 122
+					_Create_Tables:
+	*** 000000	c8 00 00 00 		enter	OFFSET L01107,OFFSET 0
+	*** 000004	56 			push	si
+	*** 000005	57 			push	di
+; index = fffc
+; // this function creates the sin and cosine lookup tables
+; 
+; int index;
+; Line 125
+; 
+; // create the tables
+; 
+; for (index=0; index<=360; index++)
+; Line 129
+	*** 000006	c7 46 fc 00 00 		mov	WORD PTR -4[bp],OFFSET 0
+	*** 00000b	e9 00 00 		jmp	L00821
+					L00818:
+;     {
+; Line 130
+; 
+;     cos_look[index] = (float)cos((double)(index*3.14159/180));
+; Line 132
+	*** 00000e	83 ec 08 		sub	sp,OFFSET 8
+	*** 000011	8b 46 fc 		mov	ax,WORD PTR -4[bp]
+	*** 000014	99 			cwd
+	*** 000015	89 46 f4 		mov	WORD PTR -12[bp],ax
+	*** 000018	89 56 f6 		mov	WORD PTR -10[bp],dx
+	*** 00001b	9b db 46 f4 		fldi	DWORD PTR -12[bp]
+	*** 00001f	9b dd 06 00 00 		fld	QWORD PTR con0
+	*** 000024	9b de c9 		fmulp	ST(1),ST(0)
+	*** 000027	b8 b4 00 		mov	ax,OFFSET 180
+	*** 00002a	99 			cwd
+	*** 00002b	89 46 ec 		mov	WORD PTR -20[bp],ax
+	*** 00002e	89 56 ee 		mov	WORD PTR -18[bp],dx
+	*** 000031	9b db 46 ec 		fldi	DWORD PTR -20[bp]
+	*** 000035	9b de f9 		fdivp	ST(1),ST(0)
+	*** 000038	8b dc 			mov	bx,sp
+	*** 00003a	9b dd 1f 		fstp	QWORD PTR ss:[bx]
+	*** 00003d	9a 00 00 00 00 		call	FAR PTR _cos
+	*** 000044	83 c4 08 		add	sp,OFFSET 8
+	*** 000047	8b d8 			mov	bx,ax
+	*** 000049	9b dd 07 		fld	QWORD PTR [bx]
+	*** 00004c	8b 5e fc 		mov	bx,WORD PTR -4[bp]
+	*** 000051	d1 e3 			shl	bx,OFFSET 1
+	*** 000053	d1 e3 			shl	bx,OFFSET 1
+	*** 000055	9b d9 9f 00 00 		fstp	DWORD PTR _cos_look[bx]
+;     sin_look[index] = (float)sin((double)(index*3.14159/180));
+; Line 133
+	*** 00005c	83 ec 08 		sub	sp,OFFSET 8
+	*** 00005f	8b 46 fc 		mov	ax,WORD PTR -4[bp]
+	*** 000062	99 			cwd
+	*** 000063	89 46 f4 		mov	WORD PTR -12[bp],ax
+	*** 000066	89 56 f6 		mov	WORD PTR -10[bp],dx
+	*** 000069	9b db 46 f4 		fldi	DWORD PTR -12[bp]
+	*** 00006d	9b dd 06 00 00 		fld	QWORD PTR con0
+	*** 000072	9b de c9 		fmulp	ST(1),ST(0)
+	*** 000075	b8 b4 00 		mov	ax,OFFSET 180
+	*** 000078	99 			cwd
+	*** 000079	89 46 ec 		mov	WORD PTR -20[bp],ax
+	*** 00007c	89 56 ee 		mov	WORD PTR -18[bp],dx
+	*** 00007f	9b db 46 ec 		fldi	DWORD PTR -20[bp]
+	*** 000083	9b de f9 		fdivp	ST(1),ST(0)
+	*** 000086	8b dc 			mov	bx,sp
+	*** 000088	9b dd 1f 		fstp	QWORD PTR ss:[bx]
+	*** 00008b	9a 00 00 00 00 		call	FAR PTR _sin
+	*** 000092	83 c4 08 		add	sp,OFFSET 8
+	*** 000095	8b d8 			mov	bx,ax
+	*** 000097	9b dd 07 		fld	QWORD PTR [bx]
+	*** 00009a	8b 5e fc 		mov	bx,WORD PTR -4[bp]
+	*** 00009f	d1 e3 			shl	bx,OFFSET 1
+	*** 0000a1	d1 e3 			shl	bx,OFFSET 1
+	*** 0000a3	9b d9 9f 00 00 		fstp	DWORD PTR _sin_look[bx]
+; 
+;     } // end for
+; Line 135
+					L00819:
+; Line 135
+	*** 0000aa	83 46 fc 01 		add	WORD PTR -4[bp],OFFSET 1
+					L00821:
+	*** 0000ae	81 7e fc 68 01 		cmp	WORD PTR -4[bp],OFFSET 360
+	*** 0000b3	7f 03 e9 56 ff 		jle	L00818
+					L00820:
+; 
+; } // end Create_Tables
+; Line 137
+; Line 137
+					L00816:
+	*** 0000b8	5f 			pop	di
+	*** 0000b9	5e 			pop	si
+	*** 0000ba	c9 			leave
+	*** 0000bb	cb 			ret	OFFSET 0
+Local Size: 20
+; Line 0
+; 
+; //////////////////////////////////////////////////////////////////////////////
+; 
+; void Rotate_Polygon(polygon_ptr poly, int angle)
+; {
+; 
+; int index;    // loop index
+; 
+; float si,cs,  // values of sin and cosine
+;       rx,ry;  // roated points
+; 
+; // rotate each point of the poly gon around its local origin
+; // note that angle is an integer and ranges from -360 to +360
+; 
+; // compute sin and cos of angle to be rotated
+; 
+; if (angle>=0)
+;    {
+;    // extract sin and cosine from look up table
+; 
+;    si = sin_look[angle];
+;    cs = cos_look[angle];
+; 
+; 
+;    } // end if positive angle
+; else
+;    {
+;    // angle is negative to convert to positive
+; 
+;    // convert negative angle to positive angle and extract values
+; 
+;    si = sin_look[angle+360];
+;    cs = cos_look[angle+360];
+; 
+;    } // end else
+; 
+; // using values for sin and cosine rotate the point
+; 
+; for (index=0; index<poly->num_vertices; index++)
+;     {
+;     // compute rotated values using rotation eqns.
+; 
+;     rx  = poly->vertices[index].x * cs -  poly->vertices[index].y * si;
+;     ry  = poly->vertices[index].y * cs +  poly->vertices[index].x * si;
+; 
+;     // store the rotated vertex back into structure
+; 
+;     poly->vertices[index].x = rx;
+;     poly->vertices[index].y = ry;
+; 
+;     } // end for
+; 
+; } // end Rotate_Polygon
+; 
+; ///////////////////////////////////////////////////////////////////////////////
+; 
+; void Scale_Polygon(polygon_ptr poly, float scale)
+; {
+; 
+; int index;
+; 
+; // scale each vertex of the polygon
+; 
+; for (index=0; index<poly->num_vertices; index++)
+;     {
+;     // multiply by the scaling factor
+; 
+;     poly->vertices[index].x*=scale;
+;     poly->vertices[index].y*=scale;
+; 
+;     } // end for
+; 
+; } // end Scale_Polygon
+; 
+; ///////////////////////////////////////////////////////////////////////////////
+; 
+; void Translate_Polygon(polygon_ptr poly, int dx,int dy)
+; {
+; 
+; // translate the origin of the polygon
+; 
+; poly->lxo+=dx;
+; poly->lyo+=dy;
+; 
+; // that was easy!
+; 
+; } // end Translate_Polygon
+; 
+; ///////////////////////////////////////////////////////////////////////////////
+; 
+; void Draw_Polygon(polygon_ptr poly)
+; {
+; // this function draws a polygon on the screen without clipping
+; // caller should make sure that vertices are within bounds of clipping
+; // rectangle, also the polygon will always be unfilled regardless
+; // of the fill flag
+; 
+; int index,xo,yo;
+; 
+; // extract local origin
+; 
+; xo = poly->lxo;
+; yo = poly->lyo;
+; 
+; // draw polygon
+; 
+; for (index=0; index<poly->num_vertices-1; index++)
+;     {
+; 
+;     Bline(xo+(int)poly->vertices[index].x,yo+(int)poly->vertices[index].y,
+;           xo+(int)poly->vertices[index+1].x,yo+(int)poly->vertices[index+1].y,
+;           poly->b_color);
+; 
+;     } // end for index
+; 
+;     // close polygon?
+; 
+;     if (!poly->closed)
+;        return;
+; 
+;     Bline(xo+(int)poly->vertices[index].x,yo+(int)poly->vertices[index].y,
+;           xo+(int)poly->vertices[0].x,yo+(int)poly->vertices[0].y,
+;           poly->b_color);
+; 
+; 
+; } // end Draw_Polygon
+; 
+; //////////////////////////////////////////////////////////////////////////////
+; 
+; int Clip_Line(int *x1,int *y1,int *x2, int *y2)
+; {
+; // this function clips the sent line using the globally defined clipping
+; // region
+; 
+; int point_1 = 0, point_2 = 0;  // tracks if each end point is visible or invisible
+; 
+; int clip_always = 0;           // used for clipping override
+; 
+; int xi,yi;                     // point of intersection
+; 
+; int right_edge=0,              // which edges are the endpoints beyond
+;     left_edge=0,
+; Line 142
+; poly = 0006
+; angle = 0008
+					_Rotate_Polygon:
+	*** 0000bc	c8 00 00 00 		enter	OFFSET L01109,OFFSET 0
+	*** 0000c0	56 			push	si
+	*** 0000c1	57 			push	di
+; ry = fffa
+; cs = fff6
+; index = fff4
+; rx = fff0
+; si = ffec
+;     top_edge=0,
+;     bottom_edge=0;
+; Line 144
+; 
+; 
+; Line 146
+; int success = 0;               // was there a successfull clipping
+; Line 147
+; 
+; float dx,dy;                   // used to holds slope deltas
+; 
+; // SECTION 1 //////////////////////////////////////////////////////////////////
+; 
+; // test if line is completely visible
+; 
+; Line 154
+	*** 0000c2	83 7e 08 00 		cmp	WORD PTR 8[bp],OFFSET 0
+	*** 0000c6	7d 03 e9 00 00 		jl	L00833
+; if ( (*x1>=poly_clip_min_x) && (*x1<=poly_clip_max_x) &&
+; Line 155
+;      (*y1>=poly_clip_min_y) && (*y1<=poly_clip_max_y) )
+;      point_1 = 1;
+; 
+; Line 158
+	*** 0000cb	8b 5e 08 		mov	bx,WORD PTR 8[bp]
+	*** 0000ce	d1 e3 			shl	bx,OFFSET 1
+	*** 0000d0	d1 e3 			shl	bx,OFFSET 1
+	*** 0000d2	8b 87 00 00 		mov	ax,WORD PTR _sin_look[bx]
+	*** 0000d6	8b 97 02 00 		mov	dx,WORD PTR _sin_look+2[bx]
+	*** 0000da	89 46 ec 		mov	WORD PTR -20[bp],ax
+	*** 0000dd	89 56 ee 		mov	WORD PTR -18[bp],dx
+; 
+; Line 159
+	*** 0000e0	8b 5e 08 		mov	bx,WORD PTR 8[bp]
+	*** 0000e3	d1 e3 			shl	bx,OFFSET 1
+	*** 0000e5	d1 e3 			shl	bx,OFFSET 1
+	*** 0000e7	8b 87 00 00 		mov	ax,WORD PTR _cos_look[bx]
+	*** 0000eb	8b 97 02 00 		mov	dx,WORD PTR _cos_look+2[bx]
+	*** 0000ef	89 46 f6 		mov	WORD PTR -10[bp],ax
+	*** 0000f2	89 56 f8 		mov	WORD PTR -8[bp],dx
+; if ( (*x2>=poly_clip_min_x) && (*x2<=poly_clip_max_x) &&
+;      (*y2>=poly_clip_min_y) && (*y2<=poly_clip_max_y) )
+;      point_2 = 1;
+; Line 162
+; 
+; Line 163
+	*** 0000f5	e9 00 00 		jmp	L00834
+					L00833:
+; Line 163
+; // SECTION 2 /////////////////////////////////////////////////////////////////
+; Line 164
+; 
+; // test endpoints
+; 
+; if (point_1==1 && point_2==1)
+;    return(1);
+; Line 169
+	*** 0000f8	8b 5e 08 		mov	bx,WORD PTR 8[bp]
+	*** 0000fb	81 c3 68 01 		add	bx,OFFSET 360
+	*** 0000ff	d1 e3 			shl	bx,OFFSET 1
+	*** 000101	d1 e3 			shl	bx,OFFSET 1
+	*** 000103	8b 87 00 00 		mov	ax,WORD PTR _sin_look[bx]
+	*** 000107	8b 97 02 00 		mov	dx,WORD PTR _sin_look+2[bx]
+	*** 00010b	89 46 ec 		mov	WORD PTR -20[bp],ax
+	*** 00010e	89 56 ee 		mov	WORD PTR -18[bp],dx
+; 
+; Line 170
+	*** 000111	8b 5e 08 		mov	bx,WORD PTR 8[bp]
+	*** 000114	81 c3 68 01 		add	bx,OFFSET 360
+	*** 000118	d1 e3 			shl	bx,OFFSET 1
+	*** 00011a	d1 e3 			shl	bx,OFFSET 1
+	*** 00011c	8b 87 00 00 		mov	ax,WORD PTR _cos_look[bx]
+	*** 000120	8b 97 02 00 		mov	dx,WORD PTR _cos_look+2[bx]
+	*** 000124	89 46 f6 		mov	WORD PTR -10[bp],ax
+	*** 000127	89 56 f8 		mov	WORD PTR -8[bp],dx
+; // SECTION 3 /////////////////////////////////////////////////////////////////
+; 
+; Line 172
+					L00834:
+; // test if line is completely invisible
+; 
+; if (point_1==0 && point_2==0)
+;    {
+; Line 176
+	*** 00012a	c7 46 f4 00 00 		mov	WORD PTR -12[bp],OFFSET 0
+	*** 00012f	e9 00 00 		jmp	L00835
+					L00836:
+	*** 000132	83 46 f4 01 		add	WORD PTR -12[bp],OFFSET 1
+					L00835:
+	*** 000136	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000139	8b 47 0c 		mov	ax,WORD PTR 12[bx]
+	*** 00013c	39 46 f4 		cmp	WORD PTR -12[bp],ax
+	*** 00013f	7c 03 e9 00 00 		jge	L00837
+; 
+; Line 177
+;    // must test to see if each endpoint is on the same side of one of
+;    // the bounding planes created by each clipping region boundary
+; 
+; Line 180
+	*** 000144	b8 0e 00 		mov	ax,OFFSET 14
+	*** 000147	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 00014a	03 d8 			add	bx,ax
+	*** 00014c	8b 46 f4 		mov	ax,WORD PTR -12[bp]
+	*** 00014f	d1 e0 			shl	ax,OFFSET 1
+	*** 000151	d1 e0 			shl	ax,OFFSET 1
+	*** 000153	d1 e0 			shl	ax,OFFSET 1
+	*** 000155	03 d8 			add	bx,ax
+	*** 000157	9b d9 07 		fld	DWORD PTR [bx]
+	*** 00015a	9b d8 4e f6 		fmul	ST(0),DWORD PTR -10[bp]
+	*** 00015e	b8 0e 00 		mov	ax,OFFSET 14
+	*** 000161	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000164	03 d8 			add	bx,ax
+	*** 000166	8b 46 f4 		mov	ax,WORD PTR -12[bp]
+	*** 000169	d1 e0 			shl	ax,OFFSET 1
+	*** 00016b	d1 e0 			shl	ax,OFFSET 1
+	*** 00016d	d1 e0 			shl	ax,OFFSET 1
+	*** 00016f	03 d8 			add	bx,ax
+	*** 000171	9b d9 47 04 		fld	DWORD PTR 4[bx]
+	*** 000175	9b d8 4e ec 		fmul	ST(0),DWORD PTR -20[bp]
+	*** 000179	9b de e9 		fsubp	ST(1),ST(0)
+	*** 00017c	9b d9 5e f0 		fstp	DWORD PTR -16[bp]
+;    if ( ((*x1<poly_clip_min_x) && (*x2<poly_clip_min_x)) || // to the left
+; Line 181
+	*** 000182	b8 0e 00 		mov	ax,OFFSET 14
+	*** 000185	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000188	03 d8 			add	bx,ax
+	*** 00018a	8b 46 f4 		mov	ax,WORD PTR -12[bp]
+	*** 00018d	d1 e0 			shl	ax,OFFSET 1
+	*** 00018f	d1 e0 			shl	ax,OFFSET 1
+	*** 000191	d1 e0 			shl	ax,OFFSET 1
+	*** 000193	03 d8 			add	bx,ax
+	*** 000195	9b d9 47 04 		fld	DWORD PTR 4[bx]
+	*** 000199	9b d8 4e f6 		fmul	ST(0),DWORD PTR -10[bp]
+	*** 00019d	b8 0e 00 		mov	ax,OFFSET 14
+	*** 0001a0	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 0001a3	03 d8 			add	bx,ax
+	*** 0001a5	8b 46 f4 		mov	ax,WORD PTR -12[bp]
+	*** 0001a8	d1 e0 			shl	ax,OFFSET 1
+	*** 0001aa	d1 e0 			shl	ax,OFFSET 1
+	*** 0001ac	d1 e0 			shl	ax,OFFSET 1
+	*** 0001ae	03 d8 			add	bx,ax
+	*** 0001b0	9b d9 07 		fld	DWORD PTR [bx]
+	*** 0001b3	9b d8 4e ec 		fmul	ST(0),DWORD PTR -20[bp]
+	*** 0001b7	9b de c1 		faddp	ST(1),ST(0)
+	*** 0001ba	9b d9 5e fa 		fstp	DWORD PTR -6[bp]
+;         ((*x1>poly_clip_max_x) && (*x2>poly_clip_max_x)) || // to the right
+; 
+;         ((*y1<poly_clip_min_y) && (*y2<poly_clip_min_y)) || // above
+;         ((*y1>poly_clip_max_y) && (*y2>poly_clip_max_y)) )  // below
+; Line 185
+	*** 0001c0	b8 0e 00 		mov	ax,OFFSET 14
+	*** 0001c3	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 0001c6	03 d8 			add	bx,ax
+	*** 0001c8	8b 46 f4 		mov	ax,WORD PTR -12[bp]
+	*** 0001cb	d1 e0 			shl	ax,OFFSET 1
+	*** 0001cd	d1 e0 			shl	ax,OFFSET 1
+	*** 0001cf	d1 e0 			shl	ax,OFFSET 1
+	*** 0001d1	03 d8 			add	bx,ax
+	*** 0001d3	8b 46 f0 		mov	ax,WORD PTR -16[bp]
+	*** 0001d6	8b 56 f2 		mov	dx,WORD PTR -14[bp]
+	*** 0001d9	89 07 			mov	WORD PTR [bx],ax
+	*** 0001db	89 57 02 		mov	WORD PTR 2[bx],dx
+;         {
+; Line 186
+	*** 0001de	b8 0e 00 		mov	ax,OFFSET 14
+	*** 0001e1	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 0001e4	03 d8 			add	bx,ax
+	*** 0001e6	8b 46 f4 		mov	ax,WORD PTR -12[bp]
+	*** 0001e9	d1 e0 			shl	ax,OFFSET 1
+	*** 0001eb	d1 e0 			shl	ax,OFFSET 1
+	*** 0001ed	d1 e0 			shl	ax,OFFSET 1
+	*** 0001ef	03 d8 			add	bx,ax
+	*** 0001f1	8b 46 fa 		mov	ax,WORD PTR -6[bp]
+	*** 0001f4	8b 56 fc 		mov	dx,WORD PTR -4[bp]
+	*** 0001f7	89 47 04 		mov	WORD PTR 4[bx],ax
+	*** 0001fa	89 57 06 		mov	WORD PTR 6[bx],dx
+; 
+;         // no need to draw line
+; Line 188
+; Line 188
+	*** 0001fd	e9 32 ff 		jmp	L00836
+					L00837:
+; 
+;         return(0);
+; Line 190
+; Line 190
+					L00827:
+	*** 000200	5f 			pop	di
+	*** 000201	5e 			pop	si
+	*** 000202	c9 			leave
+	*** 000203	cb 			ret	OFFSET 0
+Local Size: 20
+; Line 0
+; 
+;         } // end if invisible
+; 
+;    // if we got here we have the special case where the line cuts into and
+;    // out of the clipping region
+; 
+;    clip_always = 1;
+; 
+;    } // end if test for invisibly
+; 
+; // SECTION 4 /////////////////////////////////////////////////////////////////
+; 
+; // take care of case where either endpoint is in clipping region
+; 
+; if (( point_1==1) || (point_1==0 && point_2==0) )
+;    {
+; 
+;    // compute deltas
+; 
+;    dx = *x2 - *x1;
+;    dy = *y2 - *y1;
+; 
+;    // compute what boundary line need to be clipped against
+; 
+;    if (*x2 > poly_clip_max_x)
+;       {
+;       // flag right edge
+; 
+;       right_edge = 1;
+; 
+;       // compute intersection with right edge
+; 
+;       if (dx!=0)
+;          yi = (int)(.5 + (dy/dx) * (poly_clip_max_x - *x1) + *y1);
+;       else
+;          yi = -1;  // invalidate intersection
+; 
+;       } // end if to right
+;    else
+;    if (*x2 < poly_clip_min_x)
+;       {
+;       // flag left edge
+; 
+;       left_edge = 1;
+; 
+;       // compute intersection with left edge
+; 
+;       if (dx!=0)
+;          yi = (int)(.5 + (dy/dx) * (poly_clip_min_x - *x1) + *y1);
+;       else
+;          yi = -1;  // invalidate intersection
+; 
+;       } // end if to left
+; 
+;    // horizontal intersections
+; 
+;    if (*y2 > poly_clip_max_y)
+;       {
+;       // flag bottom edge
+; 
+;       bottom_edge = 1;
+; 
+;       // compute intersection with right edge
+; 
+;       if (dy!=0)
+;          xi = (int)(.5 + (dx/dy) * (poly_clip_max_y - *y1) + *x1);
+;       else
+;          xi = -1;  // invalidate inntersection
+; 
+;       } // end if bottom
+;    else
+;    if (*y2 < poly_clip_min_y)
+;       {
+;       // flag top edge
+; 
+;       top_edge = 1;
+; 
+;       // compute intersection with top edge
+; 
+;       if (dy!=0)
+;          xi = (int)(.5 + (dx/dy) * (poly_clip_min_y - *y1) + *x1);
+;       else
+;          xi = -1;  // invalidate inntersection
+; 
+;       } // end if top
+; 
+; // SECTION 5 /////////////////////////////////////////////////////////////////
+; 
+;    // now we know where the line passed thru
+;    // compute which edge is the proper intersection
+; 
+;    if (right_edge==1 && (yi>=poly_clip_min_y && yi<=poly_clip_max_y) )
+;       {
+; 
+;       *x2 = poly_clip_max_x;
+;       *y2 = yi;
+; 
+;       success = 1;
+; 
+;       } // end if intersected right edge
+;    else
+;    if (left_edge==1 && (yi>=poly_clip_min_y && yi<=poly_clip_max_y) )
+;       {
+; 
+;       *x2 = poly_clip_min_x;
+;       *y2 = yi;
+; 
+;       success = 1;
+; 
+;       } // end if intersected left edge
+; 
+;    if (bottom_edge==1 && (xi>=poly_clip_min_x && xi<=poly_clip_max_x) )
+;       {
+; 
+;       *x2 = xi;
+;       *y2 = poly_clip_max_y;
+; 
+;       success = 1;
+; 
+;       } // end if intersected bottom edge
+;    else
+;    if (top_edge==1 && (xi>=poly_clip_min_x && xi<=poly_clip_max_x) )
+;       {
+; 
+;       *x2 = xi;
+;       *y2 = poly_clip_min_y;
+; 
+;       success = 1;
+; 
+;       } // end if intersected top edge
+; 
+;    } // end if point_1 is visible
+; 
+; // SECTION 6 /////////////////////////////////////////////////////////////////
+; 
+; // reset edge flags
+; 
+; right_edge = left_edge= top_edge = bottom_edge = 0;
+; 
+; // test second endpoint
+; 
+; if ( (point_2==1) || (point_1==0 && point_2==0))
+;    {
+; 
+;    // compute deltas
+; 
+;    dx = *x1 - *x2;
+;    dy = *y1 - *y2;
+; 
+;    // compute what boundary line need to be clipped against
+; 
+;    if (*x1 > poly_clip_max_x)
+;       {
+;       // flag right edge
+; 
+;       right_edge = 1;
+; 
+;       // compute intersection with right edge
+; 
+;       if (dx!=0)
+;          yi = (int)(.5 + (dy/dx) * (poly_clip_max_x - *x2) + *y2);
+;       else
+;          yi = -1;  // invalidate inntersection
+; 
+;       } // end if to right
+;    else
+;    if (*x1 < poly_clip_min_x)
+;       {
+;       // flag left edge
+; 
+;       left_edge = 1;
+; 
+;       // compute intersection with left edge
+; 
+;       if (dx!=0)
+;          yi = (int)(.5 + (dy/dx) * (poly_clip_min_x - *x2) + *y2);
+;       else
+;          yi = -1;  // invalidate intersection
+; 
+;       } // end if to left
+; 
+;    // horizontal intersections
+; 
+;    if (*y1 > poly_clip_max_y)
+;       {
+;       // flag bottom edge
+; 
+;       bottom_edge = 1;
+; 
+;       // compute intersection with right edge
+; 
+;       if (dy!=0)
+;          xi = (int)(.5 + (dx/dy) * (poly_clip_max_y - *y2) + *x2);
+;       else
+;          xi = -1;  // invalidate inntersection
+; Line 195
+; poly = 0006
+; scale = 0008
+					_Scale_Polygon:
+	*** 000204	c8 00 00 00 		enter	OFFSET L01110,OFFSET 0
+	*** 000208	56 			push	si
+	*** 000209	57 			push	di
+; index = fffc
+; 
+;       } // end if bottom
+; Line 197
+;    else
+;    if (*y1 < poly_clip_min_y)
+;       {
+;       // flag top edge
+; Line 201
+	*** 00020a	c7 46 fc 00 00 		mov	WORD PTR -4[bp],OFFSET 0
+	*** 00020f	e9 00 00 		jmp	L00846
+					L00847:
+	*** 000212	83 46 fc 01 		add	WORD PTR -4[bp],OFFSET 1
+					L00846:
+	*** 000216	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000219	8b 47 0c 		mov	ax,WORD PTR 12[bx]
+	*** 00021c	39 46 fc 		cmp	WORD PTR -4[bp],ax
+	*** 00021f	7c 03 e9 00 00 		jge	L00848
+; 
+; Line 202
+;       top_edge = 1;
+; 
+;       // compute intersection with top edge
+; Line 205
+	*** 000224	b8 0e 00 		mov	ax,OFFSET 14
+	*** 000227	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 00022a	03 d8 			add	bx,ax
+	*** 00022c	8b 46 fc 		mov	ax,WORD PTR -4[bp]
+	*** 00022f	d1 e0 			shl	ax,OFFSET 1
+	*** 000231	d1 e0 			shl	ax,OFFSET 1
+	*** 000233	d1 e0 			shl	ax,OFFSET 1
+	*** 000235	03 d8 			add	bx,ax
+	*** 000237	9b d9 07 		fld	DWORD PTR [bx]
+	*** 00023a	9b d8 4e 08 		fmul	ST(0),DWORD PTR 8[bp]
+	*** 00023e	b8 0e 00 		mov	ax,OFFSET 14
+	*** 000241	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000244	03 d8 			add	bx,ax
+	*** 000246	8b 46 fc 		mov	ax,WORD PTR -4[bp]
+	*** 000249	d1 e0 			shl	ax,OFFSET 1
+	*** 00024b	d1 e0 			shl	ax,OFFSET 1
+	*** 00024d	d1 e0 			shl	ax,OFFSET 1
+	*** 00024f	03 d8 			add	bx,ax
+	*** 000251	9b d9 1f 		fstp	DWORD PTR [bx]
+; 
+; Line 206
+	*** 000256	b8 0e 00 		mov	ax,OFFSET 14
+	*** 000259	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 00025c	03 d8 			add	bx,ax
+	*** 00025e	8b 46 fc 		mov	ax,WORD PTR -4[bp]
+	*** 000261	d1 e0 			shl	ax,OFFSET 1
+	*** 000263	d1 e0 			shl	ax,OFFSET 1
+	*** 000265	d1 e0 			shl	ax,OFFSET 1
+	*** 000267	03 d8 			add	bx,ax
+	*** 000269	9b d9 47 04 		fld	DWORD PTR 4[bx]
+	*** 00026d	9b d8 4e 08 		fmul	ST(0),DWORD PTR 8[bp]
+	*** 000271	b8 0e 00 		mov	ax,OFFSET 14
+	*** 000274	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000277	03 d8 			add	bx,ax
+	*** 000279	8b 46 fc 		mov	ax,WORD PTR -4[bp]
+	*** 00027c	d1 e0 			shl	ax,OFFSET 1
+	*** 00027e	d1 e0 			shl	ax,OFFSET 1
+	*** 000280	d1 e0 			shl	ax,OFFSET 1
+	*** 000282	03 d8 			add	bx,ax
+	*** 000284	9b d9 5f 04 		fstp	DWORD PTR 4[bx]
+;       if (dy!=0)
+;          xi = (int)(.5 + (dx/dy) * (poly_clip_min_y - *y2) + *x2);
+; Line 208
+; Line 208
+	*** 00028a	e9 85 ff 		jmp	L00847
+					L00848:
+;       else
+;          xi = -1;  // invalidate inntersection
+; Line 210
+; Line 210
+					L00844:
+	*** 00028d	5f 			pop	di
+	*** 00028e	5e 			pop	si
+	*** 00028f	c9 			leave
+	*** 000290	cb 			ret	OFFSET 0
+Local Size: 4
+; Line 0
+; 
+;       } // end if top
+; 
+;    // now we know where the line passed thru
+;    // compute which edge is the proper intersection
+; 
+;    if (right_edge==1 && (yi>=poly_clip_min_y && yi<=poly_clip_max_y) )
+;       {
+; 
+;       *x1 = poly_clip_max_x;
+;       *y1 = yi;
+; 
+;       success = 1;
+; 
+;       } // end if intersected right edge
+;    else
+;    if (left_edge==1 && (yi>=poly_clip_min_y && yi<=poly_clip_max_y) )
+;       {
+; 
+;       *x1 = poly_clip_min_x;
+;       *y1 = yi;
+; 
+;       success = 1;
+; 
+;       } // end if intersected left edge
+; 
+;    if (bottom_edge==1 && (xi>=poly_clip_min_x && xi<=poly_clip_max_x) )
+;       {
+; 
+;       *x1 = xi;
+;       *y1 = poly_clip_max_y;
+; 
+;       success = 1;
+; 
+;       } // end if intersected bottom edge
+;    else
+;    if (top_edge==1 && (xi>=poly_clip_min_x && xi<=poly_clip_max_x) )
+;       {
+; 
+;       *x1 = xi;
+;       *y1 = poly_clip_min_y;
+; 
+;       success = 1;
+; 
+;       } // end if intersected top edge
+; 
+; 
+;    } // end if point_2 is visible
+; 
+; // SECTION 7 /////////////////////////////////////////////////////////////////
+; 
+; return(success);
+; 
+; } // end Clip_Line
+; 
+; //////////////////////////////////////////////////////////////////////////////
+; 
+; void Draw_Polygon_Clip(polygon_ptr poly)
+; {
+; 
+; // this function draws a polygon on the screen with clipping
+; // also the polygon will always be unfilled regardless
+; // of the fill flag in the polygon structure
+; 
+; int index,  // loop index
+;     xo,yo,  // local origin
+;     x1,y1,  // end points of current line being processed
+;     x2,y2;
+; 
+; // extract local origin
+; 
+; xo = poly->lxo;
+; yo = poly->lyo;
+; 
+; // draw polygon
+; 
+; for (index=0; index<poly->num_vertices-1; index++)
+;     {
+; 
+;     // extract the line
+; 
+;     x1 = (int)poly->vertices[index].x+xo;
+;     y1 = (int)poly->vertices[index].y+yo;
+; 
+;     x2 = (int)poly->vertices[index+1].x+xo;
+;     y2 = (int)poly->vertices[index+1].y+yo;
+; 
+;     // clip line to viewing screen and draw unless line is totally invisible
+; 
+;     if (Clip_Line(&x1,&y1,&x2,&y2))
+;        {
+;        // line was clipped and now can be drawn
+;        Bline(x1,y1,x2,y2,poly->b_color);
+; 
+;        } // end if draw line
+; 
+;     } // end for index
+; 
+;     // close polygon?        // close polygon
+; 
+;     if (!poly->closed)
+;        return;
+; 
+;     // extract the line
+; 
+;     x1 = (int)poly->vertices[index].x+xo;
+;     y1 = (int)poly->vertices[index].y+yo;
+; 
+;     x2 = (int)poly->vertices[0].x+xo;
+;     y2 = (int)poly->vertices[0].y+yo;
+; 
+;     // clip line to viewing screen and draw unless line is totally invisible
+; 
+;     if (Clip_Line(&x1,&y1,&x2,&y2))
+;        {
+; 
+;        // line was clipped and now can be drawn
+; 
+;        Bline(x1,y1,x2,y2,poly->b_color);
+; 
+;        } // end if draw line
+; 
+; } // end Draw_Polygon_Clip
+; 
+; //////////////////////////////////////////////////////////////////////////////
+; 
+; void Bline(int xo, int yo, int x1,int y1, unsigned char color)
+; {
+; // this function uses Bresenham's algorithm IBM (1965) to draw a line from
+; // (xo,yo) - (x1,y1)
+; 
+; int dx,             // difference in x's
+;     dy,             // difference in y's
+;     x_inc,          // amount in pixel space to move during drawing
+;     y_inc,          // amount in pixel space to move during drawing
+;     error=0,        // the discriminant i.e. error i.e. decision variable
+;     index;          // used for looping
+; 
+; 
+; 
+; unsigned char far *vb_start = video_buffer; // directly access the video
+;                                             // buffer for speed
+; 
+; 
+; // SECTION 1 /////////////////////////////////////////////////////////////////
+; 
+; // pre-compute first pixel address in video buffer
+; // use shifts for multiplication
+; 
+; 
+; vb_start = vb_start + ((unsigned int)yo<<6) +
+;                       ((unsigned int)yo<<8) +
+;                       (unsigned int)xo;
+; 
+; // compute deltas
+; 
+; dx = x1-xo;
+; dy = y1-yo;
+; 
+; // SECTION 2 /////////////////////////////////////////////////////////////////
+; 
+; // test which direction the line is going in i.e. slope angle
+; 
+; if (dx>=0)
+;    {
+;    x_inc = 1;
+; 
+;    } // end if line is moving right
+; else
+;    {
+;    x_inc = -1;
+;    dx    = -dx;  // need absolute value
+; 
+;    } // end else moving left
+; 
+; // SECTION 3 /////////////////////////////////////////////////////////////////
+; 
+; // test y component of slope
+; 
+; if (dy>=0)
+;    {
+;    y_inc = 320; // 320 bytes per line
+; 
+;    } // end if line is moving down
+; else
+;    {
+;    y_inc = -320;
+;    dy    = -dy;  // need absolute value
+; 
+;    } // end else moving up
+; 
+; // SECTION 4 /////////////////////////////////////////////////////////////////
+; 
+; // now based on which delta is greater we can draw the line
+; 
+; if (dx>dy)
+;    {
+; 
+;    // draw the line
+; 
+;    for (index=0; index<=dx; index++)
+;        {
+;        // set the pixel
+; 
+;        *vb_start = color;
+; 
+;        // adjust the discriminate
+; 
+;        error+=dy;
+; 
+;        // test if error overflowed
+; 
+;        if (error>dx)
+;           {
+; 
+; Line 215
+; poly = 0006
+; dx = 0008
+; dy = 000a
+					_Translate_Polygon:
+	*** 000292	c8 00 00 00 		enter	OFFSET L01111,OFFSET 0
+	*** 000296	56 			push	si
+	*** 000297	57 			push	di
+;           error-=dx;
+; 
+;           // move to next line
+; 
+; Line 219
+	*** 000298	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 00029b	8b 46 08 		mov	ax,WORD PTR 8[bp]
+	*** 00029e	01 47 08 		add	WORD PTR 8[bx],ax
+;           vb_start+=y_inc;
+; Line 220
+	*** 0002a1	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 0002a4	8b 46 0a 		mov	ax,WORD PTR 10[bp]
+	*** 0002a7	01 47 0a 		add	WORD PTR 10[bx],ax
+; 
+;           } // end if error overflowed
+; 
+;        // move to the next pixel
+; Line 224
+; Line 224
+					L00857:
+	*** 0002aa	5f 			pop	di
+	*** 0002ab	5e 			pop	si
+	*** 0002ac	c9 			leave
+	*** 0002ad	cb 			ret	OFFSET 0
+Local Size: 2
+; Line 0
+; 
+;        vb_start+=x_inc;
+; 
+;        } // end for
+; 
+;    } // end if |slope| <= 1
+; else
+;    {
+; 
+; // SECTION 5 /////////////////////////////////////////////////////////////////
+; 
+;    // draw the line
+; 
+;    for (index=0; index<=dy; index++)
+;        {
+;        // set the pixel
+; 
+;        *vb_start = color;
+; 
+;        // adjust the discriminate
+; 
+;        error+=dx;
+; 
+;        // test if error overflowed
+; 
+;        if (error>0)
+;           {
+; 
+;           error-=dy;
+; 
+;           // move to next line
+; 
+;           vb_start+=x_inc;
+; 
+;           } // end if error overflowed
+; 
+;        // move to the next pixel
+; 
+;        vb_start+=y_inc;
+; 
+;        } // end for
+; 
+;    } // end else |slope| > 1
+; 
+; } // end Bline
+; 
+; ///////////////////////////////////////////////////////////////////////////////
+; 
+; void Draw_Boundary(int color)
+; {
+; // draws in the clipping boundary if user is intersted in seeing it
+; 
+; Bline(poly_clip_min_x,poly_clip_min_y,
+;       poly_clip_max_x,poly_clip_min_y,color);
+; 
+; 
+; Bline(poly_clip_max_x,poly_clip_min_y,
+;       poly_clip_max_x,poly_clip_max_y,color);
+; 
+; Bline(poly_clip_max_x,poly_clip_max_y,
+;       poly_clip_min_x,poly_clip_max_y,color);
+; 
+; Bline(poly_clip_min_x,poly_clip_max_y,
+;       poly_clip_min_x,poly_clip_min_y,color);
+; 
+; } // end Draw_Boundary
+; 
+; //////////////////////////////////////////////////////////////////////////////
+; 
+; void Initialize_Rocks(void)
+; {
+; 
+; // this function initializes all the rocks in the asteroid field
+; 
+; int index;      // loop index
+; 
+; float scale;    // used to change scale of each rock
+; 
+; // initialize all rocks in asteroid field
+; 
+; for (index=0; index<NUM_ROCKS; index++)
+;     {
+; 
+;     // build up each rock and add a little noise to each vertex
+;     // to make them look different
+; 
+;     rocks[index].rock.vertices[0].x = 4.0 + rand()%2;
+;     rocks[index].rock.vertices[0].y = 4   + rand()%2;
+;     rocks[index].rock.vertices[1].x = 9   + rand()%2;
+;     rocks[index].rock.vertices[1].y = -3  - rand()%2;
+;     rocks[index].rock.vertices[2].x = 6   + rand()%2;
+;     rocks[index].rock.vertices[2].y = -5  - rand()%2;
+;     rocks[index].rock.vertices[3].x = 2   + rand()%2;
+;     rocks[index].rock.vertices[3].y = -3  - rand()%2;
+;     rocks[index].rock.vertices[4].x = -4  - rand()%2;
+;     rocks[index].rock.vertices[4].y = -6  - rand()%2;
+;     rocks[index].rock.vertices[5].x = -3  - rand()%2;
+;     rocks[index].rock.vertices[5].y = 5   + rand()%2;
+; 
+;     // set number of vertices
+; 
+;     rocks[index].rock.num_vertices = 6;
+; 
+;     rocks[index].rock.b_color      = 10;
+;     rocks[index].rock.i_color      = 10;
+;     rocks[index].rock.closed       = 1;
+;     rocks[index].rock.filled       = 0;
+;     rocks[index].rock.lxo          = rand()%poly_clip_max_x;
+;     rocks[index].rock.lyo          = rand()%poly_clip_max_y;
+; 
+;     // compute velocity
+; 
+;     rocks[index].xv = -5 + rand()%10;
+;     rocks[index].yv = -5 + rand()%10;
+; 
+;     // set state of rock to alive and set rotation rate
+; 
+;     rocks[index].state = 1;
+; 
+;     rocks[index].rotation_rate = -10 + rand() % 20;
+; 
+;     // compute scale
+; 
+;     scale = ((float)(5 + rand()%15))/10;
+; 
+;     // scale the rock to make it look different
+; 
+;     Scale_Polygon((polygon_ptr)&rocks[index].rock,scale);
+; 
+;     } // end for index
+; 
+; } // end Initialize_Rocks
+; 
+; //////////////////////////////////////////////////////////////////////////////
+; 
+; void Draw_Rocks(void)
+; {
+; // this function draws all the asteroids
+; 
+; int index;  // loop variable
+; 
+; // loop thru all rocks and draw them
+; 
+; for (index=0; index<NUM_ROCKS; index++)
+;     {
+; 
+;     rocks[index].rock.b_color = 10;
+;     Draw_Polygon_Clip((polygon_ptr)&rocks[index].rock);
+; 
+;     } // end for
+; 
+; } // end Draw_Rocks
+; 
+; //////////////////////////////////////////////////////////////////////////////
+; 
+; void Erase_Rocks(void)
+; {
+; // this functions erases all the asteroids
+; 
+; int index;  // loop variable
+; 
+; // loop thru all rocks and draw them
+; 
+; for (index=0; index<NUM_ROCKS; index++)
+;     {
+; 
+;     rocks[index].rock.b_color = 0;
+;     Draw_Polygon_Clip((polygon_ptr)&rocks[index].rock);
+; 
+;     } // end for
+; 
+; } // end Erase_Rocks
+; 
+; //////////////////////////////////////////////////////////////////////////////
+; 
+; void Move_Rocks(void)
+; {
+; 
+; // this funnction moves and rotates all the asteroids
+; 
+; int index;  // loop variable
+; 
+; // loop thru all rocks and draw them
+; 
+; for (index=0; index<NUM_ROCKS; index++)
+;     {
+; 
+;     // translate the polygon
+; 
+;     Translate_Polygon((polygon_ptr)&rocks[index].rock,
+;                       rocks[index].xv,rocks[index].yv);
+; 
+;     // rotate the rock
+; 
+;     Rotate_Polygon((polygon_ptr)&rocks[index].rock,rocks[index].rotation_rate);
+; 
+;     // test for collsion of edges
+; 
+;     if (rocks[index].rock.lxo > 310)
+;         rocks[index].rock.lxo = 10;
+;     else
+;     if (rocks[index].rock.lxo < 10)
+;         rocks[index].rock.lxo = 310;
+; 
+;     if (rocks[index].rock.lyo > 190)
+;         rocks[index].rock.lyo = 10;
+;     else
+;     if (rocks[index].rock.lyo < 10)
+;         rocks[index].rock.lyo = 190;
+; 
+;     } // end for
+; 
+; } // end Move_Rocks
+; 
+; // M A I N ///////////////////////////////////////////////////////////////////
+; 
+; void main(void)
+; {
+; 
+; int done=0;           // system exit flag
+; 
+; polygon ship;
+; 
+; float xv=0,           // initial velocity of ship
+;       yv=0;
+; 
+; int   angle=90,       // initial angle of ship
+;       engines=0;      // tracks if engines are on
+; 
+; Line 229
+; poly = 0006
+					_Draw_Polygon:
+	*** 0002ae	c8 00 00 00 		enter	OFFSET L01112,OFFSET 0
+	*** 0002b2	56 			push	si
+	*** 0002b3	57 			push	di
+; yo = fffc
+; index = fffa
+; xo = fff8
+; // SECTION 1 /////////////////////////////////////////////////////////////////
+; 
+; // set video mode to 320x200 256 color mode
+; 
+; Set_Video_Mode(VGA256);
+; 
+; Line 235
+; // create lookup tables for polygon engine
+; 
+; Create_Tables();
+; 
+; Line 239
+	*** 0002b4	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 0002b7	8b 47 08 		mov	ax,WORD PTR 8[bx]
+	*** 0002ba	89 46 f8 		mov	WORD PTR -8[bp],ax
+; // initialize missiles
+; Line 240
+	*** 0002bd	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 0002c0	8b 47 0a 		mov	ax,WORD PTR 10[bx]
+	*** 0002c3	89 46 fc 		mov	WORD PTR -4[bp],ax
+; missile_init();
+; 
+; // SECTION 2 /////////////////////////////////////////////////////////////////
+; 
+; Line 244
+	*** 0002c6	c7 46 fa 00 00 		mov	WORD PTR -6[bp],OFFSET 0
+	*** 0002cb	e9 00 00 		jmp	L00865
+					L00866:
+	*** 0002ce	83 46 fa 01 		add	WORD PTR -6[bp],OFFSET 1
+					L00865:
+	*** 0002d2	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 0002d5	8b 47 0c 		mov	ax,WORD PTR 12[bx]
+	*** 0002d8	05 ff ff 		add	ax,OFFSET -1
+	*** 0002db	39 46 fa 		cmp	WORD PTR -6[bp],ax
+	*** 0002de	7c 03 e9 00 00 		jge	L00867
+; // build up a little spaceship polygon
+; Line 245
+; 
+; ship.vertices[0].x = 3;
+; Line 247
+; ship.vertices[0].y = -19;
+; Line 248
+; 
+; Line 249
+	*** 0002e3	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 0002e6	ff 37 			push	WORD PTR [bx]
+	*** 0002e8	b8 0e 00 		mov	ax,OFFSET 14
+	*** 0002eb	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 0002ee	03 d8 			add	bx,ax
+	*** 0002f0	8b 46 fa 		mov	ax,WORD PTR -6[bp]
+	*** 0002f3	05 01 00 		add	ax,OFFSET 1
+	*** 0002f6	d1 e0 			shl	ax,OFFSET 1
+	*** 0002f8	d1 e0 			shl	ax,OFFSET 1
+	*** 0002fa	d1 e0 			shl	ax,OFFSET 1
+	*** 0002fc	03 d8 			add	bx,ax
+	*** 0002fe	9b d9 47 04 		fld	DWORD PTR 4[bx]
+	*** 000302	9a 00 00 00 00 		call	FAR PTR __aFftol
+	*** 000309	03 46 fc 		add	ax,WORD PTR -4[bp]
+	*** 00030c	50 			push	ax
+	*** 00030d	b8 0e 00 		mov	ax,OFFSET 14
+	*** 000310	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000313	03 d8 			add	bx,ax
+	*** 000315	8b 46 fa 		mov	ax,WORD PTR -6[bp]
+	*** 000318	05 01 00 		add	ax,OFFSET 1
+	*** 00031b	d1 e0 			shl	ax,OFFSET 1
+	*** 00031d	d1 e0 			shl	ax,OFFSET 1
+	*** 00031f	d1 e0 			shl	ax,OFFSET 1
+	*** 000321	03 d8 			add	bx,ax
+	*** 000323	9b d9 07 		fld	DWORD PTR [bx]
+	*** 000326	9a 00 00 00 00 		call	FAR PTR __aFftol
+	*** 00032d	03 46 f8 		add	ax,WORD PTR -8[bp]
+	*** 000330	50 			push	ax
+	*** 000331	b8 0e 00 		mov	ax,OFFSET 14
+	*** 000334	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000337	03 d8 			add	bx,ax
+	*** 000339	8b 46 fa 		mov	ax,WORD PTR -6[bp]
+	*** 00033c	d1 e0 			shl	ax,OFFSET 1
+	*** 00033e	d1 e0 			shl	ax,OFFSET 1
+	*** 000340	d1 e0 			shl	ax,OFFSET 1
+	*** 000342	03 d8 			add	bx,ax
+	*** 000344	9b d9 47 04 		fld	DWORD PTR 4[bx]
+	*** 000348	9a 00 00 00 00 		call	FAR PTR __aFftol
+	*** 00034f	03 46 fc 		add	ax,WORD PTR -4[bp]
+	*** 000352	50 			push	ax
+	*** 000353	b8 0e 00 		mov	ax,OFFSET 14
+	*** 000356	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000359	03 d8 			add	bx,ax
+	*** 00035b	8b 46 fa 		mov	ax,WORD PTR -6[bp]
+	*** 00035e	d1 e0 			shl	ax,OFFSET 1
+	*** 000360	d1 e0 			shl	ax,OFFSET 1
+	*** 000362	d1 e0 			shl	ax,OFFSET 1
+	*** 000364	03 d8 			add	bx,ax
+	*** 000366	9b d9 07 		fld	DWORD PTR [bx]
+	*** 000369	9a 00 00 00 00 		call	FAR PTR __aFftol
+	*** 000370	03 46 f8 		add	ax,WORD PTR -8[bp]
+	*** 000373	50 			push	ax
+	*** 000374	9a 00 00 00 00 		call	FAR PTR _Bline
+	*** 000379	83 c4 0a 		add	sp,OFFSET 10
+; ship.vertices[1].x = 12;
+; ship.vertices[1].y = -1;
+; Line 251
+; Line 251
+	*** 00037c	e9 4f ff 		jmp	L00866
+					L00867:
+; 
+; ship.vertices[2].x = 17;
+; ship.vertices[2].y = 2;
+; 
+; Line 255
+	*** 00037f	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000382	83 7f 04 00 		cmp	WORD PTR 4[bx],OFFSET 0
+	*** 000386	74 03 e9 00 00 		jne	L00869
+; ship.vertices[3].x = 17;
+; Line 256
+	*** 00038b	e9 00 00 		jmp	L00861
+; ship.vertices[3].y = 9;
+; 
+; Line 258
+					L00869:
+; ship.vertices[4].x = 8;
+; Line 259
+; ship.vertices[4].y = 14;
+; Line 260
+	*** 00038e	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000391	ff 37 			push	WORD PTR [bx]
+	*** 000393	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000396	9b d9 47 12 		fld	DWORD PTR 18[bx]
+	*** 00039a	9a 00 00 00 00 		call	FAR PTR __aFftol
+	*** 0003a1	03 46 fc 		add	ax,WORD PTR -4[bp]
+	*** 0003a4	50 			push	ax
+	*** 0003a5	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 0003a8	9b d9 47 0e 		fld	DWORD PTR 14[bx]
+	*** 0003ac	9a 00 00 00 00 		call	FAR PTR __aFftol
+	*** 0003b3	03 46 f8 		add	ax,WORD PTR -8[bp]
+	*** 0003b6	50 			push	ax
+	*** 0003b7	b8 0e 00 		mov	ax,OFFSET 14
+	*** 0003ba	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 0003bd	03 d8 			add	bx,ax
+	*** 0003bf	8b 46 fa 		mov	ax,WORD PTR -6[bp]
+	*** 0003c2	d1 e0 			shl	ax,OFFSET 1
+	*** 0003c4	d1 e0 			shl	ax,OFFSET 1
+	*** 0003c6	d1 e0 			shl	ax,OFFSET 1
+	*** 0003c8	03 d8 			add	bx,ax
+	*** 0003ca	9b d9 47 04 		fld	DWORD PTR 4[bx]
+	*** 0003ce	9a 00 00 00 00 		call	FAR PTR __aFftol
+	*** 0003d5	03 46 fc 		add	ax,WORD PTR -4[bp]
+	*** 0003d8	50 			push	ax
+	*** 0003d9	b8 0e 00 		mov	ax,OFFSET 14
+	*** 0003dc	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 0003df	03 d8 			add	bx,ax
+	*** 0003e1	8b 46 fa 		mov	ax,WORD PTR -6[bp]
+	*** 0003e4	d1 e0 			shl	ax,OFFSET 1
+	*** 0003e6	d1 e0 			shl	ax,OFFSET 1
+	*** 0003e8	d1 e0 			shl	ax,OFFSET 1
+	*** 0003ea	03 d8 			add	bx,ax
+	*** 0003ec	9b d9 07 		fld	DWORD PTR [bx]
+	*** 0003ef	9a 00 00 00 00 		call	FAR PTR __aFftol
+	*** 0003f6	03 46 f8 		add	ax,WORD PTR -8[bp]
+	*** 0003f9	50 			push	ax
+	*** 0003fa	9a 00 00 00 00 		call	FAR PTR _Bline
+	*** 0003ff	83 c4 0a 		add	sp,OFFSET 10
+; 
+; ship.vertices[5].x = 5;
+; ship.vertices[5].y = 8;
+; Line 263
+; Line 263
+					L00861:
+	*** 000402	5f 			pop	di
+	*** 000403	5e 			pop	si
+	*** 000404	c9 			leave
+	*** 000405	cb 			ret	OFFSET 0
+Local Size: 8
+; Line 0
+; 
+; ship.vertices[6].x = -5;
+; ship.vertices[6].y = 8;
+; 
+; ship.vertices[7].x = -8;
+; ship.vertices[7].y = 14;
+; 
+; ship.vertices[8].x = -17;
+; ship.vertices[8].y = 9;
+; 
+; ship.vertices[9].x = -17;
+; ship.vertices[9].y = 2;
+; 
+; ship.vertices[10].x = -12;
+; ship.vertices[10].y = -1;
+; 
+; ship.vertices[11].x = -3;
+; ship.vertices[11].y = -19;
+; 
+; ship.vertices[12].x = -3;
+; ship.vertices[12].y = -8;
+; 
+; ship.vertices[13].x = 3;
+; ship.vertices[13].y = -8;
+; 
+; // set position of shaceship
+; 
+; ship.lxo = 160;
+; ship.lyo = 100;
+; 
+; // fill in important fields
+; 
+; ship.num_vertices = 14;
+; ship.b_color      = 1;
+; ship.closed       = 1;
+; 
+; // make the ship a little smaller
+; 
+; Scale_Polygon((polygon_ptr)&ship,0.75);
+; 
+; // create the asteroid field
+; 
+; Initialize_Rocks();
+; 
+; // main event loop
+; 
+; // SECTION 3 /////////////////////////////////////////////////////////////////
+; 
+; while(!done)
+;      {
+;      // erase all the rocks
+; 
+;      Erase_Rocks();
+; 
+;      // erase the players ship
+; 
+;      ship.b_color = 0;
+; 
+;      Draw_Polygon_Clip((polygon_ptr)&ship);
+; 
+;      // move everything
+;      missile_update();
+;      engines=0;
+; 
+; // SECTION 4 /////////////////////////////////////////////////////////////////
+; 
+;      if (kbhit())
+;         {
+; 
+;         // get the key
+; 
+;         switch(getch())
+;               {
+; 
+;               case 's':
+;                  {
+; 
+;                  Rotate_Polygon((polygon_ptr)&ship,5);
+; 
+;                  // adjust angle
+; 
+;                  angle+=5;
+; 
+;                  if (angle>360)
+;                      angle=0;
+; 
+;                  } break;
+; 
+;               case 'a':
+;                  {
+; 
+;                  Rotate_Polygon((polygon_ptr)&ship,-5);
+; 
+;                  // adjust angle
+; 
+;                  angle-=5;
+; 
+;                  if (angle<0)
+;                      angle=360;
+; 
+;                  } break;
+; 
+;               case 'l':
+;                  {
+; 
+;                  // adjust velocity vector based on direction
+; 
+;                  xv = xv - cos(angle*3.14159/180);
+;                  yv = yv - sin(angle*3.14159/180);
+; 
+;                  // flag that engines are on
+; 
+;                  engines = 1;
+; 
+;                  // control upper throttle limit
+; 
+;                  if (xv>10)
+;                      xv=10;
+;                  else
+;                  if (xv<-10)
+;                      xv=-10;
+; 
+;                  if (yv>10)
+;                      yv=10;
+;                  else
+;                  if (yv<-10)
+;                      yv=-10;
+; 
+;                  } break;
+; 
+;               case 'q':     // user trying to exit
+;                  {
+;                  done=1;
+;                  } break;
+; 
+;               case ' ':
+; 	         missile_fire(&ship, angle);
+; 		 break;
+;               } // end switch
+; 
+;         } // end if kbhit
+; 
+; // SECTION 5 /////////////////////////////////////////////////////////////////
+; 
+;      // decelerate engines if they are off
+; 
+;      if (!engines)
+;         {
+; 
+;         // tend x and y components of velocity toward 0.
+; 
+;         if (xv>0)
+;            xv-=FRICTION;
+;         else
+;         if (xv<0)
+;            xv+=FRICTION;
+; 
+;         if (yv>0)
+;            yv-=FRICTION;
+;         else
+;         if (yv<0)
+;            yv+=FRICTION;
+; 
+;         } // end if
+; 
+;      // test if ship went off screen
+; 
+;      if (ship.lxo > 310)
+;          ship.lxo = 10;
+;      else
+;      if (ship.lxo < 10)
+;          ship.lxo = 310;
+; 
+;      if (ship.lyo > 190)
+;          ship.lyo = 10;
+;      else
+;      if (ship.lyo < 10)
+;          ship.lyo = 190;
+; 
+; // SECTION 6 /////////////////////////////////////////////////////////////////
+; 
+;      // do the actual translation
+; 
+;      Translate_Polygon((polygon_ptr)&ship,xv,yv);
+; 
+;      // now move the rocks
+; 
+;      Move_Rocks();
+; 
+; // SECTION 7 /////////////////////////////////////////////////////////////////
+; 
+;      // Draw everything
+; 
+;      Draw_Rocks();
+; 
+;      ship.b_color = 9;
+; 
+;      Draw_Polygon_Clip((polygon_ptr)&ship);
+; 
+;      // draw instructions
+; 
+;      Blit_String(0,190,15,"(A,S)-Rotate, (L)-Thrust, (Q)-Exit",1);
+; 
+;      // just chill here for 1/18.2 th of a second
+; 
+;      Delay(1);
+; 
+;      } // end while
+; 
+; // reset the video mode back to text
+; 
+; Set_Video_Mode(TEXT_MODE);
+; 
+; } // end main
+; 
+; 
+; // MISSILE FUNCTIONS
+; void missile_init()
+; {
+; int i;
+; 
+; for(i=0; i<NUM_MISSILES; i++) {
+;     missiles[i].active = 0;
+; }
+; }
+; 
+; 
+; void missile_fire(polygon *ship, int angle)
+; {
+; int i;
+; 
+; for(i=0; i<NUM_MISSILES; i++) {
+;     if(!missiles[i].active) {
+; 	missiles[i].active = 1;
+; 	missiles[i].x = ship->lxo;
+; 	missiles[i].y = ship->lyo;
+; 	missiles[i].vx = -MISSILE_SPEED * cos_look[angle];
+; 	missiles[i].vy = -MISSILE_SPEED * sin_look[angle];
+; 	return;
+;     }
+; }
+; }
+; 
+; 
+; void missile_update()
+; {
+; int i;
+; 
+; for(i=0; i<NUM_MISSILES; i++) {
+;     if(missiles[i].active)
+;     {
+; 	//erase missile
+; 	Plot_Pixel_Fast((int)missiles[i].x, (int)missiles[i].y, 0);
+; 
+; 	//move missile
+; 	missiles[i].x += missiles[i].vx;
+; 	missiles[i].y += missiles[i].vy;
+; 
+; 	//dispose or draw
+; 	if(missiles[i].x < 0 || missiles[i].x >= 320 ||
+; 	   missiles[i].y < 0 || missiles[i].y >= 200)
+; 	{
+; 	    missiles[i].active=0;
+; 	} else {
+; 	    Plot_Pixel_Fast((int)missiles[i].x, (int)missiles[i].y, 0x0f);
+; 	}
+;     }
+; }
+; Line 268
+; x1 = 0006
+; y1 = 0008
+; x2 = 000a
+; y2 = 000c
+					_Clip_Line:
+	*** 000406	c8 00 00 00 		enter	OFFSET L01114,OFFSET 0
+	*** 00040a	56 			push	si
+	*** 00040b	57 			push	di
+; top_edge = fffc
+; point_2 = fffa
+; success = fff8
+; xi = fff6
+; left_edge = fff4
+; dy = fff0
+; yi = ffee
+; dx = ffea
+; bottom_edge = ffe8
+; clip_always = ffe6
+; point_1 = ffe4
+; right_edge = ffe2
+; }
+; 
+; ; ; Line 272
+	*** 00040c	c7 46 e4 00 00 		mov	WORD PTR -28[bp],OFFSET 0
+	*** 000411	c7 46 fa 00 00 		mov	WORD PTR -6[bp],OFFSET 0
+; ; ; Line 274
+	*** 000416	c7 46 e6 00 00 		mov	WORD PTR -26[bp],OFFSET 0
+; ; ; Line 276
+; ; ; Line 278
+	*** 00041b	c7 46 e2 00 00 		mov	WORD PTR -30[bp],OFFSET 0
+; ; Line 279
+	*** 000420	c7 46 f4 00 00 		mov	WORD PTR -12[bp],OFFSET 0
+; ; Line 280
+	*** 000425	c7 46 fc 00 00 		mov	WORD PTR -4[bp],OFFSET 0
+; ; Line 281
+	*** 00042a	c7 46 e8 00 00 		mov	WORD PTR -24[bp],OFFSET 0
+; ; ; ; Line 284
+	*** 00042f	c7 46 f8 00 00 		mov	WORD PTR -8[bp],OFFSET 0
+; ; ; Line 286
+; ; ; ; ; ; ; Line 292
+; ; Line 293
+	*** 000434	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000437	a1 00 00 		mov	ax,WORD PTR _poly_clip_min_x
+	*** 00043a	39 07 			cmp	WORD PTR [bx],ax
+	*** 00043c	7d 03 e9 00 00 		jl	L00892
+	*** 000441	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000444	a1 04 00 		mov	ax,WORD PTR _poly_clip_max_x
+	*** 000447	39 07 			cmp	WORD PTR [bx],ax
+	*** 000449	7e 03 e9 00 00 		jg	L00892
+	*** 00044e	8b 5e 08 		mov	bx,WORD PTR 8[bp]
+	*** 000451	a1 02 00 		mov	ax,WORD PTR _poly_clip_min_y
+	*** 000454	39 07 			cmp	WORD PTR [bx],ax
+	*** 000456	7d 03 e9 00 00 		jl	L00892
+	*** 00045b	8b 5e 08 		mov	bx,WORD PTR 8[bp]
+	*** 00045e	a1 06 00 		mov	ax,WORD PTR _poly_clip_max_y
+	*** 000461	39 07 			cmp	WORD PTR [bx],ax
+	*** 000463	7e 03 e9 00 00 		jg	L00892
+; ; Line 294
+	*** 000468	c7 46 e4 01 00 		mov	WORD PTR -28[bp],OFFSET 1
+; ; ; ; Line 297
+					L00892:
+; ; Line 298
+	*** 00046d	8b 5e 0a 		mov	bx,WORD PTR 10[bp]
+	*** 000470	a1 00 00 		mov	ax,WORD PTR _poly_clip_min_x
+	*** 000473	39 07 			cmp	WORD PTR [bx],ax
+	*** 000475	7d 03 e9 00 00 		jl	L00893
+	*** 00047a	8b 5e 0a 		mov	bx,WORD PTR 10[bp]
+	*** 00047d	a1 04 00 		mov	ax,WORD PTR _poly_clip_max_x
+	*** 000480	39 07 			cmp	WORD PTR [bx],ax
+	*** 000482	7e 03 e9 00 00 		jg	L00893
+	*** 000487	8b 5e 0c 		mov	bx,WORD PTR 12[bp]
+	*** 00048a	a1 02 00 		mov	ax,WORD PTR _poly_clip_min_y
+	*** 00048d	39 07 			cmp	WORD PTR [bx],ax
+	*** 00048f	7d 03 e9 00 00 		jl	L00893
+	*** 000494	8b 5e 0c 		mov	bx,WORD PTR 12[bp]
+	*** 000497	a1 06 00 		mov	ax,WORD PTR _poly_clip_max_y
+	*** 00049a	39 07 			cmp	WORD PTR [bx],ax
+	*** 00049c	7e 03 e9 00 00 		jg	L00893
+; ; Line 299
+	*** 0004a1	c7 46 fa 01 00 		mov	WORD PTR -6[bp],OFFSET 1
+; ; ; ; ; ; ; Line 305
+					L00893:
+	*** 0004a6	83 7e e4 01 		cmp	WORD PTR -28[bp],OFFSET 1
+	*** 0004aa	74 03 e9 00 00 		jne	L00894
+	*** 0004af	83 7e fa 01 		cmp	WORD PTR -6[bp],OFFSET 1
+	*** 0004b3	74 03 e9 00 00 		jne	L00894
+; ; Line 306
+	*** 0004b8	b8 01 00 		mov	ax,OFFSET 1
+	*** 0004bb	e9 00 00 		jmp	L00879
+; ; ; ; ; ; ; Line 312
+					L00894:
+	*** 0004be	83 7e e4 00 		cmp	WORD PTR -28[bp],OFFSET 0
+	*** 0004c2	74 03 e9 00 00 		jne	L00895
+	*** 0004c7	83 7e fa 00 		cmp	WORD PTR -6[bp],OFFSET 0
+	*** 0004cb	74 03 e9 00 00 		jne	L00895
+; ; Line 313
+; ; ; ; ; ; Line 318
+; ; Line 319
+; ; ; Line 321
+; ; Line 322
+	*** 0004d0	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 0004d3	a1 00 00 		mov	ax,WORD PTR _poly_clip_min_x
+	*** 0004d6	39 07 			cmp	WORD PTR [bx],ax
+	*** 0004d8	7c 03 e9 00 00 		jge	L00898
+	*** 0004dd	8b 5e 0a 		mov	bx,WORD PTR 10[bp]
+	*** 0004e0	a1 00 00 		mov	ax,WORD PTR _poly_clip_min_x
+	*** 0004e3	39 07 			cmp	WORD PTR [bx],ax
+	*** 0004e5	7d 03 e9 00 00 		jl	L00897
+					L00898:
+	*** 0004ea	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 0004ed	a1 04 00 		mov	ax,WORD PTR _poly_clip_max_x
+	*** 0004f0	39 07 			cmp	WORD PTR [bx],ax
+	*** 0004f2	7f 03 e9 00 00 		jle	L00899
+	*** 0004f7	8b 5e 0a 		mov	bx,WORD PTR 10[bp]
+	*** 0004fa	a1 04 00 		mov	ax,WORD PTR _poly_clip_max_x
+	*** 0004fd	39 07 			cmp	WORD PTR [bx],ax
+	*** 0004ff	7e 03 e9 00 00 		jg	L00897
+					L00899:
+	*** 000504	8b 5e 08 		mov	bx,WORD PTR 8[bp]
+	*** 000507	a1 02 00 		mov	ax,WORD PTR _poly_clip_min_y
+	*** 00050a	39 07 			cmp	WORD PTR [bx],ax
+	*** 00050c	7c 03 e9 00 00 		jge	L00900
+	*** 000511	8b 5e 0c 		mov	bx,WORD PTR 12[bp]
+	*** 000514	a1 02 00 		mov	ax,WORD PTR _poly_clip_min_y
+	*** 000517	39 07 			cmp	WORD PTR [bx],ax
+	*** 000519	7d 03 e9 00 00 		jl	L00897
+					L00900:
+	*** 00051e	8b 5e 08 		mov	bx,WORD PTR 8[bp]
+	*** 000521	a1 06 00 		mov	ax,WORD PTR _poly_clip_max_y
+	*** 000524	39 07 			cmp	WORD PTR [bx],ax
+	*** 000526	7f 03 e9 00 00 		jle	L00896
+	*** 00052b	8b 5e 0c 		mov	bx,WORD PTR 12[bp]
+	*** 00052e	a1 06 00 		mov	ax,WORD PTR _poly_clip_max_y
+	*** 000531	39 07 			cmp	WORD PTR [bx],ax
+	*** 000533	7f 03 e9 00 00 		jle	L00896
+					L00897:
+; ; Line 323
+; ; ; ; ; Line 327
+	*** 000538	b8 00 00 		mov	ax,OFFSET 0
+	*** 00053b	e9 00 00 		jmp	L00879
+; ; ; Line 329
+; ; ; ; ; ; Line 334
+					L00896:
+	*** 00053e	c7 46 e6 01 00 		mov	WORD PTR -26[bp],OFFSET 1
+; ; ; Line 336
+; ; ; ; ; ; ; Line 342
+					L00895:
+	*** 000543	83 7e e4 01 		cmp	WORD PTR -28[bp],OFFSET 1
+	*** 000547	75 03 e9 00 00 		je	L00902
+	*** 00054c	83 7e e4 00 		cmp	WORD PTR -28[bp],OFFSET 0
+	*** 000550	74 03 e9 00 00 		jne	L00901
+	*** 000555	83 7e fa 00 		cmp	WORD PTR -6[bp],OFFSET 0
+	*** 000559	74 03 e9 00 00 		jne	L00901
+					L00902:
+; ; Line 343
+; ; ; ; ; Line 347
+	*** 00055e	8b 5e 0a 		mov	bx,WORD PTR 10[bp]
+	*** 000561	8b 07 			mov	ax,WORD PTR [bx]
+	*** 000563	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000566	2b 07 			sub	ax,WORD PTR [bx]
+	*** 000568	99 			cwd
+	*** 000569	89 46 da 		mov	WORD PTR -38[bp],ax
+	*** 00056c	89 56 dc 		mov	WORD PTR -36[bp],dx
+	*** 00056f	9b db 46 da 		fldi	DWORD PTR -38[bp]
+	*** 000573	9b d9 5e ea 		fstp	DWORD PTR -22[bp]
+; ; Line 348
+	*** 000579	8b 5e 0c 		mov	bx,WORD PTR 12[bp]
+	*** 00057c	8b 07 			mov	ax,WORD PTR [bx]
+	*** 00057e	8b 5e 08 		mov	bx,WORD PTR 8[bp]
+	*** 000581	2b 07 			sub	ax,WORD PTR [bx]
+	*** 000583	99 			cwd
+	*** 000584	89 46 da 		mov	WORD PTR -38[bp],ax
+	*** 000587	89 56 dc 		mov	WORD PTR -36[bp],dx
+	*** 00058a	9b db 46 da 		fldi	DWORD PTR -38[bp]
+	*** 00058e	9b d9 5e f0 		fstp	DWORD PTR -16[bp]
+; ; ; ; ; Line 352
+	*** 000594	8b 5e 0a 		mov	bx,WORD PTR 10[bp]
+	*** 000597	a1 04 00 		mov	ax,WORD PTR _poly_clip_max_x
+	*** 00059a	39 07 			cmp	WORD PTR [bx],ax
+	*** 00059c	7f 03 e9 00 00 		jle	L00903
+; ; Line 353
+; ; ; ; Line 356
+	*** 0005a1	c7 46 e2 01 00 		mov	WORD PTR -30[bp],OFFSET 1
+; ; ; ; ; Line 360
+	*** 0005a6	b8 00 00 		mov	ax,OFFSET 0
+	*** 0005a9	99 			cwd
+	*** 0005aa	89 46 da 		mov	WORD PTR -38[bp],ax
+	*** 0005ad	89 56 dc 		mov	WORD PTR -36[bp],dx
+	*** 0005b0	9b db 46 da 		fldi	DWORD PTR -38[bp]
+	*** 0005b4	9b d9 46 ea 		fld	DWORD PTR -22[bp]
+	*** 0005b8	9a 00 00 00 00 		call	FAR PTR __aFfcompp
+	*** 0005bf	75 03 e9 00 00 		je	L00904
+; ; Line 361
+	*** 0005c4	9b d9 46 f0 		fld	DWORD PTR -16[bp]
+	*** 0005c8	9b d8 76 ea 		fdiv	ST(0),DWORD PTR -22[bp]
+	*** 0005cc	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 0005cf	a1 04 00 		mov	ax,WORD PTR _poly_clip_max_x
+	*** 0005d2	2b 07 			sub	ax,WORD PTR [bx]
+	*** 0005d4	99 			cwd
+	*** 0005d5	89 46 da 		mov	WORD PTR -38[bp],ax
+	*** 0005d8	89 56 dc 		mov	WORD PTR -36[bp],dx
+	*** 0005db	9b db 46 da 		fldi	DWORD PTR -38[bp]
+	*** 0005df	9b de c9 		fmulp	ST(1),ST(0)
+	*** 0005e2	9b dd 06 08 00 		fld	QWORD PTR con0+8
+	*** 0005e7	9b de c1 		faddp	ST(1),ST(0)
+	*** 0005ea	8b 5e 08 		mov	bx,WORD PTR 8[bp]
+	*** 0005ed	8b 07 			mov	ax,WORD PTR [bx]
+	*** 0005ef	99 			cwd
+	*** 0005f0	89 46 d2 		mov	WORD PTR -46[bp],ax
+	*** 0005f3	89 56 d4 		mov	WORD PTR -44[bp],dx
+	*** 0005f6	9b db 46 d2 		fldi	DWORD PTR -46[bp]
+	*** 0005fa	9b de c1 		faddp	ST(1),ST(0)
+	*** 0005fd	9a 00 00 00 00 		call	FAR PTR __aFftol
+	*** 000602	89 46 ee 		mov	WORD PTR -18[bp],ax
+; ; Line 362
+	*** 000605	e9 00 00 		jmp	L00905
+					L00904:
+; Line 362
+; ; Line 363
+	*** 000608	c7 46 ee ff ff 		mov	WORD PTR -18[bp],OFFSET -1
+					L00905:
+; ; ; Line 365
+; ; Line 366
+	*** 00060d	e9 00 00 		jmp	L00906
+					L00903:
+; Line 366
+; ; Line 367
+	*** 000610	8b 5e 0a 		mov	bx,WORD PTR 10[bp]
+	*** 000613	a1 00 00 		mov	ax,WORD PTR _poly_clip_min_x
+	*** 000616	39 07 			cmp	WORD PTR [bx],ax
+	*** 000618	7c 03 e9 00 00 		jge	L00907
+; ; Line 368
+; ; ; ; Line 371
+	*** 00061d	c7 46 f4 01 00 		mov	WORD PTR -12[bp],OFFSET 1
+; ; ; ; ; Line 375
+	*** 000622	b8 00 00 		mov	ax,OFFSET 0
+	*** 000625	99 			cwd
+	*** 000626	89 46 da 		mov	WORD PTR -38[bp],ax
+	*** 000629	89 56 dc 		mov	WORD PTR -36[bp],dx
+	*** 00062c	9b db 46 da 		fldi	DWORD PTR -38[bp]
+	*** 000630	9b d9 46 ea 		fld	DWORD PTR -22[bp]
+	*** 000634	9a 00 00 00 00 		call	FAR PTR __aFfcompp
+	*** 00063b	75 03 e9 00 00 		je	L00908
+; ; Line 376
+	*** 000640	9b d9 46 f0 		fld	DWORD PTR -16[bp]
+	*** 000644	9b d8 76 ea 		fdiv	ST(0),DWORD PTR -22[bp]
+	*** 000648	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 00064b	a1 00 00 		mov	ax,WORD PTR _poly_clip_min_x
+	*** 00064e	2b 07 			sub	ax,WORD PTR [bx]
+	*** 000650	99 			cwd
+	*** 000651	89 46 da 		mov	WORD PTR -38[bp],ax
+	*** 000654	89 56 dc 		mov	WORD PTR -36[bp],dx
+	*** 000657	9b db 46 da 		fldi	DWORD PTR -38[bp]
+	*** 00065b	9b de c9 		fmulp	ST(1),ST(0)
+	*** 00065e	9b dd 06 08 00 		fld	QWORD PTR con0+8
+	*** 000663	9b de c1 		faddp	ST(1),ST(0)
+	*** 000666	8b 5e 08 		mov	bx,WORD PTR 8[bp]
+	*** 000669	8b 07 			mov	ax,WORD PTR [bx]
+	*** 00066b	99 			cwd
+	*** 00066c	89 46 d2 		mov	WORD PTR -46[bp],ax
+	*** 00066f	89 56 d4 		mov	WORD PTR -44[bp],dx
+	*** 000672	9b db 46 d2 		fldi	DWORD PTR -46[bp]
+	*** 000676	9b de c1 		faddp	ST(1),ST(0)
+	*** 000679	9a 00 00 00 00 		call	FAR PTR __aFftol
+	*** 00067e	89 46 ee 		mov	WORD PTR -18[bp],ax
+; ; Line 377
+	*** 000681	e9 00 00 		jmp	L00909
+					L00908:
+; Line 377
+; ; Line 378
+	*** 000684	c7 46 ee ff ff 		mov	WORD PTR -18[bp],OFFSET -1
+					L00909:
+; ; ; Line 380
+; ; ; ; ; Line 384
+					L00907:
+					L00906:
+	*** 000689	8b 5e 0c 		mov	bx,WORD PTR 12[bp]
+	*** 00068c	a1 06 00 		mov	ax,WORD PTR _poly_clip_max_y
+	*** 00068f	39 07 			cmp	WORD PTR [bx],ax
+	*** 000691	7f 03 e9 00 00 		jle	L00910
+; ; Line 385
+; ; ; ; Line 388
+	*** 000696	c7 46 e8 01 00 		mov	WORD PTR -24[bp],OFFSET 1
+; ; ; ; ; Line 392
+	*** 00069b	b8 00 00 		mov	ax,OFFSET 0
+	*** 00069e	99 			cwd
+	*** 00069f	89 46 da 		mov	WORD PTR -38[bp],ax
+	*** 0006a2	89 56 dc 		mov	WORD PTR -36[bp],dx
+	*** 0006a5	9b db 46 da 		fldi	DWORD PTR -38[bp]
+	*** 0006a9	9b d9 46 f0 		fld	DWORD PTR -16[bp]
+	*** 0006ad	9a 00 00 00 00 		call	FAR PTR __aFfcompp
+	*** 0006b4	75 03 e9 00 00 		je	L00911
+; ; Line 393
+	*** 0006b9	9b d9 46 ea 		fld	DWORD PTR -22[bp]
+	*** 0006bd	9b d8 76 f0 		fdiv	ST(0),DWORD PTR -16[bp]
+	*** 0006c1	8b 5e 08 		mov	bx,WORD PTR 8[bp]
+	*** 0006c4	a1 06 00 		mov	ax,WORD PTR _poly_clip_max_y
+	*** 0006c7	2b 07 			sub	ax,WORD PTR [bx]
+	*** 0006c9	99 			cwd
+	*** 0006ca	89 46 da 		mov	WORD PTR -38[bp],ax
+	*** 0006cd	89 56 dc 		mov	WORD PTR -36[bp],dx
+	*** 0006d0	9b db 46 da 		fldi	DWORD PTR -38[bp]
+	*** 0006d4	9b de c9 		fmulp	ST(1),ST(0)
+	*** 0006d7	9b dd 06 08 00 		fld	QWORD PTR con0+8
+	*** 0006dc	9b de c1 		faddp	ST(1),ST(0)
+	*** 0006df	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 0006e2	8b 07 			mov	ax,WORD PTR [bx]
+	*** 0006e4	99 			cwd
+	*** 0006e5	89 46 d2 		mov	WORD PTR -46[bp],ax
+	*** 0006e8	89 56 d4 		mov	WORD PTR -44[bp],dx
+	*** 0006eb	9b db 46 d2 		fldi	DWORD PTR -46[bp]
+	*** 0006ef	9b de c1 		faddp	ST(1),ST(0)
+	*** 0006f2	9a 00 00 00 00 		call	FAR PTR __aFftol
+	*** 0006f7	89 46 f6 		mov	WORD PTR -10[bp],ax
+; ; Line 394
+	*** 0006fa	e9 00 00 		jmp	L00912
+					L00911:
+; Line 394
+; ; Line 395
+	*** 0006fd	c7 46 f6 ff ff 		mov	WORD PTR -10[bp],OFFSET -1
+					L00912:
+; ; ; Line 397
+; ; Line 398
+	*** 000702	e9 00 00 		jmp	L00913
+					L00910:
+; Line 398
+; ; Line 399
+	*** 000705	8b 5e 0c 		mov	bx,WORD PTR 12[bp]
+	*** 000708	a1 02 00 		mov	ax,WORD PTR _poly_clip_min_y
+	*** 00070b	39 07 			cmp	WORD PTR [bx],ax
+	*** 00070d	7c 03 e9 00 00 		jge	L00914
+; ; Line 400
+; ; ; ; Line 403
+	*** 000712	c7 46 fc 01 00 		mov	WORD PTR -4[bp],OFFSET 1
+; ; ; ; ; Line 407
+	*** 000717	b8 00 00 		mov	ax,OFFSET 0
+	*** 00071a	99 			cwd
+	*** 00071b	89 46 da 		mov	WORD PTR -38[bp],ax
+	*** 00071e	89 56 dc 		mov	WORD PTR -36[bp],dx
+	*** 000721	9b db 46 da 		fldi	DWORD PTR -38[bp]
+	*** 000725	9b d9 46 f0 		fld	DWORD PTR -16[bp]
+	*** 000729	9a 00 00 00 00 		call	FAR PTR __aFfcompp
+	*** 000730	75 03 e9 00 00 		je	L00915
+; ; Line 408
+	*** 000735	9b d9 46 ea 		fld	DWORD PTR -22[bp]
+	*** 000739	9b d8 76 f0 		fdiv	ST(0),DWORD PTR -16[bp]
+	*** 00073d	8b 5e 08 		mov	bx,WORD PTR 8[bp]
+	*** 000740	a1 02 00 		mov	ax,WORD PTR _poly_clip_min_y
+	*** 000743	2b 07 			sub	ax,WORD PTR [bx]
+	*** 000745	99 			cwd
+	*** 000746	89 46 da 		mov	WORD PTR -38[bp],ax
+	*** 000749	89 56 dc 		mov	WORD PTR -36[bp],dx
+	*** 00074c	9b db 46 da 		fldi	DWORD PTR -38[bp]
+	*** 000750	9b de c9 		fmulp	ST(1),ST(0)
+	*** 000753	9b dd 06 08 00 		fld	QWORD PTR con0+8
+	*** 000758	9b de c1 		faddp	ST(1),ST(0)
+	*** 00075b	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 00075e	8b 07 			mov	ax,WORD PTR [bx]
+	*** 000760	99 			cwd
+	*** 000761	89 46 d2 		mov	WORD PTR -46[bp],ax
+	*** 000764	89 56 d4 		mov	WORD PTR -44[bp],dx
+	*** 000767	9b db 46 d2 		fldi	DWORD PTR -46[bp]
+	*** 00076b	9b de c1 		faddp	ST(1),ST(0)
+	*** 00076e	9a 00 00 00 00 		call	FAR PTR __aFftol
+	*** 000773	89 46 f6 		mov	WORD PTR -10[bp],ax
+; ; Line 409
+	*** 000776	e9 00 00 		jmp	L00916
+					L00915:
+; Line 409
+; ; Line 410
+	*** 000779	c7 46 f6 ff ff 		mov	WORD PTR -10[bp],OFFSET -1
+					L00916:
+; ; ; Line 412
+; ; ; ; ; ; ; ; Line 419
+					L00914:
+					L00913:
+	*** 00077e	83 7e e2 01 		cmp	WORD PTR -30[bp],OFFSET 1
+	*** 000782	74 03 e9 00 00 		jne	L00917
+	*** 000787	a1 02 00 		mov	ax,WORD PTR _poly_clip_min_y
+	*** 00078a	39 46 ee 		cmp	WORD PTR -18[bp],ax
+	*** 00078d	7d 03 e9 00 00 		jl	L00917
+	*** 000792	a1 06 00 		mov	ax,WORD PTR _poly_clip_max_y
+	*** 000795	39 46 ee 		cmp	WORD PTR -18[bp],ax
+	*** 000798	7e 03 e9 00 00 		jg	L00917
+; ; Line 420
+; ; ; Line 422
+	*** 00079d	a1 04 00 		mov	ax,WORD PTR _poly_clip_max_x
+	*** 0007a0	8b 5e 0a 		mov	bx,WORD PTR 10[bp]
+	*** 0007a3	89 07 			mov	WORD PTR [bx],ax
+; ; Line 423
+	*** 0007a5	8b 46 ee 		mov	ax,WORD PTR -18[bp]
+	*** 0007a8	8b 5e 0c 		mov	bx,WORD PTR 12[bp]
+	*** 0007ab	89 07 			mov	WORD PTR [bx],ax
+; ; ; Line 425
+	*** 0007ad	c7 46 f8 01 00 		mov	WORD PTR -8[bp],OFFSET 1
+; ; ; Line 427
+; ; Line 428
+	*** 0007b2	e9 00 00 		jmp	L00918
+					L00917:
+; Line 428
+; ; Line 429
+	*** 0007b5	83 7e f4 01 		cmp	WORD PTR -12[bp],OFFSET 1
+	*** 0007b9	74 03 e9 00 00 		jne	L00919
+	*** 0007be	a1 02 00 		mov	ax,WORD PTR _poly_clip_min_y
+	*** 0007c1	39 46 ee 		cmp	WORD PTR -18[bp],ax
+	*** 0007c4	7d 03 e9 00 00 		jl	L00919
+	*** 0007c9	a1 06 00 		mov	ax,WORD PTR _poly_clip_max_y
+	*** 0007cc	39 46 ee 		cmp	WORD PTR -18[bp],ax
+	*** 0007cf	7e 03 e9 00 00 		jg	L00919
+; ; Line 430
+; ; ; Line 432
+	*** 0007d4	a1 00 00 		mov	ax,WORD PTR _poly_clip_min_x
+	*** 0007d7	8b 5e 0a 		mov	bx,WORD PTR 10[bp]
+	*** 0007da	89 07 			mov	WORD PTR [bx],ax
+; ; Line 433
+	*** 0007dc	8b 46 ee 		mov	ax,WORD PTR -18[bp]
+	*** 0007df	8b 5e 0c 		mov	bx,WORD PTR 12[bp]
+	*** 0007e2	89 07 			mov	WORD PTR [bx],ax
+; ; ; Line 435
+	*** 0007e4	c7 46 f8 01 00 		mov	WORD PTR -8[bp],OFFSET 1
+; ; ; Line 437
+; ; ; Line 439
+					L00919:
+					L00918:
+	*** 0007e9	83 7e e8 01 		cmp	WORD PTR -24[bp],OFFSET 1
+	*** 0007ed	74 03 e9 00 00 		jne	L00920
+	*** 0007f2	a1 00 00 		mov	ax,WORD PTR _poly_clip_min_x
+	*** 0007f5	39 46 f6 		cmp	WORD PTR -10[bp],ax
+	*** 0007f8	7d 03 e9 00 00 		jl	L00920
+	*** 0007fd	a1 04 00 		mov	ax,WORD PTR _poly_clip_max_x
+	*** 000800	39 46 f6 		cmp	WORD PTR -10[bp],ax
+	*** 000803	7e 03 e9 00 00 		jg	L00920
+; ; Line 440
+; ; ; Line 442
+	*** 000808	8b 46 f6 		mov	ax,WORD PTR -10[bp]
+	*** 00080b	8b 5e 0a 		mov	bx,WORD PTR 10[bp]
+	*** 00080e	89 07 			mov	WORD PTR [bx],ax
+; ; Line 443
+	*** 000810	a1 06 00 		mov	ax,WORD PTR _poly_clip_max_y
+	*** 000813	8b 5e 0c 		mov	bx,WORD PTR 12[bp]
+	*** 000816	89 07 			mov	WORD PTR [bx],ax
+; ; ; Line 445
+	*** 000818	c7 46 f8 01 00 		mov	WORD PTR -8[bp],OFFSET 1
+; ; ; Line 447
+; ; Line 448
+	*** 00081d	e9 00 00 		jmp	L00921
+					L00920:
+; Line 448
+; ; Line 449
+	*** 000820	83 7e fc 01 		cmp	WORD PTR -4[bp],OFFSET 1
+	*** 000824	74 03 e9 00 00 		jne	L00922
+	*** 000829	a1 00 00 		mov	ax,WORD PTR _poly_clip_min_x
+	*** 00082c	39 46 f6 		cmp	WORD PTR -10[bp],ax
+	*** 00082f	7d 03 e9 00 00 		jl	L00922
+	*** 000834	a1 04 00 		mov	ax,WORD PTR _poly_clip_max_x
+	*** 000837	39 46 f6 		cmp	WORD PTR -10[bp],ax
+	*** 00083a	7e 03 e9 00 00 		jg	L00922
+; ; Line 450
+; ; ; Line 452
+	*** 00083f	8b 46 f6 		mov	ax,WORD PTR -10[bp]
+	*** 000842	8b 5e 0a 		mov	bx,WORD PTR 10[bp]
+	*** 000845	89 07 			mov	WORD PTR [bx],ax
+; ; Line 453
+	*** 000847	a1 02 00 		mov	ax,WORD PTR _poly_clip_min_y
+	*** 00084a	8b 5e 0c 		mov	bx,WORD PTR 12[bp]
+	*** 00084d	89 07 			mov	WORD PTR [bx],ax
+; ; ; Line 455
+	*** 00084f	c7 46 f8 01 00 		mov	WORD PTR -8[bp],OFFSET 1
+; ; ; Line 457
+; ; ; Line 459
+					L00922:
+					L00921:
+; ; ; ; ; ; ; Line 465
+					L00901:
+	*** 000854	c7 46 e8 00 00 		mov	WORD PTR -24[bp],OFFSET 0
+	*** 000859	b8 00 00 		mov	ax,OFFSET 0
+	*** 00085c	89 46 fc 		mov	WORD PTR -4[bp],ax
+	*** 00085f	89 46 f4 		mov	WORD PTR -12[bp],ax
+	*** 000862	89 46 e2 		mov	WORD PTR -30[bp],ax
+; ; ; ; ; Line 469
+	*** 000865	83 7e fa 01 		cmp	WORD PTR -6[bp],OFFSET 1
+	*** 000869	75 03 e9 00 00 		je	L00924
+	*** 00086e	83 7e e4 00 		cmp	WORD PTR -28[bp],OFFSET 0
+	*** 000872	74 03 e9 00 00 		jne	L00923
+	*** 000877	83 7e fa 00 		cmp	WORD PTR -6[bp],OFFSET 0
+	*** 00087b	74 03 e9 00 00 		jne	L00923
+					L00924:
+; ; Line 470
+; ; ; ; ; Line 474
+	*** 000880	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000883	8b 07 			mov	ax,WORD PTR [bx]
+	*** 000885	8b 5e 0a 		mov	bx,WORD PTR 10[bp]
+	*** 000888	2b 07 			sub	ax,WORD PTR [bx]
+	*** 00088a	99 			cwd
+	*** 00088b	89 46 da 		mov	WORD PTR -38[bp],ax
+	*** 00088e	89 56 dc 		mov	WORD PTR -36[bp],dx
+	*** 000891	9b db 46 da 		fldi	DWORD PTR -38[bp]
+	*** 000895	9b d9 5e ea 		fstp	DWORD PTR -22[bp]
+; ; Line 475
+	*** 00089b	8b 5e 08 		mov	bx,WORD PTR 8[bp]
+	*** 00089e	8b 07 			mov	ax,WORD PTR [bx]
+	*** 0008a0	8b 5e 0c 		mov	bx,WORD PTR 12[bp]
+	*** 0008a3	2b 07 			sub	ax,WORD PTR [bx]
+	*** 0008a5	99 			cwd
+	*** 0008a6	89 46 da 		mov	WORD PTR -38[bp],ax
+	*** 0008a9	89 56 dc 		mov	WORD PTR -36[bp],dx
+	*** 0008ac	9b db 46 da 		fldi	DWORD PTR -38[bp]
+	*** 0008b0	9b d9 5e f0 		fstp	DWORD PTR -16[bp]
+; ; ; ; ; Line 479
+	*** 0008b6	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 0008b9	a1 04 00 		mov	ax,WORD PTR _poly_clip_max_x
+	*** 0008bc	39 07 			cmp	WORD PTR [bx],ax
+	*** 0008be	7f 03 e9 00 00 		jle	L00925
+; ; Line 480
+; ; ; ; Line 483
+	*** 0008c3	c7 46 e2 01 00 		mov	WORD PTR -30[bp],OFFSET 1
+; ; ; ; ; Line 487
+	*** 0008c8	b8 00 00 		mov	ax,OFFSET 0
+	*** 0008cb	99 			cwd
+	*** 0008cc	89 46 da 		mov	WORD PTR -38[bp],ax
+	*** 0008cf	89 56 dc 		mov	WORD PTR -36[bp],dx
+	*** 0008d2	9b db 46 da 		fldi	DWORD PTR -38[bp]
+	*** 0008d6	9b d9 46 ea 		fld	DWORD PTR -22[bp]
+	*** 0008da	9a 00 00 00 00 		call	FAR PTR __aFfcompp
+	*** 0008e1	75 03 e9 00 00 		je	L00926
+; ; Line 488
+	*** 0008e6	9b d9 46 f0 		fld	DWORD PTR -16[bp]
+	*** 0008ea	9b d8 76 ea 		fdiv	ST(0),DWORD PTR -22[bp]
+	*** 0008ee	8b 5e 0a 		mov	bx,WORD PTR 10[bp]
+	*** 0008f1	a1 04 00 		mov	ax,WORD PTR _poly_clip_max_x
+	*** 0008f4	2b 07 			sub	ax,WORD PTR [bx]
+	*** 0008f6	99 			cwd
+	*** 0008f7	89 46 da 		mov	WORD PTR -38[bp],ax
+	*** 0008fa	89 56 dc 		mov	WORD PTR -36[bp],dx
+	*** 0008fd	9b db 46 da 		fldi	DWORD PTR -38[bp]
+	*** 000901	9b de c9 		fmulp	ST(1),ST(0)
+	*** 000904	9b dd 06 08 00 		fld	QWORD PTR con0+8
+	*** 000909	9b de c1 		faddp	ST(1),ST(0)
+	*** 00090c	8b 5e 0c 		mov	bx,WORD PTR 12[bp]
+	*** 00090f	8b 07 			mov	ax,WORD PTR [bx]
+	*** 000911	99 			cwd
+	*** 000912	89 46 d2 		mov	WORD PTR -46[bp],ax
+	*** 000915	89 56 d4 		mov	WORD PTR -44[bp],dx
+	*** 000918	9b db 46 d2 		fldi	DWORD PTR -46[bp]
+	*** 00091c	9b de c1 		faddp	ST(1),ST(0)
+	*** 00091f	9a 00 00 00 00 		call	FAR PTR __aFftol
+	*** 000924	89 46 ee 		mov	WORD PTR -18[bp],ax
+; ; Line 489
+	*** 000927	e9 00 00 		jmp	L00927
+					L00926:
+; Line 489
+; ; Line 490
+	*** 00092a	c7 46 ee ff ff 		mov	WORD PTR -18[bp],OFFSET -1
+					L00927:
+; ; ; Line 492
+; ; Line 493
+	*** 00092f	e9 00 00 		jmp	L00928
+					L00925:
+; Line 493
+; ; Line 494
+	*** 000932	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000935	a1 00 00 		mov	ax,WORD PTR _poly_clip_min_x
+	*** 000938	39 07 			cmp	WORD PTR [bx],ax
+	*** 00093a	7c 03 e9 00 00 		jge	L00929
+; ; Line 495
+; ; ; ; Line 498
+	*** 00093f	c7 46 f4 01 00 		mov	WORD PTR -12[bp],OFFSET 1
+; ; ; ; ; Line 502
+	*** 000944	b8 00 00 		mov	ax,OFFSET 0
+	*** 000947	99 			cwd
+	*** 000948	89 46 da 		mov	WORD PTR -38[bp],ax
+	*** 00094b	89 56 dc 		mov	WORD PTR -36[bp],dx
+	*** 00094e	9b db 46 da 		fldi	DWORD PTR -38[bp]
+	*** 000952	9b d9 46 ea 		fld	DWORD PTR -22[bp]
+	*** 000956	9a 00 00 00 00 		call	FAR PTR __aFfcompp
+	*** 00095d	75 03 e9 00 00 		je	L00930
+; ; Line 503
+	*** 000962	9b d9 46 f0 		fld	DWORD PTR -16[bp]
+	*** 000966	9b d8 76 ea 		fdiv	ST(0),DWORD PTR -22[bp]
+	*** 00096a	8b 5e 0a 		mov	bx,WORD PTR 10[bp]
+	*** 00096d	a1 00 00 		mov	ax,WORD PTR _poly_clip_min_x
+	*** 000970	2b 07 			sub	ax,WORD PTR [bx]
+	*** 000972	99 			cwd
+	*** 000973	89 46 da 		mov	WORD PTR -38[bp],ax
+	*** 000976	89 56 dc 		mov	WORD PTR -36[bp],dx
+	*** 000979	9b db 46 da 		fldi	DWORD PTR -38[bp]
+	*** 00097d	9b de c9 		fmulp	ST(1),ST(0)
+	*** 000980	9b dd 06 08 00 		fld	QWORD PTR con0+8
+	*** 000985	9b de c1 		faddp	ST(1),ST(0)
+	*** 000988	8b 5e 0c 		mov	bx,WORD PTR 12[bp]
+	*** 00098b	8b 07 			mov	ax,WORD PTR [bx]
+	*** 00098d	99 			cwd
+	*** 00098e	89 46 d2 		mov	WORD PTR -46[bp],ax
+	*** 000991	89 56 d4 		mov	WORD PTR -44[bp],dx
+	*** 000994	9b db 46 d2 		fldi	DWORD PTR -46[bp]
+	*** 000998	9b de c1 		faddp	ST(1),ST(0)
+	*** 00099b	9a 00 00 00 00 		call	FAR PTR __aFftol
+	*** 0009a0	89 46 ee 		mov	WORD PTR -18[bp],ax
+; ; Line 504
+	*** 0009a3	e9 00 00 		jmp	L00931
+					L00930:
+; Line 504
+; ; Line 505
+	*** 0009a6	c7 46 ee ff ff 		mov	WORD PTR -18[bp],OFFSET -1
+					L00931:
+; ; ; Line 507
+; ; ; ; ; Line 511
+					L00929:
+					L00928:
+	*** 0009ab	8b 5e 08 		mov	bx,WORD PTR 8[bp]
+	*** 0009ae	a1 06 00 		mov	ax,WORD PTR _poly_clip_max_y
+	*** 0009b1	39 07 			cmp	WORD PTR [bx],ax
+	*** 0009b3	7f 03 e9 00 00 		jle	L00932
+; ; Line 512
+; ; ; ; Line 515
+	*** 0009b8	c7 46 e8 01 00 		mov	WORD PTR -24[bp],OFFSET 1
+; ; ; ; ; Line 519
+	*** 0009bd	b8 00 00 		mov	ax,OFFSET 0
+	*** 0009c0	99 			cwd
+	*** 0009c1	89 46 da 		mov	WORD PTR -38[bp],ax
+	*** 0009c4	89 56 dc 		mov	WORD PTR -36[bp],dx
+	*** 0009c7	9b db 46 da 		fldi	DWORD PTR -38[bp]
+	*** 0009cb	9b d9 46 f0 		fld	DWORD PTR -16[bp]
+	*** 0009cf	9a 00 00 00 00 		call	FAR PTR __aFfcompp
+	*** 0009d6	75 03 e9 00 00 		je	L00933
+; ; Line 520
+	*** 0009db	9b d9 46 ea 		fld	DWORD PTR -22[bp]
+	*** 0009df	9b d8 76 f0 		fdiv	ST(0),DWORD PTR -16[bp]
+	*** 0009e3	8b 5e 0c 		mov	bx,WORD PTR 12[bp]
+	*** 0009e6	a1 06 00 		mov	ax,WORD PTR _poly_clip_max_y
+	*** 0009e9	2b 07 			sub	ax,WORD PTR [bx]
+	*** 0009eb	99 			cwd
+	*** 0009ec	89 46 da 		mov	WORD PTR -38[bp],ax
+	*** 0009ef	89 56 dc 		mov	WORD PTR -36[bp],dx
+	*** 0009f2	9b db 46 da 		fldi	DWORD PTR -38[bp]
+	*** 0009f6	9b de c9 		fmulp	ST(1),ST(0)
+	*** 0009f9	9b dd 06 08 00 		fld	QWORD PTR con0+8
+	*** 0009fe	9b de c1 		faddp	ST(1),ST(0)
+	*** 000a01	8b 5e 0a 		mov	bx,WORD PTR 10[bp]
+	*** 000a04	8b 07 			mov	ax,WORD PTR [bx]
+	*** 000a06	99 			cwd
+	*** 000a07	89 46 d2 		mov	WORD PTR -46[bp],ax
+	*** 000a0a	89 56 d4 		mov	WORD PTR -44[bp],dx
+	*** 000a0d	9b db 46 d2 		fldi	DWORD PTR -46[bp]
+	*** 000a11	9b de c1 		faddp	ST(1),ST(0)
+	*** 000a14	9a 00 00 00 00 		call	FAR PTR __aFftol
+	*** 000a19	89 46 f6 		mov	WORD PTR -10[bp],ax
+; ; Line 521
+	*** 000a1c	e9 00 00 		jmp	L00934
+					L00933:
+; Line 521
+; ; Line 522
+	*** 000a1f	c7 46 f6 ff ff 		mov	WORD PTR -10[bp],OFFSET -1
+					L00934:
+; ; ; Line 524
+; ; Line 525
+	*** 000a24	e9 00 00 		jmp	L00935
+					L00932:
+; Line 525
+; ; Line 526
+	*** 000a27	8b 5e 08 		mov	bx,WORD PTR 8[bp]
+	*** 000a2a	a1 02 00 		mov	ax,WORD PTR _poly_clip_min_y
+	*** 000a2d	39 07 			cmp	WORD PTR [bx],ax
+	*** 000a2f	7c 03 e9 00 00 		jge	L00936
+; ; Line 527
+; ; ; ; Line 530
+	*** 000a34	c7 46 fc 01 00 		mov	WORD PTR -4[bp],OFFSET 1
+; ; ; ; ; Line 534
+	*** 000a39	b8 00 00 		mov	ax,OFFSET 0
+	*** 000a3c	99 			cwd
+	*** 000a3d	89 46 da 		mov	WORD PTR -38[bp],ax
+	*** 000a40	89 56 dc 		mov	WORD PTR -36[bp],dx
+	*** 000a43	9b db 46 da 		fldi	DWORD PTR -38[bp]
+	*** 000a47	9b d9 46 f0 		fld	DWORD PTR -16[bp]
+	*** 000a4b	9a 00 00 00 00 		call	FAR PTR __aFfcompp
+	*** 000a52	75 03 e9 00 00 		je	L00937
+; ; Line 535
+	*** 000a57	9b d9 46 ea 		fld	DWORD PTR -22[bp]
+	*** 000a5b	9b d8 76 f0 		fdiv	ST(0),DWORD PTR -16[bp]
+	*** 000a5f	8b 5e 0c 		mov	bx,WORD PTR 12[bp]
+	*** 000a62	a1 02 00 		mov	ax,WORD PTR _poly_clip_min_y
+	*** 000a65	2b 07 			sub	ax,WORD PTR [bx]
+	*** 000a67	99 			cwd
+	*** 000a68	89 46 da 		mov	WORD PTR -38[bp],ax
+	*** 000a6b	89 56 dc 		mov	WORD PTR -36[bp],dx
+	*** 000a6e	9b db 46 da 		fldi	DWORD PTR -38[bp]
+	*** 000a72	9b de c9 		fmulp	ST(1),ST(0)
+	*** 000a75	9b dd 06 08 00 		fld	QWORD PTR con0+8
+	*** 000a7a	9b de c1 		faddp	ST(1),ST(0)
+	*** 000a7d	8b 5e 0a 		mov	bx,WORD PTR 10[bp]
+	*** 000a80	8b 07 			mov	ax,WORD PTR [bx]
+	*** 000a82	99 			cwd
+	*** 000a83	89 46 d2 		mov	WORD PTR -46[bp],ax
+	*** 000a86	89 56 d4 		mov	WORD PTR -44[bp],dx
+	*** 000a89	9b db 46 d2 		fldi	DWORD PTR -46[bp]
+	*** 000a8d	9b de c1 		faddp	ST(1),ST(0)
+	*** 000a90	9a 00 00 00 00 		call	FAR PTR __aFftol
+	*** 000a95	89 46 f6 		mov	WORD PTR -10[bp],ax
+; ; Line 536
+	*** 000a98	e9 00 00 		jmp	L00938
+					L00937:
+; Line 536
+; ; Line 537
+	*** 000a9b	c7 46 f6 ff ff 		mov	WORD PTR -10[bp],OFFSET -1
+					L00938:
+; ; ; Line 539
+; ; ; ; ; ; Line 544
+					L00936:
+					L00935:
+	*** 000aa0	83 7e e2 01 		cmp	WORD PTR -30[bp],OFFSET 1
+	*** 000aa4	74 03 e9 00 00 		jne	L00939
+	*** 000aa9	a1 02 00 		mov	ax,WORD PTR _poly_clip_min_y
+	*** 000aac	39 46 ee 		cmp	WORD PTR -18[bp],ax
+	*** 000aaf	7d 03 e9 00 00 		jl	L00939
+	*** 000ab4	a1 06 00 		mov	ax,WORD PTR _poly_clip_max_y
+	*** 000ab7	39 46 ee 		cmp	WORD PTR -18[bp],ax
+	*** 000aba	7e 03 e9 00 00 		jg	L00939
+; ; Line 545
+; ; ; Line 547
+	*** 000abf	a1 04 00 		mov	ax,WORD PTR _poly_clip_max_x
+	*** 000ac2	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000ac5	89 07 			mov	WORD PTR [bx],ax
+; ; Line 548
+	*** 000ac7	8b 46 ee 		mov	ax,WORD PTR -18[bp]
+	*** 000aca	8b 5e 08 		mov	bx,WORD PTR 8[bp]
+	*** 000acd	89 07 			mov	WORD PTR [bx],ax
+; ; ; Line 550
+	*** 000acf	c7 46 f8 01 00 		mov	WORD PTR -8[bp],OFFSET 1
+; ; ; Line 552
+; ; Line 553
+	*** 000ad4	e9 00 00 		jmp	L00940
+					L00939:
+; Line 553
+; ; Line 554
+	*** 000ad7	83 7e f4 01 		cmp	WORD PTR -12[bp],OFFSET 1
+	*** 000adb	74 03 e9 00 00 		jne	L00941
+	*** 000ae0	a1 02 00 		mov	ax,WORD PTR _poly_clip_min_y
+	*** 000ae3	39 46 ee 		cmp	WORD PTR -18[bp],ax
+	*** 000ae6	7d 03 e9 00 00 		jl	L00941
+	*** 000aeb	a1 06 00 		mov	ax,WORD PTR _poly_clip_max_y
+	*** 000aee	39 46 ee 		cmp	WORD PTR -18[bp],ax
+	*** 000af1	7e 03 e9 00 00 		jg	L00941
+; ; Line 555
+; ; ; Line 557
+	*** 000af6	a1 00 00 		mov	ax,WORD PTR _poly_clip_min_x
+	*** 000af9	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000afc	89 07 			mov	WORD PTR [bx],ax
+; ; Line 558
+	*** 000afe	8b 46 ee 		mov	ax,WORD PTR -18[bp]
+	*** 000b01	8b 5e 08 		mov	bx,WORD PTR 8[bp]
+	*** 000b04	89 07 			mov	WORD PTR [bx],ax
+; ; ; Line 560
+	*** 000b06	c7 46 f8 01 00 		mov	WORD PTR -8[bp],OFFSET 1
+; ; ; Line 562
+; ; ; Line 564
+					L00941:
+					L00940:
+	*** 000b0b	83 7e e8 01 		cmp	WORD PTR -24[bp],OFFSET 1
+	*** 000b0f	74 03 e9 00 00 		jne	L00942
+	*** 000b14	a1 00 00 		mov	ax,WORD PTR _poly_clip_min_x
+	*** 000b17	39 46 f6 		cmp	WORD PTR -10[bp],ax
+	*** 000b1a	7d 03 e9 00 00 		jl	L00942
+	*** 000b1f	a1 04 00 		mov	ax,WORD PTR _poly_clip_max_x
+	*** 000b22	39 46 f6 		cmp	WORD PTR -10[bp],ax
+	*** 000b25	7e 03 e9 00 00 		jg	L00942
+; ; Line 565
+; ; ; Line 567
+	*** 000b2a	8b 46 f6 		mov	ax,WORD PTR -10[bp]
+	*** 000b2d	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000b30	89 07 			mov	WORD PTR [bx],ax
+; ; Line 568
+	*** 000b32	a1 06 00 		mov	ax,WORD PTR _poly_clip_max_y
+	*** 000b35	8b 5e 08 		mov	bx,WORD PTR 8[bp]
+	*** 000b38	89 07 			mov	WORD PTR [bx],ax
+; ; ; Line 570
+	*** 000b3a	c7 46 f8 01 00 		mov	WORD PTR -8[bp],OFFSET 1
+; ; ; Line 572
+; ; Line 573
+	*** 000b3f	e9 00 00 		jmp	L00943
+					L00942:
+; Line 573
+; ; Line 574
+	*** 000b42	83 7e fc 01 		cmp	WORD PTR -4[bp],OFFSET 1
+	*** 000b46	74 03 e9 00 00 		jne	L00944
+	*** 000b4b	a1 00 00 		mov	ax,WORD PTR _poly_clip_min_x
+	*** 000b4e	39 46 f6 		cmp	WORD PTR -10[bp],ax
+	*** 000b51	7d 03 e9 00 00 		jl	L00944
+	*** 000b56	a1 04 00 		mov	ax,WORD PTR _poly_clip_max_x
+	*** 000b59	39 46 f6 		cmp	WORD PTR -10[bp],ax
+	*** 000b5c	7e 03 e9 00 00 		jg	L00944
+; ; Line 575
+; ; ; Line 577
+	*** 000b61	8b 46 f6 		mov	ax,WORD PTR -10[bp]
+	*** 000b64	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000b67	89 07 			mov	WORD PTR [bx],ax
+; ; Line 578
+	*** 000b69	a1 02 00 		mov	ax,WORD PTR _poly_clip_min_y
+	*** 000b6c	8b 5e 08 		mov	bx,WORD PTR 8[bp]
+	*** 000b6f	89 07 			mov	WORD PTR [bx],ax
+; ; ; Line 580
+	*** 000b71	c7 46 f8 01 00 		mov	WORD PTR -8[bp],OFFSET 1
+; ; ; Line 582
+; ; ; ; Line 585
+					L00944:
+					L00943:
+; ; ; ; ; Line 589
+					L00923:
+	*** 000b76	8b 46 f8 		mov	ax,WORD PTR -8[bp]
+	*** 000b79	e9 00 00 		jmp	L00879
+; ; ; Line 591
+; Line 591
+					L00879:
+	*** 000b7c	5f 			pop	di
+	*** 000b7d	5e 			pop	si
+	*** 000b7e	c9 			leave
+	*** 000b7f	cb 			ret	OFFSET 0
+Local Size: 46
+; Line 0
+; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; Line 596
+; poly = 0006
+					_Draw_Polygon_Clip:
+	*** 000b80	c8 00 00 00 		enter	OFFSET L01117,OFFSET 0
+	*** 000b84	56 			push	si
+	*** 000b85	57 			push	di
+; y1 = fffc
+; yo = fffa
+; x1 = fff8
+; y2 = fff6
+; x2 = fff4
+; index = fff2
+; xo = fff0
+; ; ; ; ; ; ; Line 602
+; ; Line 603
+; ; Line 604
+; ; Line 605
+; ; ; ; ; Line 609
+	*** 000b86	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000b89	8b 47 08 		mov	ax,WORD PTR 8[bx]
+	*** 000b8c	89 46 f0 		mov	WORD PTR -16[bp],ax
+; ; Line 610
+	*** 000b8f	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000b92	8b 47 0a 		mov	ax,WORD PTR 10[bx]
+	*** 000b95	89 46 fa 		mov	WORD PTR -6[bp],ax
+; ; ; ; ; Line 614
+	*** 000b98	c7 46 f2 00 00 		mov	WORD PTR -14[bp],OFFSET 0
+	*** 000b9d	e9 00 00 		jmp	L00956
+					L00957:
+	*** 000ba0	83 46 f2 01 		add	WORD PTR -14[bp],OFFSET 1
+					L00956:
+	*** 000ba4	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000ba7	8b 47 0c 		mov	ax,WORD PTR 12[bx]
+	*** 000baa	05 ff ff 		add	ax,OFFSET -1
+	*** 000bad	39 46 f2 		cmp	WORD PTR -14[bp],ax
+	*** 000bb0	7c 03 e9 00 00 		jge	L00958
+; ; Line 615
+; ; ; ; ; Line 619
+	*** 000bb5	b8 0e 00 		mov	ax,OFFSET 14
+	*** 000bb8	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000bbb	03 d8 			add	bx,ax
+	*** 000bbd	8b 46 f2 		mov	ax,WORD PTR -14[bp]
+	*** 000bc0	d1 e0 			shl	ax,OFFSET 1
+	*** 000bc2	d1 e0 			shl	ax,OFFSET 1
+	*** 000bc4	d1 e0 			shl	ax,OFFSET 1
+	*** 000bc6	03 d8 			add	bx,ax
+	*** 000bc8	9b d9 07 		fld	DWORD PTR [bx]
+	*** 000bcb	9a 00 00 00 00 		call	FAR PTR __aFftol
+	*** 000bd2	03 46 f0 		add	ax,WORD PTR -16[bp]
+	*** 000bd5	89 46 f8 		mov	WORD PTR -8[bp],ax
+; ; Line 620
+	*** 000bd8	b8 0e 00 		mov	ax,OFFSET 14
+	*** 000bdb	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000bde	03 d8 			add	bx,ax
+	*** 000be0	8b 46 f2 		mov	ax,WORD PTR -14[bp]
+	*** 000be3	d1 e0 			shl	ax,OFFSET 1
+	*** 000be5	d1 e0 			shl	ax,OFFSET 1
+	*** 000be7	d1 e0 			shl	ax,OFFSET 1
+	*** 000be9	03 d8 			add	bx,ax
+	*** 000beb	9b d9 47 04 		fld	DWORD PTR 4[bx]
+	*** 000bef	9a 00 00 00 00 		call	FAR PTR __aFftol
+	*** 000bf6	03 46 fa 		add	ax,WORD PTR -6[bp]
+	*** 000bf9	89 46 fc 		mov	WORD PTR -4[bp],ax
+; ; ; Line 622
+	*** 000bfc	b8 0e 00 		mov	ax,OFFSET 14
+	*** 000bff	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000c02	03 d8 			add	bx,ax
+	*** 000c04	8b 46 f2 		mov	ax,WORD PTR -14[bp]
+	*** 000c07	05 01 00 		add	ax,OFFSET 1
+	*** 000c0a	d1 e0 			shl	ax,OFFSET 1
+	*** 000c0c	d1 e0 			shl	ax,OFFSET 1
+	*** 000c0e	d1 e0 			shl	ax,OFFSET 1
+	*** 000c10	03 d8 			add	bx,ax
+	*** 000c12	9b d9 07 		fld	DWORD PTR [bx]
+	*** 000c15	9a 00 00 00 00 		call	FAR PTR __aFftol
+	*** 000c1c	03 46 f0 		add	ax,WORD PTR -16[bp]
+	*** 000c1f	89 46 f4 		mov	WORD PTR -12[bp],ax
+; ; Line 623
+	*** 000c22	b8 0e 00 		mov	ax,OFFSET 14
+	*** 000c25	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000c28	03 d8 			add	bx,ax
+	*** 000c2a	8b 46 f2 		mov	ax,WORD PTR -14[bp]
+	*** 000c2d	05 01 00 		add	ax,OFFSET 1
+	*** 000c30	d1 e0 			shl	ax,OFFSET 1
+	*** 000c32	d1 e0 			shl	ax,OFFSET 1
+	*** 000c34	d1 e0 			shl	ax,OFFSET 1
+	*** 000c36	03 d8 			add	bx,ax
+	*** 000c38	9b d9 47 04 		fld	DWORD PTR 4[bx]
+	*** 000c3c	9a 00 00 00 00 		call	FAR PTR __aFftol
+	*** 000c43	03 46 fa 		add	ax,WORD PTR -6[bp]
+	*** 000c46	89 46 f6 		mov	WORD PTR -10[bp],ax
+; ; ; ; ; Line 627
+	*** 000c49	8d 46 f6 		lea	ax,WORD PTR -10[bp]
+	*** 000c4c	50 			push	ax
+	*** 000c4d	8d 46 f4 		lea	ax,WORD PTR -12[bp]
+	*** 000c50	50 			push	ax
+	*** 000c51	8d 46 fc 		lea	ax,WORD PTR -4[bp]
+	*** 000c54	50 			push	ax
+	*** 000c55	8d 46 f8 		lea	ax,WORD PTR -8[bp]
+	*** 000c58	50 			push	ax
+	*** 000c59	9a 00 00 00 00 		call	FAR PTR _Clip_Line
+	*** 000c5e	83 c4 08 		add	sp,OFFSET 8
+	*** 000c61	3d 00 00 		cmp	ax,OFFSET 0
+	*** 000c64	75 03 e9 00 00 		je	L00960
+; ; Line 628
+; ; ; Line 630
+	*** 000c69	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000c6c	ff 37 			push	WORD PTR [bx]
+	*** 000c6e	ff 76 f6 		push	WORD PTR -10[bp]
+	*** 000c71	ff 76 f4 		push	WORD PTR -12[bp]
+	*** 000c74	ff 76 fc 		push	WORD PTR -4[bp]
+	*** 000c77	ff 76 f8 		push	WORD PTR -8[bp]
+	*** 000c7a	9a 00 00 00 00 		call	FAR PTR _Bline
+	*** 000c7f	83 c4 0a 		add	sp,OFFSET 10
+; ; ; Line 632
+; ; ; Line 634
+					L00960:
+; Line 634
+	*** 000c82	e9 1b ff 		jmp	L00957
+					L00958:
+; ; ; ; ; Line 638
+	*** 000c85	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000c88	83 7f 04 00 		cmp	WORD PTR 4[bx],OFFSET 0
+	*** 000c8c	74 03 e9 00 00 		jne	L00961
+; ; Line 639
+	*** 000c91	e9 00 00 		jmp	L00948
+; ; ; ; ; Line 643
+					L00961:
+	*** 000c94	b8 0e 00 		mov	ax,OFFSET 14
+	*** 000c97	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000c9a	03 d8 			add	bx,ax
+	*** 000c9c	8b 46 f2 		mov	ax,WORD PTR -14[bp]
+	*** 000c9f	d1 e0 			shl	ax,OFFSET 1
+	*** 000ca1	d1 e0 			shl	ax,OFFSET 1
+	*** 000ca3	d1 e0 			shl	ax,OFFSET 1
+	*** 000ca5	03 d8 			add	bx,ax
+	*** 000ca7	9b d9 07 		fld	DWORD PTR [bx]
+	*** 000caa	9a 00 00 00 00 		call	FAR PTR __aFftol
+	*** 000cb1	03 46 f0 		add	ax,WORD PTR -16[bp]
+	*** 000cb4	89 46 f8 		mov	WORD PTR -8[bp],ax
+; ; Line 644
+	*** 000cb7	b8 0e 00 		mov	ax,OFFSET 14
+	*** 000cba	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000cbd	03 d8 			add	bx,ax
+	*** 000cbf	8b 46 f2 		mov	ax,WORD PTR -14[bp]
+	*** 000cc2	d1 e0 			shl	ax,OFFSET 1
+	*** 000cc4	d1 e0 			shl	ax,OFFSET 1
+	*** 000cc6	d1 e0 			shl	ax,OFFSET 1
+	*** 000cc8	03 d8 			add	bx,ax
+	*** 000cca	9b d9 47 04 		fld	DWORD PTR 4[bx]
+	*** 000cce	9a 00 00 00 00 		call	FAR PTR __aFftol
+	*** 000cd5	03 46 fa 		add	ax,WORD PTR -6[bp]
+	*** 000cd8	89 46 fc 		mov	WORD PTR -4[bp],ax
+; ; ; Line 646
+	*** 000cdb	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000cde	9b d9 47 0e 		fld	DWORD PTR 14[bx]
+	*** 000ce2	9a 00 00 00 00 		call	FAR PTR __aFftol
+	*** 000ce9	03 46 f0 		add	ax,WORD PTR -16[bp]
+	*** 000cec	89 46 f4 		mov	WORD PTR -12[bp],ax
+; ; Line 647
+	*** 000cef	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000cf2	9b d9 47 12 		fld	DWORD PTR 18[bx]
+	*** 000cf6	9a 00 00 00 00 		call	FAR PTR __aFftol
+	*** 000cfd	03 46 fa 		add	ax,WORD PTR -6[bp]
+	*** 000d00	89 46 f6 		mov	WORD PTR -10[bp],ax
+; ; ; ; ; Line 651
+	*** 000d03	8d 46 f6 		lea	ax,WORD PTR -10[bp]
+	*** 000d06	50 			push	ax
+	*** 000d07	8d 46 f4 		lea	ax,WORD PTR -12[bp]
+	*** 000d0a	50 			push	ax
+	*** 000d0b	8d 46 fc 		lea	ax,WORD PTR -4[bp]
+	*** 000d0e	50 			push	ax
+	*** 000d0f	8d 46 f8 		lea	ax,WORD PTR -8[bp]
+	*** 000d12	50 			push	ax
+	*** 000d13	9a 00 00 00 00 		call	FAR PTR _Clip_Line
+	*** 000d18	83 c4 08 		add	sp,OFFSET 8
+	*** 000d1b	3d 00 00 		cmp	ax,OFFSET 0
+	*** 000d1e	75 03 e9 00 00 		je	L00962
+; ; Line 652
+; ; ; ; ; Line 656
+	*** 000d23	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000d26	ff 37 			push	WORD PTR [bx]
+	*** 000d28	ff 76 f6 		push	WORD PTR -10[bp]
+	*** 000d2b	ff 76 f4 		push	WORD PTR -12[bp]
+	*** 000d2e	ff 76 fc 		push	WORD PTR -4[bp]
+	*** 000d31	ff 76 f8 		push	WORD PTR -8[bp]
+	*** 000d34	9a 00 00 00 00 		call	FAR PTR _Bline
+	*** 000d39	83 c4 0a 		add	sp,OFFSET 10
+; ; ; Line 658
+; ; ; Line 660
+					L00962:
+; Line 660
+					L00948:
+	*** 000d3c	5f 			pop	di
+	*** 000d3d	5e 			pop	si
+	*** 000d3e	c9 			leave
+	*** 000d3f	cb 			ret	OFFSET 0
+Local Size: 16
+; Line 0
+; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; Line 665
+; xo = 0006
+; yo = 0008
+; x1 = 000a
+; y1 = 000c
+; color = 000e
+					_Bline:
+	*** 000d40	c8 00 00 00 		enter	OFFSET L01118,OFFSET 0
+	*** 000d44	56 			push	si
+	*** 000d45	57 			push	di
+; x_inc = fffc
+; vb_start = fff8
+; y_inc = fff6
+; dy = fff4
+; dx = fff2
+; index = fff0
+; error = ffee
+; ; ; ; ; Line 669
+; ; Line 670
+; ; Line 671
+; ; Line 672
+; ; Line 673
+	*** 000d46	c7 46 ee 00 00 		mov	WORD PTR -18[bp],OFFSET 0
+; ; Line 674
+; ; ; ; ; Line 678
+	*** 000d4b	a1 00 00 		mov	ax,WORD PTR _video_buffer
+	*** 000d4e	8b 16 02 00 		mov	dx,WORD PTR _video_buffer+2
+	*** 000d52	89 46 f8 		mov	WORD PTR -8[bp],ax
+	*** 000d55	89 56 fa 		mov	WORD PTR -6[bp],dx
+; ; ; ; ; ; ; ; ; ; ; Line 688
+; ; Line 689
+; ; Line 690
+	*** 000d58	8b 46 08 		mov	ax,WORD PTR 8[bp]
+	*** 000d5b	c1 e0 06 		shl	ax,OFFSET 6
+	*** 000d5e	8b 4e f8 		mov	cx,WORD PTR -8[bp]
+	*** 000d61	8b 56 fa 		mov	dx,WORD PTR -6[bp]
+	*** 000d64	03 c8 			add	cx,ax
+	*** 000d66	8b 46 08 		mov	ax,WORD PTR 8[bp]
+	*** 000d69	c1 e0 08 		shl	ax,OFFSET 8
+	*** 000d6c	03 c8 			add	cx,ax
+	*** 000d6e	8b 46 06 		mov	ax,WORD PTR 6[bp]
+	*** 000d71	03 c8 			add	cx,ax
+	*** 000d73	89 4e f8 		mov	WORD PTR -8[bp],cx
+	*** 000d76	89 56 fa 		mov	WORD PTR -6[bp],dx
+; ; ; ; ; Line 694
+	*** 000d79	8b 46 0a 		mov	ax,WORD PTR 10[bp]
+	*** 000d7c	2b 46 06 		sub	ax,WORD PTR 6[bp]
+	*** 000d7f	89 46 f2 		mov	WORD PTR -14[bp],ax
+; ; Line 695
+	*** 000d82	8b 46 0c 		mov	ax,WORD PTR 12[bp]
+	*** 000d85	2b 46 08 		sub	ax,WORD PTR 8[bp]
+	*** 000d88	89 46 f4 		mov	WORD PTR -12[bp],ax
+; ; ; ; ; ; ; Line 701
+	*** 000d8b	83 7e f2 00 		cmp	WORD PTR -14[bp],OFFSET 0
+	*** 000d8f	7d 03 e9 00 00 		jl	L00981
+; ; Line 702
+; ; Line 703
+	*** 000d94	c7 46 fc 01 00 		mov	WORD PTR -4[bp],OFFSET 1
+; ; ; Line 705
+; ; Line 706
+	*** 000d99	e9 00 00 		jmp	L00982
+					L00981:
+; Line 706
+; ; Line 707
+; ; Line 708
+	*** 000d9c	c7 46 fc ff ff 		mov	WORD PTR -4[bp],OFFSET -1
+; ; Line 709
+	*** 000da1	8b 46 f2 		mov	ax,WORD PTR -14[bp]
+	*** 000da4	f7 d8 			neg	ax
+	*** 000da6	89 46 f2 		mov	WORD PTR -14[bp],ax
+; ; ; Line 711
+					L00982:
+; ; ; ; ; ; ; Line 717
+	*** 000da9	83 7e f4 00 		cmp	WORD PTR -12[bp],OFFSET 0
+	*** 000dad	7d 03 e9 00 00 		jl	L00983
+; ; Line 718
+; ; Line 719
+	*** 000db2	c7 46 f6 40 01 		mov	WORD PTR -10[bp],OFFSET 320
+; ; ; Line 721
+; ; Line 722
+	*** 000db7	e9 00 00 		jmp	L00984
+					L00983:
+; Line 722
+; ; Line 723
+; ; Line 724
+	*** 000dba	c7 46 f6 c0 fe 		mov	WORD PTR -10[bp],OFFSET -320
+; ; Line 725
+	*** 000dbf	8b 46 f4 		mov	ax,WORD PTR -12[bp]
+	*** 000dc2	f7 d8 			neg	ax
+	*** 000dc4	89 46 f4 		mov	WORD PTR -12[bp],ax
+; ; ; Line 727
+					L00984:
+; ; ; ; ; ; ; Line 733
+	*** 000dc7	8b 46 f4 		mov	ax,WORD PTR -12[bp]
+	*** 000dca	39 46 f2 		cmp	WORD PTR -14[bp],ax
+	*** 000dcd	7f 03 e9 00 00 		jle	L00985
+; ; Line 734
+; ; ; ; ; Line 738
+	*** 000dd2	c7 46 f0 00 00 		mov	WORD PTR -16[bp],OFFSET 0
+	*** 000dd7	e9 00 00 		jmp	L00989
+					L00986:
+; ; Line 739
+; ; ; ; Line 742
+	*** 000dda	8a 46 0e 		mov	al,BYTE PTR 14[bp]
+	*** 000ddd	c4 5e f8 		les	bx,WORD PTR -8[bp]
+	*** 000de0	26 88 07 		mov	BYTE PTR es:[bx],al
+; ; ; ; ; Line 746
+	*** 000de3	8b 46 f4 		mov	ax,WORD PTR -12[bp]
+	*** 000de6	01 46 ee 		add	WORD PTR -18[bp],ax
+; ; ; ; ; Line 750
+	*** 000de9	8b 46 f2 		mov	ax,WORD PTR -14[bp]
+	*** 000dec	39 46 ee 		cmp	WORD PTR -18[bp],ax
+	*** 000def	7f 03 e9 00 00 		jle	L00990
+; ; Line 751
+; ; ; Line 753
+	*** 000df4	8b 46 f2 		mov	ax,WORD PTR -14[bp]
+	*** 000df7	29 46 ee 		sub	WORD PTR -18[bp],ax
+; ; ; ; ; Line 757
+	*** 000dfa	8b 46 f6 		mov	ax,WORD PTR -10[bp]
+	*** 000dfd	01 46 f8 		add	WORD PTR -8[bp],ax
+; ; ; Line 759
+; ; ; ; ; Line 763
+					L00990:
+	*** 000e00	8b 46 fc 		mov	ax,WORD PTR -4[bp]
+	*** 000e03	01 46 f8 		add	WORD PTR -8[bp],ax
+; ; ; Line 765
+					L00987:
+; Line 765
+	*** 000e06	83 46 f0 01 		add	WORD PTR -16[bp],OFFSET 1
+					L00989:
+	*** 000e0a	8b 46 f2 		mov	ax,WORD PTR -14[bp]
+	*** 000e0d	39 46 f0 		cmp	WORD PTR -16[bp],ax
+	*** 000e10	7f 03 e9 c5 ff 		jle	L00986
+					L00988:
+; ; ; Line 767
+; ; Line 768
+	*** 000e15	e9 00 00 		jmp	L00991
+					L00985:
+; Line 768
+; ; Line 769
+; ; ; ; ; ; ; Line 775
+	*** 000e18	c7 46 f0 00 00 		mov	WORD PTR -16[bp],OFFSET 0
+	*** 000e1d	e9 00 00 		jmp	L00995
+					L00992:
+; ; Line 776
+; ; ; ; Line 779
+	*** 000e20	8a 46 0e 		mov	al,BYTE PTR 14[bp]
+	*** 000e23	c4 5e f8 		les	bx,WORD PTR -8[bp]
+	*** 000e26	26 88 07 		mov	BYTE PTR es:[bx],al
+; ; ; ; ; Line 783
+	*** 000e29	8b 46 f2 		mov	ax,WORD PTR -14[bp]
+	*** 000e2c	01 46 ee 		add	WORD PTR -18[bp],ax
+; ; ; ; ; Line 787
+	*** 000e2f	83 7e ee 00 		cmp	WORD PTR -18[bp],OFFSET 0
+	*** 000e33	7f 03 e9 00 00 		jle	L00996
+; ; Line 788
+; ; ; Line 790
+	*** 000e38	8b 46 f4 		mov	ax,WORD PTR -12[bp]
+	*** 000e3b	29 46 ee 		sub	WORD PTR -18[bp],ax
+; ; ; ; ; Line 794
+	*** 000e3e	8b 46 fc 		mov	ax,WORD PTR -4[bp]
+	*** 000e41	01 46 f8 		add	WORD PTR -8[bp],ax
+; ; ; Line 796
+; ; ; ; ; Line 800
+					L00996:
+	*** 000e44	8b 46 f6 		mov	ax,WORD PTR -10[bp]
+	*** 000e47	01 46 f8 		add	WORD PTR -8[bp],ax
+; ; ; Line 802
+					L00993:
+; Line 802
+	*** 000e4a	83 46 f0 01 		add	WORD PTR -16[bp],OFFSET 1
+					L00995:
+	*** 000e4e	8b 46 f4 		mov	ax,WORD PTR -12[bp]
+	*** 000e51	39 46 f0 		cmp	WORD PTR -16[bp],ax
+	*** 000e54	7f 03 e9 c7 ff 		jle	L00992
+					L00994:
+; ; ; Line 804
+					L00991:
+; ; ; Line 806
+; Line 806
+					L00973:
+	*** 000e59	5f 			pop	di
+	*** 000e5a	5e 			pop	si
+	*** 000e5b	c9 			leave
+	*** 000e5c	cb 			ret	OFFSET 0
+Local Size: 18
+; Line 0
+; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; Line 811
+; color = 0006
+					_Draw_Boundary:
+	*** 000e5e	c8 00 00 00 		enter	OFFSET L01119,OFFSET 0
+	*** 000e62	56 			push	si
+	*** 000e63	57 			push	di
+; ; ; ; Line 814
+; ; Line 815
+	*** 000e64	ff 76 06 		push	WORD PTR 6[bp]
+	*** 000e67	ff 36 02 00 		push	WORD PTR _poly_clip_min_y
+	*** 000e6b	ff 36 04 00 		push	WORD PTR _poly_clip_max_x
+	*** 000e6f	ff 36 02 00 		push	WORD PTR _poly_clip_min_y
+	*** 000e73	ff 36 00 00 		push	WORD PTR _poly_clip_min_x
+	*** 000e77	9a 00 00 00 00 		call	FAR PTR _Bline
+	*** 000e7c	83 c4 0a 		add	sp,OFFSET 10
+; ; ; ; Line 818
+; ; Line 819
+	*** 000e7f	ff 76 06 		push	WORD PTR 6[bp]
+	*** 000e82	ff 36 06 00 		push	WORD PTR _poly_clip_max_y
+	*** 000e86	ff 36 04 00 		push	WORD PTR _poly_clip_max_x
+	*** 000e8a	ff 36 02 00 		push	WORD PTR _poly_clip_min_y
+	*** 000e8e	ff 36 04 00 		push	WORD PTR _poly_clip_max_x
+	*** 000e92	9a 00 00 00 00 		call	FAR PTR _Bline
+	*** 000e97	83 c4 0a 		add	sp,OFFSET 10
+; ; ; Line 821
+; ; Line 822
+	*** 000e9a	ff 76 06 		push	WORD PTR 6[bp]
+	*** 000e9d	ff 36 06 00 		push	WORD PTR _poly_clip_max_y
+	*** 000ea1	ff 36 00 00 		push	WORD PTR _poly_clip_min_x
+	*** 000ea5	ff 36 06 00 		push	WORD PTR _poly_clip_max_y
+	*** 000ea9	ff 36 04 00 		push	WORD PTR _poly_clip_max_x
+	*** 000ead	9a 00 00 00 00 		call	FAR PTR _Bline
+	*** 000eb2	83 c4 0a 		add	sp,OFFSET 10
+; ; ; Line 824
+; ; Line 825
+	*** 000eb5	ff 76 06 		push	WORD PTR 6[bp]
+	*** 000eb8	ff 36 02 00 		push	WORD PTR _poly_clip_min_y
+	*** 000ebc	ff 36 00 00 		push	WORD PTR _poly_clip_min_x
+	*** 000ec0	ff 36 06 00 		push	WORD PTR _poly_clip_max_y
+	*** 000ec4	ff 36 00 00 		push	WORD PTR _poly_clip_min_x
+	*** 000ec8	9a 00 00 00 00 		call	FAR PTR _Bline
+	*** 000ecd	83 c4 0a 		add	sp,OFFSET 10
+; ; ; Line 827
+; Line 827
+					L01000:
+	*** 000ed0	5f 			pop	di
+	*** 000ed1	5e 			pop	si
+	*** 000ed2	c9 			leave
+	*** 000ed3	cb 			ret	OFFSET 0
+Local Size: 2
+; Line 0
+; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; Line 832
+					_Initialize_Rocks:
+	*** 000ed4	c8 00 00 00 		enter	OFFSET L01120,OFFSET 0
+	*** 000ed8	56 			push	si
+	*** 000ed9	57 			push	di
+; scale = fffa
+; index = fff8
+; ; ; ; ; Line 836
+; ; ; Line 838
+; ; ; ; ; Line 842
+	*** 000eda	c7 46 f8 00 00 		mov	WORD PTR -8[bp],OFFSET 0
+	*** 000edf	e9 00 00 		jmp	L01008
+					L01005:
+; ; Line 843
+; ; ; ; ; ; Line 848
+	*** 000ee2	9a 00 00 00 00 		call	FAR PTR _rand
+	*** 000ee7	b9 02 00 		mov	cx,OFFSET 2
+	*** 000eea	99 			cwd
+	*** 000eeb	f7 f9 			idiv	cx
+	*** 000eed	8b c2 			mov	ax,dx
+	*** 000eef	99 			cwd
+	*** 000ef0	89 46 f0 		mov	WORD PTR -16[bp],ax
+	*** 000ef3	89 56 f2 		mov	WORD PTR -14[bp],dx
+	*** 000ef6	9b db 46 f0 		fldi	DWORD PTR -16[bp]
+	*** 000efa	9b dd 06 10 00 		fld	QWORD PTR con0+16
+	*** 000eff	9b de c1 		faddp	ST(1),ST(0)
+	*** 000f02	69 46 f8 96 00 		_imul3 	ax,WORD PTR -8[bp],OFFSET 150
+	*** 000f07	bb 00 00 		mov	bx,OFFSET _rocks
+	*** 000f0a	03 d8 			add	bx,ax
+	*** 000f0c	9b d9 5f 16 		fstp	DWORD PTR 22[bx]
+; ; Line 849
+	*** 000f12	9a 00 00 00 00 		call	FAR PTR _rand
+	*** 000f17	b9 02 00 		mov	cx,OFFSET 2
+	*** 000f1a	99 			cwd
+	*** 000f1b	f7 f9 			idiv	cx
+	*** 000f1d	8b c2 			mov	ax,dx
+	*** 000f1f	05 04 00 		add	ax,OFFSET 4
+	*** 000f22	99 			cwd
+	*** 000f23	89 46 f0 		mov	WORD PTR -16[bp],ax
+	*** 000f26	89 56 f2 		mov	WORD PTR -14[bp],dx
+	*** 000f29	9b db 46 f0 		fldi	DWORD PTR -16[bp]
+	*** 000f2d	69 46 f8 96 00 		_imul3 	ax,WORD PTR -8[bp],OFFSET 150
+	*** 000f34	bb 00 00 		mov	bx,OFFSET _rocks
+	*** 000f37	03 d8 			add	bx,ax
+	*** 000f39	9b d9 5f 1a 		fstp	DWORD PTR 26[bx]
+; ; Line 850
+	*** 000f3f	9a 00 00 00 00 		call	FAR PTR _rand
+	*** 000f44	b9 02 00 		mov	cx,OFFSET 2
+	*** 000f47	99 			cwd
+	*** 000f48	f7 f9 			idiv	cx
+	*** 000f4a	8b c2 			mov	ax,dx
+	*** 000f4c	05 09 00 		add	ax,OFFSET 9
+	*** 000f4f	99 			cwd
+	*** 000f50	89 46 f0 		mov	WORD PTR -16[bp],ax
+	*** 000f53	89 56 f2 		mov	WORD PTR -14[bp],dx
+	*** 000f56	9b db 46 f0 		fldi	DWORD PTR -16[bp]
+	*** 000f5a	69 46 f8 96 00 		_imul3 	ax,WORD PTR -8[bp],OFFSET 150
+	*** 000f61	bb 00 00 		mov	bx,OFFSET _rocks
+	*** 000f64	03 d8 			add	bx,ax
+	*** 000f66	9b d9 5f 1e 		fstp	DWORD PTR 30[bx]
+; ; Line 851
+	*** 000f6c	9a 00 00 00 00 		call	FAR PTR _rand
+	*** 000f71	b9 02 00 		mov	cx,OFFSET 2
+	*** 000f74	99 			cwd
+	*** 000f75	f7 f9 			idiv	cx
+	*** 000f77	b8 fd ff 		mov	ax,OFFSET -3
+	*** 000f7a	2b c2 			sub	ax,dx
+	*** 000f7c	99 			cwd
+	*** 000f7d	89 46 f0 		mov	WORD PTR -16[bp],ax
+	*** 000f80	89 56 f2 		mov	WORD PTR -14[bp],dx
+	*** 000f83	9b db 46 f0 		fldi	DWORD PTR -16[bp]
+	*** 000f87	69 46 f8 96 00 		_imul3 	ax,WORD PTR -8[bp],OFFSET 150
+	*** 000f8e	bb 00 00 		mov	bx,OFFSET _rocks
+	*** 000f91	03 d8 			add	bx,ax
+	*** 000f93	9b d9 5f 22 		fstp	DWORD PTR 34[bx]
+; ; Line 852
+	*** 000f99	9a 00 00 00 00 		call	FAR PTR _rand
+	*** 000f9e	b9 02 00 		mov	cx,OFFSET 2
+	*** 000fa1	99 			cwd
+	*** 000fa2	f7 f9 			idiv	cx
+	*** 000fa4	8b c2 			mov	ax,dx
+	*** 000fa6	05 06 00 		add	ax,OFFSET 6
+	*** 000fa9	99 			cwd
+	*** 000faa	89 46 f0 		mov	WORD PTR -16[bp],ax
+	*** 000fad	89 56 f2 		mov	WORD PTR -14[bp],dx
+	*** 000fb0	9b db 46 f0 		fldi	DWORD PTR -16[bp]
+	*** 000fb4	69 46 f8 96 00 		_imul3 	ax,WORD PTR -8[bp],OFFSET 150
+	*** 000fbb	bb 00 00 		mov	bx,OFFSET _rocks
+	*** 000fbe	03 d8 			add	bx,ax
+	*** 000fc0	9b d9 5f 26 		fstp	DWORD PTR 38[bx]
+; ; Line 853
+	*** 000fc6	9a 00 00 00 00 		call	FAR PTR _rand
+	*** 000fcb	b9 02 00 		mov	cx,OFFSET 2
+	*** 000fce	99 			cwd
+	*** 000fcf	f7 f9 			idiv	cx
+	*** 000fd1	b8 fb ff 		mov	ax,OFFSET -5
+	*** 000fd4	2b c2 			sub	ax,dx
+	*** 000fd6	99 			cwd
+	*** 000fd7	89 46 f0 		mov	WORD PTR -16[bp],ax
+	*** 000fda	89 56 f2 		mov	WORD PTR -14[bp],dx
+	*** 000fdd	9b db 46 f0 		fldi	DWORD PTR -16[bp]
+	*** 000fe1	69 46 f8 96 00 		_imul3 	ax,WORD PTR -8[bp],OFFSET 150
+	*** 000fe8	bb 00 00 		mov	bx,OFFSET _rocks
+	*** 000feb	03 d8 			add	bx,ax
+	*** 000fed	9b d9 5f 2a 		fstp	DWORD PTR 42[bx]
+; ; Line 854
+	*** 000ff3	9a 00 00 00 00 		call	FAR PTR _rand
+	*** 000ff8	b9 02 00 		mov	cx,OFFSET 2
+	*** 000ffb	99 			cwd
+	*** 000ffc	f7 f9 			idiv	cx
+	*** 000ffe	8b c2 			mov	ax,dx
+	*** 001000	05 02 00 		add	ax,OFFSET 2
+	*** 001003	99 			cwd
+	*** 001004	89 46 f0 		mov	WORD PTR -16[bp],ax
+	*** 001007	89 56 f2 		mov	WORD PTR -14[bp],dx
+	*** 00100a	9b db 46 f0 		fldi	DWORD PTR -16[bp]
+	*** 00100e	69 46 f8 96 00 		_imul3 	ax,WORD PTR -8[bp],OFFSET 150
+	*** 001015	bb 00 00 		mov	bx,OFFSET _rocks
+	*** 001018	03 d8 			add	bx,ax
+	*** 00101a	9b d9 5f 2e 		fstp	DWORD PTR 46[bx]
+; ; Line 855
+	*** 001020	9a 00 00 00 00 		call	FAR PTR _rand
+	*** 001025	b9 02 00 		mov	cx,OFFSET 2
+	*** 001028	99 			cwd
+	*** 001029	f7 f9 			idiv	cx
+	*** 00102b	b8 fd ff 		mov	ax,OFFSET -3
+	*** 00102e	2b c2 			sub	ax,dx
+	*** 001030	99 			cwd
+	*** 001031	89 46 f0 		mov	WORD PTR -16[bp],ax
+	*** 001034	89 56 f2 		mov	WORD PTR -14[bp],dx
+	*** 001037	9b db 46 f0 		fldi	DWORD PTR -16[bp]
+	*** 00103b	69 46 f8 96 00 		_imul3 	ax,WORD PTR -8[bp],OFFSET 150
+	*** 001042	bb 00 00 		mov	bx,OFFSET _rocks
+	*** 001045	03 d8 			add	bx,ax
+	*** 001047	9b d9 5f 32 		fstp	DWORD PTR 50[bx]
+; ; Line 856
+	*** 00104d	9a 00 00 00 00 		call	FAR PTR _rand
+	*** 001052	b9 02 00 		mov	cx,OFFSET 2
+	*** 001055	99 			cwd
+	*** 001056	f7 f9 			idiv	cx
+	*** 001058	b8 fc ff 		mov	ax,OFFSET -4
+	*** 00105b	2b c2 			sub	ax,dx
+	*** 00105d	99 			cwd
+	*** 00105e	89 46 f0 		mov	WORD PTR -16[bp],ax
+	*** 001061	89 56 f2 		mov	WORD PTR -14[bp],dx
+	*** 001064	9b db 46 f0 		fldi	DWORD PTR -16[bp]
+	*** 001068	69 46 f8 96 00 		_imul3 	ax,WORD PTR -8[bp],OFFSET 150
+	*** 00106f	bb 00 00 		mov	bx,OFFSET _rocks
+	*** 001072	03 d8 			add	bx,ax
+	*** 001074	9b d9 5f 36 		fstp	DWORD PTR 54[bx]
+; ; Line 857
+	*** 00107a	9a 00 00 00 00 		call	FAR PTR _rand
+	*** 00107f	b9 02 00 		mov	cx,OFFSET 2
+	*** 001082	99 			cwd
+	*** 001083	f7 f9 			idiv	cx
+	*** 001085	b8 fa ff 		mov	ax,OFFSET -6
+	*** 001088	2b c2 			sub	ax,dx
+	*** 00108a	99 			cwd
+	*** 00108b	89 46 f0 		mov	WORD PTR -16[bp],ax
+	*** 00108e	89 56 f2 		mov	WORD PTR -14[bp],dx
+	*** 001091	9b db 46 f0 		fldi	DWORD PTR -16[bp]
+	*** 001095	69 46 f8 96 00 		_imul3 	ax,WORD PTR -8[bp],OFFSET 150
+	*** 00109c	bb 00 00 		mov	bx,OFFSET _rocks
+	*** 00109f	03 d8 			add	bx,ax
+	*** 0010a1	9b d9 5f 3a 		fstp	DWORD PTR 58[bx]
+; ; Line 858
+	*** 0010a7	9a 00 00 00 00 		call	FAR PTR _rand
+	*** 0010ac	b9 02 00 		mov	cx,OFFSET 2
+	*** 0010af	99 			cwd
+	*** 0010b0	f7 f9 			idiv	cx
+	*** 0010b2	b8 fd ff 		mov	ax,OFFSET -3
+	*** 0010b5	2b c2 			sub	ax,dx
+	*** 0010b7	99 			cwd
+	*** 0010b8	89 46 f0 		mov	WORD PTR -16[bp],ax
+	*** 0010bb	89 56 f2 		mov	WORD PTR -14[bp],dx
+	*** 0010be	9b db 46 f0 		fldi	DWORD PTR -16[bp]
+	*** 0010c2	69 46 f8 96 00 		_imul3 	ax,WORD PTR -8[bp],OFFSET 150
+	*** 0010c9	bb 00 00 		mov	bx,OFFSET _rocks
+	*** 0010cc	03 d8 			add	bx,ax
+	*** 0010ce	9b d9 5f 3e 		fstp	DWORD PTR 62[bx]
+; ; Line 859
+	*** 0010d4	9a 00 00 00 00 		call	FAR PTR _rand
+	*** 0010d9	b9 02 00 		mov	cx,OFFSET 2
+	*** 0010dc	99 			cwd
+	*** 0010dd	f7 f9 			idiv	cx
+	*** 0010df	8b c2 			mov	ax,dx
+	*** 0010e1	05 05 00 		add	ax,OFFSET 5
+	*** 0010e4	99 			cwd
+	*** 0010e5	89 46 f0 		mov	WORD PTR -16[bp],ax
+	*** 0010e8	89 56 f2 		mov	WORD PTR -14[bp],dx
+	*** 0010eb	9b db 46 f0 		fldi	DWORD PTR -16[bp]
+	*** 0010ef	69 46 f8 96 00 		_imul3 	ax,WORD PTR -8[bp],OFFSET 150
+	*** 0010f6	bb 00 00 		mov	bx,OFFSET _rocks
+	*** 0010f9	03 d8 			add	bx,ax
+	*** 0010fb	9b d9 5f 42 		fstp	DWORD PTR 66[bx]
+; ; ; ; ; Line 863
+	*** 001101	69 46 f8 96 00 		_imul3 	ax,WORD PTR -8[bp],OFFSET 150
+	*** 001106	bb 00 00 		mov	bx,OFFSET _rocks
+	*** 001109	03 d8 			add	bx,ax
+	*** 00110b	c7 47 14 06 00 		mov	WORD PTR 20[bx],OFFSET 6
+; ; ; Line 865
+	*** 001110	69 46 f8 96 00 		_imul3 	ax,WORD PTR -8[bp],OFFSET 150
+	*** 001115	bb 00 00 		mov	bx,OFFSET _rocks
+	*** 001118	03 d8 			add	bx,ax
+	*** 00111a	c7 47 08 0a 00 		mov	WORD PTR 8[bx],OFFSET 10
+; ; Line 866
+	*** 00111f	69 46 f8 96 00 		_imul3 	ax,WORD PTR -8[bp],OFFSET 150
+	*** 001124	bb 00 00 		mov	bx,OFFSET _rocks
+	*** 001127	03 d8 			add	bx,ax
+	*** 001129	c7 47 0a 0a 00 		mov	WORD PTR 10[bx],OFFSET 10
+; ; Line 867
+	*** 00112e	69 46 f8 96 00 		_imul3 	ax,WORD PTR -8[bp],OFFSET 150
+	*** 001133	bb 00 00 		mov	bx,OFFSET _rocks
+	*** 001136	03 d8 			add	bx,ax
+	*** 001138	c7 47 0c 01 00 		mov	WORD PTR 12[bx],OFFSET 1
+; ; Line 868
+	*** 00113d	69 46 f8 96 00 		_imul3 	ax,WORD PTR -8[bp],OFFSET 150
+	*** 001142	bb 00 00 		mov	bx,OFFSET _rocks
+	*** 001145	03 d8 			add	bx,ax
+	*** 001147	c7 47 0e 00 00 		mov	WORD PTR 14[bx],OFFSET 0
+; ; Line 869
+	*** 00114c	9a 00 00 00 00 		call	FAR PTR _rand
+	*** 001151	99 			cwd
+	*** 001152	f7 3e 04 00 		idiv	WORD PTR _poly_clip_max_x
+	*** 001156	69 46 f8 96 00 		_imul3 	ax,WORD PTR -8[bp],OFFSET 150
+	*** 00115b	bb 00 00 		mov	bx,OFFSET _rocks
+	*** 00115e	03 d8 			add	bx,ax
+	*** 001160	89 57 10 		mov	WORD PTR 16[bx],dx
+; ; Line 870
+	*** 001163	9a 00 00 00 00 		call	FAR PTR _rand
+	*** 001168	99 			cwd
+	*** 001169	f7 3e 06 00 		idiv	WORD PTR _poly_clip_max_y
+	*** 00116d	69 46 f8 96 00 		_imul3 	ax,WORD PTR -8[bp],OFFSET 150
+	*** 001172	bb 00 00 		mov	bx,OFFSET _rocks
+	*** 001175	03 d8 			add	bx,ax
+	*** 001177	89 57 12 		mov	WORD PTR 18[bx],dx
+; ; ; ; ; Line 874
+	*** 00117a	9a 00 00 00 00 		call	FAR PTR _rand
+	*** 00117f	b9 0a 00 		mov	cx,OFFSET 10
+	*** 001182	99 			cwd
+	*** 001183	f7 f9 			idiv	cx
+	*** 001185	83 c2 fb 		add	dx,OFFSET -5
+	*** 001188	69 46 f8 96 00 		_imul3 	ax,WORD PTR -8[bp],OFFSET 150
+	*** 00118d	bb 00 00 		mov	bx,OFFSET _rocks
+	*** 001190	03 d8 			add	bx,ax
+	*** 001192	89 57 04 		mov	WORD PTR 4[bx],dx
+; ; Line 875
+	*** 001195	9a 00 00 00 00 		call	FAR PTR _rand
+	*** 00119a	b9 0a 00 		mov	cx,OFFSET 10
+	*** 00119d	99 			cwd
+	*** 00119e	f7 f9 			idiv	cx
+	*** 0011a0	83 c2 fb 		add	dx,OFFSET -5
+	*** 0011a3	69 46 f8 96 00 		_imul3 	ax,WORD PTR -8[bp],OFFSET 150
+	*** 0011a8	bb 00 00 		mov	bx,OFFSET _rocks
+	*** 0011ab	03 d8 			add	bx,ax
+	*** 0011ad	89 57 06 		mov	WORD PTR 6[bx],dx
+; ; ; ; ; Line 879
+	*** 0011b0	69 46 f8 96 00 		_imul3 	ax,WORD PTR -8[bp],OFFSET 150
+	*** 0011b5	8b d8 			mov	bx,ax
+	*** 0011b7	c7 87 00 00 01 00 	mov	WORD PTR _rocks[bx],OFFSET 1
+; ; ; Line 881
+	*** 0011bd	9a 00 00 00 00 		call	FAR PTR _rand
+	*** 0011c2	b9 14 00 		mov	cx,OFFSET 20
+	*** 0011c5	99 			cwd
+	*** 0011c6	f7 f9 			idiv	cx
+	*** 0011c8	83 c2 f6 		add	dx,OFFSET -10
+	*** 0011cb	69 46 f8 96 00 		_imul3 	ax,WORD PTR -8[bp],OFFSET 150
+	*** 0011d0	bb 00 00 		mov	bx,OFFSET _rocks
+	*** 0011d3	03 d8 			add	bx,ax
+	*** 0011d5	89 57 02 		mov	WORD PTR 2[bx],dx
+; ; ; ; ; Line 885
+	*** 0011d8	9a 00 00 00 00 		call	FAR PTR _rand
+	*** 0011dd	b9 0f 00 		mov	cx,OFFSET 15
+	*** 0011e0	99 			cwd
+	*** 0011e1	f7 f9 			idiv	cx
+	*** 0011e3	8b c2 			mov	ax,dx
+	*** 0011e5	05 05 00 		add	ax,OFFSET 5
+	*** 0011e8	99 			cwd
+	*** 0011e9	89 46 f0 		mov	WORD PTR -16[bp],ax
+	*** 0011ec	89 56 f2 		mov	WORD PTR -14[bp],dx
+	*** 0011ef	9b db 46 f0 		fldi	DWORD PTR -16[bp]
+	*** 0011f3	b8 0a 00 		mov	ax,OFFSET 10
+	*** 0011f8	99 			cwd
+	*** 0011f9	89 46 e8 		mov	WORD PTR -24[bp],ax
+	*** 0011fc	89 56 ea 		mov	WORD PTR -22[bp],dx
+	*** 0011ff	9b db 46 e8 		fldi	DWORD PTR -24[bp]
+	*** 001203	9b de f9 		fdivp	ST(1),ST(0)
+	*** 001206	9b d9 5e fa 		fstp	DWORD PTR -6[bp]
+; ; ; ; ; Line 889
+	*** 00120c	ff 76 fc 		push	WORD PTR -4[bp]
+	*** 00120f	ff 76 fa 		push	WORD PTR -6[bp]
+	*** 001212	69 46 f8 96 00 		_imul3 	ax,WORD PTR -8[bp],OFFSET 150
+	*** 001217	b9 00 00 		mov	cx,OFFSET _rocks
+	*** 00121a	03 c8 			add	cx,ax
+	*** 00121c	b8 08 00 		mov	ax,OFFSET 8
+	*** 00121f	03 c8 			add	cx,ax
+	*** 001221	51 			push	cx
+	*** 001222	9a 00 00 00 00 		call	FAR PTR _Scale_Polygon
+	*** 001227	83 c4 06 		add	sp,OFFSET 6
+; ; ; Line 891
+					L01006:
+; Line 891
+	*** 00122a	83 46 f8 01 		add	WORD PTR -8[bp],OFFSET 1
+					L01008:
+	*** 00122e	83 7e f8 0a 		cmp	WORD PTR -8[bp],OFFSET 10
+	*** 001232	7d 03 e9 ab fc 		jl	L01005
+					L01007:
+; ; ; Line 893
+; Line 893
+					L01002:
+	*** 001237	5f 			pop	di
+	*** 001238	5e 			pop	si
+	*** 001239	c9 			leave
+	*** 00123a	cb 			ret	OFFSET 0
+Local Size: 24
+; Line 0
+; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; Line 898
+					_Draw_Rocks:
+	*** 00123c	c8 00 00 00 		enter	OFFSET L01122,OFFSET 0
+	*** 001240	56 			push	si
+	*** 001241	57 			push	di
+; index = fffc
+; ; ; ; Line 901
+; ; ; ; ; Line 905
+	*** 001242	c7 46 fc 00 00 		mov	WORD PTR -4[bp],OFFSET 0
+	*** 001247	e9 00 00 		jmp	L01015
+					L01012:
+; ; Line 906
+; ; ; Line 908
+	*** 00124a	69 46 fc 96 00 		_imul3 	ax,WORD PTR -4[bp],OFFSET 150
+	*** 00124f	bb 00 00 		mov	bx,OFFSET _rocks
+	*** 001252	03 d8 			add	bx,ax
+	*** 001254	c7 47 08 0a 00 		mov	WORD PTR 8[bx],OFFSET 10
+; ; Line 909
+	*** 001259	69 46 fc 96 00 		_imul3 	ax,WORD PTR -4[bp],OFFSET 150
+	*** 00125e	b9 00 00 		mov	cx,OFFSET _rocks
+	*** 001261	03 c8 			add	cx,ax
+	*** 001263	b8 08 00 		mov	ax,OFFSET 8
+	*** 001266	03 c8 			add	cx,ax
+	*** 001268	51 			push	cx
+	*** 001269	9a 00 00 00 00 		call	FAR PTR _Draw_Polygon_Clip
+	*** 00126e	83 c4 02 		add	sp,OFFSET 2
+; ; ; Line 911
+					L01013:
+; Line 911
+	*** 001271	83 46 fc 01 		add	WORD PTR -4[bp],OFFSET 1
+					L01015:
+	*** 001275	83 7e fc 0a 		cmp	WORD PTR -4[bp],OFFSET 10
+	*** 001279	7d 03 e9 cc ff 		jl	L01012
+					L01014:
+; ; ; Line 913
+; Line 913
+					L01010:
+	*** 00127e	5f 			pop	di
+	*** 00127f	5e 			pop	si
+	*** 001280	c9 			leave
+	*** 001281	cb 			ret	OFFSET 0
+Local Size: 4
+; Line 0
+; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; Line 918
+					_Erase_Rocks:
+	*** 001282	c8 00 00 00 		enter	OFFSET L01123,OFFSET 0
+	*** 001286	56 			push	si
+	*** 001287	57 			push	di
+; index = fffc
+; ; ; ; Line 921
+; ; ; ; ; Line 925
+	*** 001288	c7 46 fc 00 00 		mov	WORD PTR -4[bp],OFFSET 0
+	*** 00128d	e9 00 00 		jmp	L01022
+					L01019:
+; ; Line 926
+; ; ; Line 928
+	*** 001290	69 46 fc 96 00 		_imul3 	ax,WORD PTR -4[bp],OFFSET 150
+	*** 001295	bb 00 00 		mov	bx,OFFSET _rocks
+	*** 001298	03 d8 			add	bx,ax
+	*** 00129a	c7 47 08 00 00 		mov	WORD PTR 8[bx],OFFSET 0
+; ; Line 929
+	*** 00129f	69 46 fc 96 00 		_imul3 	ax,WORD PTR -4[bp],OFFSET 150
+	*** 0012a4	b9 00 00 		mov	cx,OFFSET _rocks
+	*** 0012a7	03 c8 			add	cx,ax
+	*** 0012a9	b8 08 00 		mov	ax,OFFSET 8
+	*** 0012ac	03 c8 			add	cx,ax
+	*** 0012ae	51 			push	cx
+	*** 0012af	9a 00 00 00 00 		call	FAR PTR _Draw_Polygon_Clip
+	*** 0012b4	83 c4 02 		add	sp,OFFSET 2
+; ; ; Line 931
+					L01020:
+; Line 931
+	*** 0012b7	83 46 fc 01 		add	WORD PTR -4[bp],OFFSET 1
+					L01022:
+	*** 0012bb	83 7e fc 0a 		cmp	WORD PTR -4[bp],OFFSET 10
+	*** 0012bf	7d 03 e9 cc ff 		jl	L01019
+					L01021:
+; ; ; Line 933
+; Line 933
+					L01017:
+	*** 0012c4	5f 			pop	di
+	*** 0012c5	5e 			pop	si
+	*** 0012c6	c9 			leave
+	*** 0012c7	cb 			ret	OFFSET 0
+Local Size: 4
+; Line 0
+; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; Line 938
+					_Move_Rocks:
+	*** 0012c8	c8 00 00 00 		enter	OFFSET L01124,OFFSET 0
+	*** 0012cc	56 			push	si
+	*** 0012cd	57 			push	di
+; index = fffc
+; ; ; ; ; Line 942
+; ; ; ; ; Line 946
+	*** 0012ce	c7 46 fc 00 00 		mov	WORD PTR -4[bp],OFFSET 0
+	*** 0012d3	e9 00 00 		jmp	L01029
+					L01026:
+; ; Line 947
+; ; ; ; ; Line 951
+; ; Line 952
+	*** 0012d6	69 46 fc 96 00 		_imul3 	ax,WORD PTR -4[bp],OFFSET 150
+	*** 0012db	bb 00 00 		mov	bx,OFFSET _rocks
+	*** 0012de	03 d8 			add	bx,ax
+	*** 0012e0	ff 77 06 		push	WORD PTR 6[bx]
+	*** 0012e3	69 46 fc 96 00 		_imul3 	ax,WORD PTR -4[bp],OFFSET 150
+	*** 0012e8	bb 00 00 		mov	bx,OFFSET _rocks
+	*** 0012eb	03 d8 			add	bx,ax
+	*** 0012ed	ff 77 04 		push	WORD PTR 4[bx]
+	*** 0012f0	69 46 fc 96 00 		_imul3 	ax,WORD PTR -4[bp],OFFSET 150
+	*** 0012f5	b9 00 00 		mov	cx,OFFSET _rocks
+	*** 0012f8	03 c8 			add	cx,ax
+	*** 0012fa	b8 08 00 		mov	ax,OFFSET 8
+	*** 0012fd	03 c8 			add	cx,ax
+	*** 0012ff	51 			push	cx
+	*** 001300	9a 00 00 00 00 		call	FAR PTR _Translate_Polygon
+	*** 001305	83 c4 06 		add	sp,OFFSET 6
+; ; ; ; ; Line 956
+	*** 001308	69 46 fc 96 00 		_imul3 	ax,WORD PTR -4[bp],OFFSET 150
+	*** 00130d	bb 00 00 		mov	bx,OFFSET _rocks
+	*** 001310	03 d8 			add	bx,ax
+	*** 001312	ff 77 02 		push	WORD PTR 2[bx]
+	*** 001315	69 46 fc 96 00 		_imul3 	ax,WORD PTR -4[bp],OFFSET 150
+	*** 00131a	b9 00 00 		mov	cx,OFFSET _rocks
+	*** 00131d	03 c8 			add	cx,ax
+	*** 00131f	b8 08 00 		mov	ax,OFFSET 8
+	*** 001322	03 c8 			add	cx,ax
+	*** 001324	51 			push	cx
+	*** 001325	9a 00 00 00 00 		call	FAR PTR _Rotate_Polygon
+	*** 00132a	83 c4 04 		add	sp,OFFSET 4
+; ; ; ; ; Line 960
+	*** 00132d	69 46 fc 96 00 		_imul3 	ax,WORD PTR -4[bp],OFFSET 150
+	*** 001332	bb 00 00 		mov	bx,OFFSET _rocks
+	*** 001335	03 d8 			add	bx,ax
+	*** 001337	81 7f 10 36 01 		cmp	WORD PTR 16[bx],OFFSET 310
+	*** 00133c	7f 03 e9 00 00 		jle	L01030
+; ; Line 961
+	*** 001341	69 46 fc 96 00 		_imul3 	ax,WORD PTR -4[bp],OFFSET 150
+	*** 001346	bb 00 00 		mov	bx,OFFSET _rocks
+	*** 001349	03 d8 			add	bx,ax
+	*** 00134b	c7 47 10 0a 00 		mov	WORD PTR 16[bx],OFFSET 10
+; ; Line 962
+	*** 001350	e9 00 00 		jmp	L01031
+					L01030:
+; Line 962
+; ; Line 963
+	*** 001353	69 46 fc 96 00 		_imul3 	ax,WORD PTR -4[bp],OFFSET 150
+	*** 001358	bb 00 00 		mov	bx,OFFSET _rocks
+	*** 00135b	03 d8 			add	bx,ax
+	*** 00135d	83 7f 10 0a 		cmp	WORD PTR 16[bx],OFFSET 10
+	*** 001361	7c 03 e9 00 00 		jge	L01032
+; ; Line 964
+	*** 001366	69 46 fc 96 00 		_imul3 	ax,WORD PTR -4[bp],OFFSET 150
+	*** 00136b	bb 00 00 		mov	bx,OFFSET _rocks
+	*** 00136e	03 d8 			add	bx,ax
+	*** 001370	c7 47 10 36 01 		mov	WORD PTR 16[bx],OFFSET 310
+; ; ; Line 966
+					L01032:
+					L01031:
+	*** 001375	69 46 fc 96 00 		_imul3 	ax,WORD PTR -4[bp],OFFSET 150
+	*** 00137a	bb 00 00 		mov	bx,OFFSET _rocks
+	*** 00137d	03 d8 			add	bx,ax
+	*** 00137f	81 7f 12 be 00 		cmp	WORD PTR 18[bx],OFFSET 190
+	*** 001384	7f 03 e9 00 00 		jle	L01033
+; ; Line 967
+	*** 001389	69 46 fc 96 00 		_imul3 	ax,WORD PTR -4[bp],OFFSET 150
+	*** 00138e	bb 00 00 		mov	bx,OFFSET _rocks
+	*** 001391	03 d8 			add	bx,ax
+	*** 001393	c7 47 12 0a 00 		mov	WORD PTR 18[bx],OFFSET 10
+; ; Line 968
+	*** 001398	e9 00 00 		jmp	L01034
+					L01033:
+; Line 968
+; ; Line 969
+	*** 00139b	69 46 fc 96 00 		_imul3 	ax,WORD PTR -4[bp],OFFSET 150
+	*** 0013a0	bb 00 00 		mov	bx,OFFSET _rocks
+	*** 0013a3	03 d8 			add	bx,ax
+	*** 0013a5	83 7f 12 0a 		cmp	WORD PTR 18[bx],OFFSET 10
+	*** 0013a9	7c 03 e9 00 00 		jge	L01035
+; ; Line 970
+	*** 0013ae	69 46 fc 96 00 		_imul3 	ax,WORD PTR -4[bp],OFFSET 150
+	*** 0013b3	bb 00 00 		mov	bx,OFFSET _rocks
+	*** 0013b6	03 d8 			add	bx,ax
+	*** 0013b8	c7 47 12 be 00 		mov	WORD PTR 18[bx],OFFSET 190
+; ; ; Line 972
+					L01035:
+					L01034:
+					L01027:
+; Line 972
+	*** 0013bd	83 46 fc 01 		add	WORD PTR -4[bp],OFFSET 1
+					L01029:
+	*** 0013c1	83 7e fc 0a 		cmp	WORD PTR -4[bp],OFFSET 10
+	*** 0013c5	7d 03 e9 0c ff 		jl	L01026
+					L01028:
+; ; ; Line 974
+; Line 974
+					L01024:
+	*** 0013ca	5f 			pop	di
+	*** 0013cb	5e 			pop	si
+	*** 0013cc	c9 			leave
+	*** 0013cd	cb 			ret	OFFSET 0
+Local Size: 4
+; Line 0
+; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; Line 979
+					_main:
+	*** 0013ce	c8 00 00 00 		enter	OFFSET L01125,OFFSET 0
+	*** 0013d2	56 			push	si
+	*** 0013d3	57 			push	di
+; engines = fffc
+; angle = fffa
+; xv = fff6
+; yv = fff2
+; ship = ff64
+; done = ff62
+; ; ; Line 981
+	*** 0013d4	c7 86 62 ff 00 00 	mov	WORD PTR -158[bp],OFFSET 0
+; ; ; Line 983
+; ; ; Line 985
+	*** 0013da	b8 00 00 		mov	ax,OFFSET 0
+	*** 0013dd	99 			cwd
+	*** 0013de	89 86 5a ff 		mov	WORD PTR -166[bp],ax
+	*** 0013e2	89 96 5c ff 		mov	WORD PTR -164[bp],dx
+	*** 0013e6	9b db 86 5a ff 		fldi	DWORD PTR -166[bp]
+	*** 0013eb	9b d9 5e f6 		fstp	DWORD PTR -10[bp]
+; ; Line 986
+	*** 0013f1	b8 00 00 		mov	ax,OFFSET 0
+	*** 0013f4	99 			cwd
+	*** 0013f5	89 86 5a ff 		mov	WORD PTR -166[bp],ax
+	*** 0013f9	89 96 5c ff 		mov	WORD PTR -164[bp],dx
+	*** 0013fd	9b db 86 5a ff 		fldi	DWORD PTR -166[bp]
+	*** 001402	9b d9 5e f2 		fstp	DWORD PTR -14[bp]
+; ; ; Line 988
+	*** 001408	c7 46 fa 5a 00 		mov	WORD PTR -6[bp],OFFSET 90
+; ; Line 989
+	*** 00140d	c7 46 fc 00 00 		mov	WORD PTR -4[bp],OFFSET 0
+; ; ; ; ; ; ; Line 995
+	*** 001412	6a 13 			push	OFFSET 19
+	*** 001414	9a 00 00 00 00 		call	FAR PTR _Set_Video_Mode
+	*** 001419	83 c4 02 		add	sp,OFFSET 2
+; ; ; ; ; Line 999
+	*** 00141c	9a 00 00 00 00 		call	FAR PTR _Create_Tables
+; ; ; ; Line 1002
+	*** 001421	9a 00 00 00 00 		call	FAR PTR _missile_init
+; ; ; ; ; ; ; Line 1008
+	*** 001426	b8 03 00 		mov	ax,OFFSET 3
+	*** 001429	99 			cwd
+	*** 00142a	89 86 5a ff 		mov	WORD PTR -166[bp],ax
+	*** 00142e	89 96 5c ff 		mov	WORD PTR -164[bp],dx
+	*** 001432	9b db 86 5a ff 		fldi	DWORD PTR -166[bp]
+	*** 001437	9b d9 9e 72 ff 		fstp	DWORD PTR -142[bp]
+; ; Line 1009
+	*** 00143e	b8 ed ff 		mov	ax,OFFSET -19
+	*** 001441	99 			cwd
+	*** 001442	89 86 5a ff 		mov	WORD PTR -166[bp],ax
+	*** 001446	89 96 5c ff 		mov	WORD PTR -164[bp],dx
+	*** 00144a	9b db 86 5a ff 		fldi	DWORD PTR -166[bp]
+	*** 00144f	9b d9 9e 76 ff 		fstp	DWORD PTR -138[bp]
+; ; ; Line 1011
+	*** 001456	b8 0c 00 		mov	ax,OFFSET 12
+	*** 001459	99 			cwd
+	*** 00145a	89 86 5a ff 		mov	WORD PTR -166[bp],ax
+	*** 00145e	89 96 5c ff 		mov	WORD PTR -164[bp],dx
+	*** 001462	9b db 86 5a ff 		fldi	DWORD PTR -166[bp]
+	*** 001467	9b d9 9e 7a ff 		fstp	DWORD PTR -134[bp]
+; ; Line 1012
+	*** 00146e	b8 ff ff 		mov	ax,OFFSET -1
+	*** 001471	99 			cwd
+	*** 001472	89 86 5a ff 		mov	WORD PTR -166[bp],ax
+	*** 001476	89 96 5c ff 		mov	WORD PTR -164[bp],dx
+	*** 00147a	9b db 86 5a ff 		fldi	DWORD PTR -166[bp]
+	*** 00147f	9b d9 9e 7e ff 		fstp	DWORD PTR -130[bp]
+; ; ; Line 1014
+	*** 001486	b8 11 00 		mov	ax,OFFSET 17
+	*** 001489	99 			cwd
+	*** 00148a	89 86 5a ff 		mov	WORD PTR -166[bp],ax
+	*** 00148e	89 96 5c ff 		mov	WORD PTR -164[bp],dx
+	*** 001492	9b db 86 5a ff 		fldi	DWORD PTR -166[bp]
+	*** 001497	9b d9 5e 82 		fstp	DWORD PTR -126[bp]
+; ; Line 1015
+	*** 00149d	b8 02 00 		mov	ax,OFFSET 2
+	*** 0014a0	99 			cwd
+	*** 0014a1	89 86 5a ff 		mov	WORD PTR -166[bp],ax
+	*** 0014a5	89 96 5c ff 		mov	WORD PTR -164[bp],dx
+	*** 0014a9	9b db 86 5a ff 		fldi	DWORD PTR -166[bp]
+	*** 0014ae	9b d9 5e 86 		fstp	DWORD PTR -122[bp]
+; ; ; Line 1017
+	*** 0014b4	b8 11 00 		mov	ax,OFFSET 17
+	*** 0014b7	99 			cwd
+	*** 0014b8	89 86 5a ff 		mov	WORD PTR -166[bp],ax
+	*** 0014bc	89 96 5c ff 		mov	WORD PTR -164[bp],dx
+	*** 0014c0	9b db 86 5a ff 		fldi	DWORD PTR -166[bp]
+	*** 0014c5	9b d9 5e 8a 		fstp	DWORD PTR -118[bp]
+; ; Line 1018
+	*** 0014cb	b8 09 00 		mov	ax,OFFSET 9
+	*** 0014ce	99 			cwd
+	*** 0014cf	89 86 5a ff 		mov	WORD PTR -166[bp],ax
+	*** 0014d3	89 96 5c ff 		mov	WORD PTR -164[bp],dx
+	*** 0014d7	9b db 86 5a ff 		fldi	DWORD PTR -166[bp]
+	*** 0014dc	9b d9 5e 8e 		fstp	DWORD PTR -114[bp]
+; ; ; Line 1020
+	*** 0014e2	b8 08 00 		mov	ax,OFFSET 8
+	*** 0014e5	99 			cwd
+	*** 0014e6	89 86 5a ff 		mov	WORD PTR -166[bp],ax
+	*** 0014ea	89 96 5c ff 		mov	WORD PTR -164[bp],dx
+	*** 0014ee	9b db 86 5a ff 		fldi	DWORD PTR -166[bp]
+	*** 0014f3	9b d9 5e 92 		fstp	DWORD PTR -110[bp]
+; ; Line 1021
+	*** 0014f9	b8 0e 00 		mov	ax,OFFSET 14
+	*** 0014fc	99 			cwd
+	*** 0014fd	89 86 5a ff 		mov	WORD PTR -166[bp],ax
+	*** 001501	89 96 5c ff 		mov	WORD PTR -164[bp],dx
+	*** 001505	9b db 86 5a ff 		fldi	DWORD PTR -166[bp]
+	*** 00150a	9b d9 5e 96 		fstp	DWORD PTR -106[bp]
+; ; ; Line 1023
+	*** 001510	b8 05 00 		mov	ax,OFFSET 5
+	*** 001513	99 			cwd
+	*** 001514	89 86 5a ff 		mov	WORD PTR -166[bp],ax
+	*** 001518	89 96 5c ff 		mov	WORD PTR -164[bp],dx
+	*** 00151c	9b db 86 5a ff 		fldi	DWORD PTR -166[bp]
+	*** 001521	9b d9 5e 9a 		fstp	DWORD PTR -102[bp]
+; ; Line 1024
+	*** 001527	b8 08 00 		mov	ax,OFFSET 8
+	*** 00152a	99 			cwd
+	*** 00152b	89 86 5a ff 		mov	WORD PTR -166[bp],ax
+	*** 00152f	89 96 5c ff 		mov	WORD PTR -164[bp],dx
+	*** 001533	9b db 86 5a ff 		fldi	DWORD PTR -166[bp]
+	*** 001538	9b d9 5e 9e 		fstp	DWORD PTR -98[bp]
+; ; ; Line 1026
+	*** 00153e	b8 fb ff 		mov	ax,OFFSET -5
+	*** 001541	99 			cwd
+	*** 001542	89 86 5a ff 		mov	WORD PTR -166[bp],ax
+	*** 001546	89 96 5c ff 		mov	WORD PTR -164[bp],dx
+	*** 00154a	9b db 86 5a ff 		fldi	DWORD PTR -166[bp]
+	*** 00154f	9b d9 5e a2 		fstp	DWORD PTR -94[bp]
+; ; Line 1027
+	*** 001555	b8 08 00 		mov	ax,OFFSET 8
+	*** 001558	99 			cwd
+	*** 001559	89 86 5a ff 		mov	WORD PTR -166[bp],ax
+	*** 00155d	89 96 5c ff 		mov	WORD PTR -164[bp],dx
+	*** 001561	9b db 86 5a ff 		fldi	DWORD PTR -166[bp]
+	*** 001566	9b d9 5e a6 		fstp	DWORD PTR -90[bp]
+; ; ; Line 1029
+	*** 00156c	b8 f8 ff 		mov	ax,OFFSET -8
+	*** 00156f	99 			cwd
+	*** 001570	89 86 5a ff 		mov	WORD PTR -166[bp],ax
+	*** 001574	89 96 5c ff 		mov	WORD PTR -164[bp],dx
+	*** 001578	9b db 86 5a ff 		fldi	DWORD PTR -166[bp]
+	*** 00157d	9b d9 5e aa 		fstp	DWORD PTR -86[bp]
+; ; Line 1030
+	*** 001583	b8 0e 00 		mov	ax,OFFSET 14
+	*** 001586	99 			cwd
+	*** 001587	89 86 5a ff 		mov	WORD PTR -166[bp],ax
+	*** 00158b	89 96 5c ff 		mov	WORD PTR -164[bp],dx
+	*** 00158f	9b db 86 5a ff 		fldi	DWORD PTR -166[bp]
+	*** 001594	9b d9 5e ae 		fstp	DWORD PTR -82[bp]
+; ; ; Line 1032
+	*** 00159a	b8 ef ff 		mov	ax,OFFSET -17
+	*** 00159d	99 			cwd
+	*** 00159e	89 86 5a ff 		mov	WORD PTR -166[bp],ax
+	*** 0015a2	89 96 5c ff 		mov	WORD PTR -164[bp],dx
+	*** 0015a6	9b db 86 5a ff 		fldi	DWORD PTR -166[bp]
+	*** 0015ab	9b d9 5e b2 		fstp	DWORD PTR -78[bp]
+; ; Line 1033
+	*** 0015b1	b8 09 00 		mov	ax,OFFSET 9
+	*** 0015b4	99 			cwd
+	*** 0015b5	89 86 5a ff 		mov	WORD PTR -166[bp],ax
+	*** 0015b9	89 96 5c ff 		mov	WORD PTR -164[bp],dx
+	*** 0015bd	9b db 86 5a ff 		fldi	DWORD PTR -166[bp]
+	*** 0015c2	9b d9 5e b6 		fstp	DWORD PTR -74[bp]
+; ; ; Line 1035
+	*** 0015c8	b8 ef ff 		mov	ax,OFFSET -17
+	*** 0015cb	99 			cwd
+	*** 0015cc	89 86 5a ff 		mov	WORD PTR -166[bp],ax
+	*** 0015d0	89 96 5c ff 		mov	WORD PTR -164[bp],dx
+	*** 0015d4	9b db 86 5a ff 		fldi	DWORD PTR -166[bp]
+	*** 0015d9	9b d9 5e ba 		fstp	DWORD PTR -70[bp]
+; ; Line 1036
+	*** 0015df	b8 02 00 		mov	ax,OFFSET 2
+	*** 0015e2	99 			cwd
+	*** 0015e3	89 86 5a ff 		mov	WORD PTR -166[bp],ax
+	*** 0015e7	89 96 5c ff 		mov	WORD PTR -164[bp],dx
+	*** 0015eb	9b db 86 5a ff 		fldi	DWORD PTR -166[bp]
+	*** 0015f0	9b d9 5e be 		fstp	DWORD PTR -66[bp]
+; ; ; Line 1038
+	*** 0015f6	b8 f4 ff 		mov	ax,OFFSET -12
+	*** 0015f9	99 			cwd
+	*** 0015fa	89 86 5a ff 		mov	WORD PTR -166[bp],ax
+	*** 0015fe	89 96 5c ff 		mov	WORD PTR -164[bp],dx
+	*** 001602	9b db 86 5a ff 		fldi	DWORD PTR -166[bp]
+	*** 001607	9b d9 5e c2 		fstp	DWORD PTR -62[bp]
+; ; Line 1039
+	*** 00160d	b8 ff ff 		mov	ax,OFFSET -1
+	*** 001610	99 			cwd
+	*** 001611	89 86 5a ff 		mov	WORD PTR -166[bp],ax
+	*** 001615	89 96 5c ff 		mov	WORD PTR -164[bp],dx
+	*** 001619	9b db 86 5a ff 		fldi	DWORD PTR -166[bp]
+	*** 00161e	9b d9 5e c6 		fstp	DWORD PTR -58[bp]
+; ; ; Line 1041
+	*** 001624	b8 fd ff 		mov	ax,OFFSET -3
+	*** 001627	99 			cwd
+	*** 001628	89 86 5a ff 		mov	WORD PTR -166[bp],ax
+	*** 00162c	89 96 5c ff 		mov	WORD PTR -164[bp],dx
+	*** 001630	9b db 86 5a ff 		fldi	DWORD PTR -166[bp]
+	*** 001635	9b d9 5e ca 		fstp	DWORD PTR -54[bp]
+; ; Line 1042
+	*** 00163b	b8 ed ff 		mov	ax,OFFSET -19
+	*** 00163e	99 			cwd
+	*** 00163f	89 86 5a ff 		mov	WORD PTR -166[bp],ax
+	*** 001643	89 96 5c ff 		mov	WORD PTR -164[bp],dx
+	*** 001647	9b db 86 5a ff 		fldi	DWORD PTR -166[bp]
+	*** 00164c	9b d9 5e ce 		fstp	DWORD PTR -50[bp]
+; ; ; Line 1044
+	*** 001652	b8 fd ff 		mov	ax,OFFSET -3
+	*** 001655	99 			cwd
+	*** 001656	89 86 5a ff 		mov	WORD PTR -166[bp],ax
+	*** 00165a	89 96 5c ff 		mov	WORD PTR -164[bp],dx
+	*** 00165e	9b db 86 5a ff 		fldi	DWORD PTR -166[bp]
+	*** 001663	9b d9 5e d2 		fstp	DWORD PTR -46[bp]
+; ; Line 1045
+	*** 001669	b8 f8 ff 		mov	ax,OFFSET -8
+	*** 00166c	99 			cwd
+	*** 00166d	89 86 5a ff 		mov	WORD PTR -166[bp],ax
+	*** 001671	89 96 5c ff 		mov	WORD PTR -164[bp],dx
+	*** 001675	9b db 86 5a ff 		fldi	DWORD PTR -166[bp]
+	*** 00167a	9b d9 5e d6 		fstp	DWORD PTR -42[bp]
+; ; ; Line 1047
+	*** 001680	b8 03 00 		mov	ax,OFFSET 3
+	*** 001683	99 			cwd
+	*** 001684	89 86 5a ff 		mov	WORD PTR -166[bp],ax
+	*** 001688	89 96 5c ff 		mov	WORD PTR -164[bp],dx
+	*** 00168c	9b db 86 5a ff 		fldi	DWORD PTR -166[bp]
+	*** 001691	9b d9 5e da 		fstp	DWORD PTR -38[bp]
+; ; Line 1048
+	*** 001697	b8 f8 ff 		mov	ax,OFFSET -8
+	*** 00169a	99 			cwd
+	*** 00169b	89 86 5a ff 		mov	WORD PTR -166[bp],ax
+	*** 00169f	89 96 5c ff 		mov	WORD PTR -164[bp],dx
+	*** 0016a3	9b db 86 5a ff 		fldi	DWORD PTR -166[bp]
+	*** 0016a8	9b d9 5e de 		fstp	DWORD PTR -34[bp]
+; ; ; ; ; Line 1052
+	*** 0016ae	c7 86 6c ff a0 00 	mov	WORD PTR -148[bp],OFFSET 160
+; ; Line 1053
+	*** 0016b4	c7 86 6e ff 64 00 	mov	WORD PTR -146[bp],OFFSET 100
+; ; ; ; ; Line 1057
+	*** 0016ba	c7 86 70 ff 0e 00 	mov	WORD PTR -144[bp],OFFSET 14
+; ; Line 1058
+	*** 0016c0	c7 86 64 ff 01 00 	mov	WORD PTR -156[bp],OFFSET 1
+; ; Line 1059
+	*** 0016c6	c7 86 68 ff 01 00 	mov	WORD PTR -152[bp],OFFSET 1
+; ; ; ; ; Line 1063
+	*** 0016cc	83 ec 04 		sub	sp,OFFSET 4
+	*** 0016cf	9b dd 06 18 00 		fld	QWORD PTR con0+24
+	*** 0016d4	8b dc 			mov	bx,sp
+	*** 0016d8	9b d9 1f 		fstp	DWORD PTR ss:[bx]
+	*** 0016db	8d 86 64 ff 		lea	ax,WORD PTR -156[bp]
+	*** 0016e1	50 			push	ax
+	*** 0016e2	9a 00 00 00 00 		call	FAR PTR _Scale_Polygon
+	*** 0016e7	83 c4 06 		add	sp,OFFSET 6
+; ; ; ; ; Line 1067
+	*** 0016ea	9a 00 00 00 00 		call	FAR PTR _Initialize_Rocks
+; ; ; ; ; ; ; Line 1073
+	*** 0016ef	e9 00 00 		jmp	L01047
+					L01044:
+; ; Line 1074
+; ; ; ; Line 1077
+	*** 0016f2	9a 00 00 00 00 		call	FAR PTR _Erase_Rocks
+; ; ; ; ; Line 1081
+	*** 0016f7	c7 86 64 ff 00 00 	mov	WORD PTR -156[bp],OFFSET 0
+; ; ; Line 1083
+	*** 0016fd	8d 86 64 ff 		lea	ax,WORD PTR -156[bp]
+	*** 001701	50 			push	ax
+	*** 001702	9a 00 00 00 00 		call	FAR PTR _Draw_Polygon_Clip
+	*** 001707	83 c4 02 		add	sp,OFFSET 2
+; ; ; ; Line 1086
+	*** 00170a	9a 00 00 00 00 		call	FAR PTR _missile_update
+; ; Line 1087
+	*** 00170f	c7 46 fc 00 00 		mov	WORD PTR -4[bp],OFFSET 0
+; ; ; ; ; Line 1091
+	*** 001714	9a 00 00 00 00 		call	FAR PTR _kbhit
+	*** 001719	3d 00 00 		cmp	ax,OFFSET 0
+	*** 00171c	75 03 e9 00 00 		je	L01048
+; ; Line 1092
+; ; ; ; ; Line 1096
+	*** 001721	9a 00 00 00 00 		call	FAR PTR _getch
+	*** 001726	e9 00 00 		jmp	L01049
+; ; Line 1097
+; ; ; Line 1099
+					L01053:
+; ; Line 1100
+; ; ; Line 1102
+	*** 001729	6a 05 			push	OFFSET 5
+	*** 00172b	8d 86 64 ff 		lea	ax,WORD PTR -156[bp]
+	*** 00172f	50 			push	ax
+	*** 001730	9a 00 00 00 00 		call	FAR PTR _Rotate_Polygon
+	*** 001735	83 c4 04 		add	sp,OFFSET 4
+; ; ; ; ; Line 1106
+	*** 001738	83 46 fa 05 		add	WORD PTR -6[bp],OFFSET 5
+; ; ; Line 1108
+	*** 00173c	81 7e fa 68 01 		cmp	WORD PTR -6[bp],OFFSET 360
+	*** 001741	7f 03 e9 00 00 		jle	L01054
+; ; Line 1109
+	*** 001746	c7 46 fa 00 00 		mov	WORD PTR -6[bp],OFFSET 0
+; ; ; Line 1111
+					L01054:
+	*** 00174b	e9 00 00 		jmp	L01050
+; ; ; Line 1113
+					L01055:
+; ; Line 1114
+; ; ; Line 1116
+	*** 00174e	6a fb 			push	OFFSET -5
+	*** 001750	8d 86 64 ff 		lea	ax,WORD PTR -156[bp]
+	*** 001754	50 			push	ax
+	*** 001755	9a 00 00 00 00 		call	FAR PTR _Rotate_Polygon
+	*** 00175a	83 c4 04 		add	sp,OFFSET 4
+; ; ; ; ; Line 1120
+	*** 00175d	83 6e fa 05 		sub	WORD PTR -6[bp],OFFSET 5
+; ; ; Line 1122
+	*** 001761	83 7e fa 00 		cmp	WORD PTR -6[bp],OFFSET 0
+	*** 001765	7c 03 e9 00 00 		jge	L01056
+; ; Line 1123
+	*** 00176a	c7 46 fa 68 01 		mov	WORD PTR -6[bp],OFFSET 360
+; ; ; Line 1125
+					L01056:
+	*** 00176f	e9 00 00 		jmp	L01050
+; ; ; Line 1127
+					L01057:
+; ; Line 1128
+; ; ; ; ; Line 1132
+	*** 001772	9b d9 46 f6 		fld	DWORD PTR -10[bp]
+	*** 001776	9b db be 58 ff 		fstp	TBYTE PTR -168[bp]
+	*** 00177b	83 ec 08 		sub	sp,OFFSET 8
+	*** 001780	8b 46 fa 		mov	ax,WORD PTR -6[bp]
+	*** 001783	99 			cwd
+	*** 001784	89 86 50 ff 		mov	WORD PTR -176[bp],ax
+	*** 001788	89 96 52 ff 		mov	WORD PTR -174[bp],dx
+	*** 00178c	9b db 86 50 ff 		fldi	DWORD PTR -176[bp]
+	*** 001791	9b dd 06 00 00 		fld	QWORD PTR con0
+	*** 001796	9b de c9 		fmulp	ST(1),ST(0)
+	*** 001799	b8 b4 00 		mov	ax,OFFSET 180
+	*** 00179c	99 			cwd
+	*** 00179d	89 86 48 ff 		mov	WORD PTR -184[bp],ax
+	*** 0017a1	89 96 4a ff 		mov	WORD PTR -182[bp],dx
+	*** 0017a5	9b db 86 48 ff 		fldi	DWORD PTR -184[bp]
+	*** 0017aa	9b de f9 		fdivp	ST(1),ST(0)
+	*** 0017ad	8b dc 			mov	bx,sp
+	*** 0017af	9b dd 1f 		fstp	QWORD PTR ss:[bx]
+	*** 0017b2	9a 00 00 00 00 		call	FAR PTR _cos
+	*** 0017b9	83 c4 08 		add	sp,OFFSET 8
+	*** 0017bc	9b db ae 58 ff 		fld	TBYTE PTR -168[bp]
+	*** 0017c1	8b d8 			mov	bx,ax
+	*** 0017c5	9b dc 27 		fsub	ST(0),QWORD PTR [bx]
+	*** 0017c8	9b d9 5e f6 		fstp	DWORD PTR -10[bp]
+; ; Line 1133
+	*** 0017ce	9b d9 46 f2 		fld	DWORD PTR -14[bp]
+	*** 0017d2	9b db be 58 ff 		fstp	TBYTE PTR -168[bp]
+	*** 0017d7	83 ec 08 		sub	sp,OFFSET 8
+	*** 0017dc	8b 46 fa 		mov	ax,WORD PTR -6[bp]
+	*** 0017df	99 			cwd
+	*** 0017e0	89 86 50 ff 		mov	WORD PTR -176[bp],ax
+	*** 0017e4	89 96 52 ff 		mov	WORD PTR -174[bp],dx
+	*** 0017e8	9b db 86 50 ff 		fldi	DWORD PTR -176[bp]
+	*** 0017ed	9b dd 06 00 00 		fld	QWORD PTR con0
+	*** 0017f2	9b de c9 		fmulp	ST(1),ST(0)
+	*** 0017f5	b8 b4 00 		mov	ax,OFFSET 180
+	*** 0017f8	99 			cwd
+	*** 0017f9	89 86 48 ff 		mov	WORD PTR -184[bp],ax
+	*** 0017fd	89 96 4a ff 		mov	WORD PTR -182[bp],dx
+	*** 001801	9b db 86 48 ff 		fldi	DWORD PTR -184[bp]
+	*** 001806	9b de f9 		fdivp	ST(1),ST(0)
+	*** 001809	8b dc 			mov	bx,sp
+	*** 00180b	9b dd 1f 		fstp	QWORD PTR ss:[bx]
+	*** 00180e	9a 00 00 00 00 		call	FAR PTR _sin
+	*** 001815	83 c4 08 		add	sp,OFFSET 8
+	*** 001818	9b db ae 58 ff 		fld	TBYTE PTR -168[bp]
+	*** 00181d	8b d8 			mov	bx,ax
+	*** 001821	9b dc 27 		fsub	ST(0),QWORD PTR [bx]
+	*** 001824	9b d9 5e f2 		fstp	DWORD PTR -14[bp]
+; ; ; ; ; Line 1137
+	*** 00182a	c7 46 fc 01 00 		mov	WORD PTR -4[bp],OFFSET 1
+; ; ; ; ; Line 1141
+	*** 00182f	b8 0a 00 		mov	ax,OFFSET 10
+	*** 001832	99 			cwd
+	*** 001833	89 86 5a ff 		mov	WORD PTR -166[bp],ax
+	*** 001837	89 96 5c ff 		mov	WORD PTR -164[bp],dx
+	*** 00183b	9b db 86 5a ff 		fldi	DWORD PTR -166[bp]
+	*** 001840	9b d9 46 f6 		fld	DWORD PTR -10[bp]
+	*** 001844	9a 00 00 00 00 		call	FAR PTR __aFfcompp
+	*** 00184b	77 03 e9 00 00 		jbe	L01058
+; ; Line 1142
+	*** 001850	b8 0a 00 		mov	ax,OFFSET 10
+	*** 001853	99 			cwd
+	*** 001854	89 86 5a ff 		mov	WORD PTR -166[bp],ax
+	*** 001858	89 96 5c ff 		mov	WORD PTR -164[bp],dx
+	*** 00185c	9b db 86 5a ff 		fldi	DWORD PTR -166[bp]
+	*** 001861	9b d9 5e f6 		fstp	DWORD PTR -10[bp]
+; ; Line 1143
+	*** 001867	e9 00 00 		jmp	L01059
+					L01058:
+; Line 1143
+; ; Line 1144
+	*** 00186a	b8 f6 ff 		mov	ax,OFFSET -10
+	*** 00186d	99 			cwd
+	*** 00186e	89 86 5a ff 		mov	WORD PTR -166[bp],ax
+	*** 001872	89 96 5c ff 		mov	WORD PTR -164[bp],dx
+	*** 001876	9b db 86 5a ff 		fldi	DWORD PTR -166[bp]
+	*** 00187b	9b d9 46 f6 		fld	DWORD PTR -10[bp]
+	*** 00187f	9a 00 00 00 00 		call	FAR PTR __aFfcompp
+	*** 001886	72 03 e9 00 00 		jae	L01060
+; ; Line 1145
+	*** 00188b	b8 f6 ff 		mov	ax,OFFSET -10
+	*** 00188e	99 			cwd
+	*** 00188f	89 86 5a ff 		mov	WORD PTR -166[bp],ax
+	*** 001893	89 96 5c ff 		mov	WORD PTR -164[bp],dx
+	*** 001897	9b db 86 5a ff 		fldi	DWORD PTR -166[bp]
+	*** 00189c	9b d9 5e f6 		fstp	DWORD PTR -10[bp]
+; ; ; Line 1147
+					L01060:
+					L01059:
+	*** 0018a2	b8 0a 00 		mov	ax,OFFSET 10
+	*** 0018a5	99 			cwd
+	*** 0018a6	89 86 5a ff 		mov	WORD PTR -166[bp],ax
+	*** 0018aa	89 96 5c ff 		mov	WORD PTR -164[bp],dx
+	*** 0018ae	9b db 86 5a ff 		fldi	DWORD PTR -166[bp]
+	*** 0018b3	9b d9 46 f2 		fld	DWORD PTR -14[bp]
+	*** 0018b7	9a 00 00 00 00 		call	FAR PTR __aFfcompp
+	*** 0018be	77 03 e9 00 00 		jbe	L01061
+; ; Line 1148
+	*** 0018c3	b8 0a 00 		mov	ax,OFFSET 10
+	*** 0018c6	99 			cwd
+	*** 0018c7	89 86 5a ff 		mov	WORD PTR -166[bp],ax
+	*** 0018cb	89 96 5c ff 		mov	WORD PTR -164[bp],dx
+	*** 0018cf	9b db 86 5a ff 		fldi	DWORD PTR -166[bp]
+	*** 0018d4	9b d9 5e f2 		fstp	DWORD PTR -14[bp]
+; ; Line 1149
+	*** 0018da	e9 00 00 		jmp	L01062
+					L01061:
+; Line 1149
+; ; Line 1150
+	*** 0018dd	b8 f6 ff 		mov	ax,OFFSET -10
+	*** 0018e0	99 			cwd
+	*** 0018e1	89 86 5a ff 		mov	WORD PTR -166[bp],ax
+	*** 0018e5	89 96 5c ff 		mov	WORD PTR -164[bp],dx
+	*** 0018e9	9b db 86 5a ff 		fldi	DWORD PTR -166[bp]
+	*** 0018ee	9b d9 46 f2 		fld	DWORD PTR -14[bp]
+	*** 0018f2	9a 00 00 00 00 		call	FAR PTR __aFfcompp
+	*** 0018f9	72 03 e9 00 00 		jae	L01063
+; ; Line 1151
+	*** 0018fe	b8 f6 ff 		mov	ax,OFFSET -10
+	*** 001901	99 			cwd
+	*** 001902	89 86 5a ff 		mov	WORD PTR -166[bp],ax
+	*** 001906	89 96 5c ff 		mov	WORD PTR -164[bp],dx
+	*** 00190a	9b db 86 5a ff 		fldi	DWORD PTR -166[bp]
+	*** 00190f	9b d9 5e f2 		fstp	DWORD PTR -14[bp]
+; ; ; Line 1153
+					L01063:
+					L01062:
+	*** 001915	e9 00 00 		jmp	L01050
+; ; ; Line 1155
+					L01064:
+; ; Line 1156
+; ; Line 1157
+	*** 001918	c7 86 62 ff 01 00 	mov	WORD PTR -158[bp],OFFSET 1
+; ; Line 1158
+	*** 00191e	e9 00 00 		jmp	L01050
+; ; ; Line 1160
+					L01065:
+; ; Line 1161
+	*** 001921	ff 76 fa 		push	WORD PTR -6[bp]
+	*** 001924	8d 86 64 ff 		lea	ax,WORD PTR -156[bp]
+	*** 001928	50 			push	ax
+	*** 001929	9a 00 00 00 00 		call	FAR PTR _missile_fire
+	*** 00192e	83 c4 04 		add	sp,OFFSET 4
+; ; Line 1162
+	*** 001931	e9 00 00 		jmp	L01050
+; ; Line 1163
+; Line 1163
+	*** 001934	e9 00 00 		jmp	L01050
+					L01049:
+	*** 001937	3d 20 00 		cmp	ax,OFFSET 32
+	*** 00193a	75 03 e9 e2 ff 		je	L01065
+	*** 00193f	3d 61 00 		cmp	ax,OFFSET 97
+	*** 001942	75 03 e9 07 fe 		je	L01055
+	*** 001947	3d 6c 00 		cmp	ax,OFFSET 108
+	*** 00194a	75 03 e9 23 fe 		je	L01057
+	*** 00194f	3d 71 00 		cmp	ax,OFFSET 113
+	*** 001952	75 03 e9 c1 ff 		je	L01064
+	*** 001957	3d 73 00 		cmp	ax,OFFSET 115
+	*** 00195a	75 03 e9 ca fd 		je	L01053
+	*** 00195f	e9 00 00 		jmp	L01050
+					L01050:
+; ; ; Line 1165
+; ; ; ; ; ; ; Line 1171
+					L01048:
+	*** 001962	83 7e fc 00 		cmp	WORD PTR -4[bp],OFFSET 0
+	*** 001966	74 03 e9 00 00 		jne	L01066
+; ; Line 1172
+; ; ; ; ; Line 1176
+	*** 00196b	b8 00 00 		mov	ax,OFFSET 0
+	*** 00196e	99 			cwd
+	*** 00196f	89 86 5a ff 		mov	WORD PTR -166[bp],ax
+	*** 001973	89 96 5c ff 		mov	WORD PTR -164[bp],dx
+	*** 001977	9b db 86 5a ff 		fldi	DWORD PTR -166[bp]
+	*** 00197c	9b d9 46 f6 		fld	DWORD PTR -10[bp]
+	*** 001980	9a 00 00 00 00 		call	FAR PTR __aFfcompp
+	*** 001987	77 03 e9 00 00 		jbe	L01067
+; ; Line 1177
+	*** 00198c	9b d9 46 f6 		fld	DWORD PTR -10[bp]
+	*** 001990	9b dd 06 20 00 		fld	QWORD PTR con0+32
+	*** 001995	9b de e9 		fsubp	ST(1),ST(0)
+	*** 001998	9b d9 5e f6 		fstp	DWORD PTR -10[bp]
+; ; Line 1178
+	*** 00199e	e9 00 00 		jmp	L01068
+					L01067:
+; Line 1178
+; ; Line 1179
+	*** 0019a1	b8 00 00 		mov	ax,OFFSET 0
+	*** 0019a4	99 			cwd
+	*** 0019a5	89 86 5a ff 		mov	WORD PTR -166[bp],ax
+	*** 0019a9	89 96 5c ff 		mov	WORD PTR -164[bp],dx
+	*** 0019ad	9b db 86 5a ff 		fldi	DWORD PTR -166[bp]
+	*** 0019b2	9b d9 46 f6 		fld	DWORD PTR -10[bp]
+	*** 0019b6	9a 00 00 00 00 		call	FAR PTR __aFfcompp
+	*** 0019bd	72 03 e9 00 00 		jae	L01069
+; ; Line 1180
+	*** 0019c2	9b d9 46 f6 		fld	DWORD PTR -10[bp]
+	*** 0019c6	9b dd 06 20 00 		fld	QWORD PTR con0+32
+	*** 0019cb	9b de c1 		faddp	ST(1),ST(0)
+	*** 0019ce	9b d9 5e f6 		fstp	DWORD PTR -10[bp]
+; ; ; Line 1182
+					L01069:
+					L01068:
+	*** 0019d4	b8 00 00 		mov	ax,OFFSET 0
+	*** 0019d7	99 			cwd
+	*** 0019d8	89 86 5a ff 		mov	WORD PTR -166[bp],ax
+	*** 0019dc	89 96 5c ff 		mov	WORD PTR -164[bp],dx
+	*** 0019e0	9b db 86 5a ff 		fldi	DWORD PTR -166[bp]
+	*** 0019e5	9b d9 46 f2 		fld	DWORD PTR -14[bp]
+	*** 0019e9	9a 00 00 00 00 		call	FAR PTR __aFfcompp
+	*** 0019f0	77 03 e9 00 00 		jbe	L01070
+; ; Line 1183
+	*** 0019f5	9b d9 46 f2 		fld	DWORD PTR -14[bp]
+	*** 0019f9	9b dd 06 20 00 		fld	QWORD PTR con0+32
+	*** 0019fe	9b de e9 		fsubp	ST(1),ST(0)
+	*** 001a01	9b d9 5e f2 		fstp	DWORD PTR -14[bp]
+; ; Line 1184
+	*** 001a07	e9 00 00 		jmp	L01071
+					L01070:
+; Line 1184
+; ; Line 1185
+	*** 001a0a	b8 00 00 		mov	ax,OFFSET 0
+	*** 001a0d	99 			cwd
+	*** 001a0e	89 86 5a ff 		mov	WORD PTR -166[bp],ax
+	*** 001a12	89 96 5c ff 		mov	WORD PTR -164[bp],dx
+	*** 001a16	9b db 86 5a ff 		fldi	DWORD PTR -166[bp]
+	*** 001a1b	9b d9 46 f2 		fld	DWORD PTR -14[bp]
+	*** 001a1f	9a 00 00 00 00 		call	FAR PTR __aFfcompp
+	*** 001a26	72 03 e9 00 00 		jae	L01072
+; ; Line 1186
+	*** 001a2b	9b d9 46 f2 		fld	DWORD PTR -14[bp]
+	*** 001a2f	9b dd 06 20 00 		fld	QWORD PTR con0+32
+	*** 001a34	9b de c1 		faddp	ST(1),ST(0)
+	*** 001a37	9b d9 5e f2 		fstp	DWORD PTR -14[bp]
+; ; ; Line 1188
+					L01072:
+					L01071:
+; ; ; ; ; Line 1192
+					L01066:
+	*** 001a3d	81 be 6c ff 36 01 	cmp	WORD PTR -148[bp],OFFSET 310
+	*** 001a43	7f 03 e9 00 00 		jle	L01073
+; ; Line 1193
+	*** 001a48	c7 86 6c ff 0a 00 	mov	WORD PTR -148[bp],OFFSET 10
+; ; Line 1194
+	*** 001a4e	e9 00 00 		jmp	L01074
+					L01073:
+; Line 1194
+; ; Line 1195
+	*** 001a51	83 be 6c ff 0a 		cmp	WORD PTR -148[bp],OFFSET 10
+	*** 001a56	7c 03 e9 00 00 		jge	L01075
+; ; Line 1196
+	*** 001a5b	c7 86 6c ff 36 01 	mov	WORD PTR -148[bp],OFFSET 310
+; ; ; Line 1198
+					L01075:
+					L01074:
+	*** 001a61	81 be 6e ff be 00 	cmp	WORD PTR -146[bp],OFFSET 190
+	*** 001a67	7f 03 e9 00 00 		jle	L01076
+; ; Line 1199
+	*** 001a6c	c7 86 6e ff 0a 00 	mov	WORD PTR -146[bp],OFFSET 10
+; ; Line 1200
+	*** 001a72	e9 00 00 		jmp	L01077
+					L01076:
+; Line 1200
+; ; Line 1201
+	*** 001a75	83 be 6e ff 0a 		cmp	WORD PTR -146[bp],OFFSET 10
+	*** 001a7a	7c 03 e9 00 00 		jge	L01078
+; ; Line 1202
+	*** 001a7f	c7 86 6e ff be 00 	mov	WORD PTR -146[bp],OFFSET 190
+; ; ; ; ; ; ; Line 1208
+					L01078:
+					L01077:
+	*** 001a85	9b d9 46 f2 		fld	DWORD PTR -14[bp]
+	*** 001a89	9a 00 00 00 00 		call	FAR PTR __aFftol
+	*** 001a90	50 			push	ax
+	*** 001a91	9b d9 46 f6 		fld	DWORD PTR -10[bp]
+	*** 001a95	9a 00 00 00 00 		call	FAR PTR __aFftol
+	*** 001a9c	50 			push	ax
+	*** 001a9d	8d 86 64 ff 		lea	ax,WORD PTR -156[bp]
+	*** 001aa1	50 			push	ax
+	*** 001aa2	9a 00 00 00 00 		call	FAR PTR _Translate_Polygon
+	*** 001aa7	83 c4 06 		add	sp,OFFSET 6
+; ; ; ; ; Line 1212
+	*** 001aaa	9a 00 00 00 00 		call	FAR PTR _Move_Rocks
+; ; ; ; ; ; ; Line 1218
+	*** 001aaf	9a 00 00 00 00 		call	FAR PTR _Draw_Rocks
+; ; ; Line 1220
+	*** 001ab4	c7 86 64 ff 09 00 	mov	WORD PTR -156[bp],OFFSET 9
+; ; ; Line 1222
+	*** 001aba	8d 86 64 ff 		lea	ax,WORD PTR -156[bp]
+	*** 001abe	50 			push	ax
+	*** 001abf	9a 00 00 00 00 		call	FAR PTR _Draw_Polygon_Clip
+	*** 001ac4	83 c4 02 		add	sp,OFFSET 2
+; ; ; ; ; Line 1226
+	*** 001ac7	6a 01 			push	OFFSET 1
+	*** 001ac9	68 08 00 		push	OFFSET L01079
+	*** 001acc	6a 0f 			push	OFFSET 15
+	*** 001ace	68 be 00 		push	OFFSET 190
+	*** 001ad1	6a 00 			push	OFFSET 0
+	*** 001ad3	9a 00 00 00 00 		call	FAR PTR _Blit_String
+	*** 001ad8	83 c4 0a 		add	sp,OFFSET 10
+; ; ; ; ; Line 1230
+	*** 001adb	6a 01 			push	OFFSET 1
+	*** 001add	9a 00 00 00 00 		call	FAR PTR _Delay
+	*** 001ae2	83 c4 02 		add	sp,OFFSET 2
+; ; ; Line 1232
+					L01045:
+; Line 1232
+					L01047:
+	*** 001ae5	83 be 62 ff 00 		cmp	WORD PTR -158[bp],OFFSET 0
+	*** 001aea	75 03 e9 03 fc 		je	L01044
+					L01046:
+; ; ; ; ; Line 1236
+	*** 001aef	6a 03 			push	OFFSET 3
+	*** 001af1	9a 00 00 00 00 		call	FAR PTR _Set_Video_Mode
+	*** 001af6	83 c4 02 		add	sp,OFFSET 2
+; ; ; Line 1238
+; Line 1238
+					L01037:
+	*** 001af9	5f 			pop	di
+	*** 001afa	5e 			pop	si
+	*** 001afb	c9 			leave
+	*** 001afc	cb 			ret	OFFSET 0
+Local Size: 184
+; Line 0
+; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; Line 1243
+					_missile_init:
+	*** 001afe	c8 00 00 00 		enter	OFFSET L01128,OFFSET 0
+	*** 001b02	56 			push	si
+	*** 001b03	57 			push	di
+; i = fffc
+; ; Line 1244
+; ; ; Line 1246
+	*** 001b04	c7 46 fc 00 00 		mov	WORD PTR -4[bp],OFFSET 0
+	*** 001b09	e9 00 00 		jmp	L01085
+					L01082:
+; ; Line 1247
+	*** 001b0c	6b 46 fc 12 		_imul3 	ax,WORD PTR -4[bp],OFFSET 18
+	*** 001b10	bb 00 00 		mov	bx,OFFSET _missiles
+	*** 001b13	03 d8 			add	bx,ax
+	*** 001b15	c7 47 10 00 00 		mov	WORD PTR 16[bx],OFFSET 0
+; ; Line 1248
+					L01083:
+; Line 1248
+	*** 001b1a	83 46 fc 01 		add	WORD PTR -4[bp],OFFSET 1
+					L01085:
+	*** 001b1e	83 7e fc 14 		cmp	WORD PTR -4[bp],OFFSET 20
+	*** 001b22	7d 03 e9 e5 ff 		jl	L01082
+					L01084:
+; ; Line 1249
+; Line 1249
+					L01080:
+	*** 001b27	5f 			pop	di
+	*** 001b28	5e 			pop	si
+	*** 001b29	c9 			leave
+	*** 001b2a	cb 			ret	OFFSET 0
+Local Size: 4
+; Line 0
+; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; Line 1253
+; ship = 0006
+; angle = 0008
+					_missile_fire:
+	*** 001b2c	c8 00 00 00 		enter	OFFSET L01129,OFFSET 0
+	*** 001b30	56 			push	si
+	*** 001b31	57 			push	di
+; i = fffc
+; ; Line 1254
+; ; ; Line 1256
+	*** 001b32	c7 46 fc 00 00 		mov	WORD PTR -4[bp],OFFSET 0
+	*** 001b37	e9 00 00 		jmp	L01095
+					L01092:
+; ; Line 1257
+	*** 001b3a	6b 46 fc 12 		_imul3 	ax,WORD PTR -4[bp],OFFSET 18
+	*** 001b3e	bb 00 00 		mov	bx,OFFSET _missiles
+	*** 001b41	03 d8 			add	bx,ax
+	*** 001b43	83 7f 10 00 		cmp	WORD PTR 16[bx],OFFSET 0
+	*** 001b47	74 03 e9 00 00 		jne	L01096
+; ; Line 1258
+	*** 001b4c	6b 46 fc 12 		_imul3 	ax,WORD PTR -4[bp],OFFSET 18
+	*** 001b50	bb 00 00 		mov	bx,OFFSET _missiles
+	*** 001b53	03 d8 			add	bx,ax
+	*** 001b55	c7 47 10 01 00 		mov	WORD PTR 16[bx],OFFSET 1
+; ; Line 1259
+	*** 001b5a	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 001b5d	8b 47 08 		mov	ax,WORD PTR 8[bx]
+	*** 001b60	99 			cwd
+	*** 001b61	89 46 f4 		mov	WORD PTR -12[bp],ax
+	*** 001b64	89 56 f6 		mov	WORD PTR -10[bp],dx
+	*** 001b67	9b db 46 f4 		fldi	DWORD PTR -12[bp]
+	*** 001b6b	6b 46 fc 12 		_imul3 	ax,WORD PTR -4[bp],OFFSET 18
+	*** 001b71	bb 00 00 		mov	bx,OFFSET _missiles
+	*** 001b74	03 d8 			add	bx,ax
+	*** 001b76	9b d9 5f 08 		fstp	DWORD PTR 8[bx]
+; ; Line 1260
+	*** 001b7c	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 001b7f	8b 47 0a 		mov	ax,WORD PTR 10[bx]
+	*** 001b82	99 			cwd
+	*** 001b83	89 46 f4 		mov	WORD PTR -12[bp],ax
+	*** 001b86	89 56 f6 		mov	WORD PTR -10[bp],dx
+	*** 001b89	9b db 46 f4 		fldi	DWORD PTR -12[bp]
+	*** 001b8d	6b 46 fc 12 		_imul3 	ax,WORD PTR -4[bp],OFFSET 18
+	*** 001b93	bb 00 00 		mov	bx,OFFSET _missiles
+	*** 001b96	03 d8 			add	bx,ax
+	*** 001b98	9b d9 5f 0c 		fstp	DWORD PTR 12[bx]
+; ; Line 1261
+	*** 001b9e	8b 5e 08 		mov	bx,WORD PTR 8[bp]
+	*** 001ba1	d1 e3 			shl	bx,OFFSET 1
+	*** 001ba3	d1 e3 			shl	bx,OFFSET 1
+	*** 001ba5	9b d9 87 00 00 		fld	DWORD PTR _cos_look[bx]
+	*** 001baa	9b d9 06 28 00 		fld	DWORD PTR con0+40
+	*** 001baf	9b de c9 		fmulp	ST(1),ST(0)
+	*** 001bb2	6b 46 fc 12 		_imul3 	ax,WORD PTR -4[bp],OFFSET 18
+	*** 001bb6	8b d8 			mov	bx,ax
+	*** 001bb8	9b d9 9f 00 00 		fstp	DWORD PTR _missiles[bx]
+; ; Line 1262
+	*** 001bbf	8b 5e 08 		mov	bx,WORD PTR 8[bp]
+	*** 001bc2	d1 e3 			shl	bx,OFFSET 1
+	*** 001bc4	d1 e3 			shl	bx,OFFSET 1
+	*** 001bc6	9b d9 87 00 00 		fld	DWORD PTR _sin_look[bx]
+	*** 001bcb	9b d9 06 28 00 		fld	DWORD PTR con0+40
+	*** 001bd0	9b de c9 		fmulp	ST(1),ST(0)
+	*** 001bd3	6b 46 fc 12 		_imul3 	ax,WORD PTR -4[bp],OFFSET 18
+	*** 001bd7	bb 00 00 		mov	bx,OFFSET _missiles
+	*** 001bda	03 d8 			add	bx,ax
+	*** 001bdc	9b d9 5f 04 		fstp	DWORD PTR 4[bx]
+; ; Line 1263
+	*** 001be2	e9 00 00 		jmp	L01090
+; ; Line 1264
+; ; Line 1265
+					L01096:
+					L01093:
+; Line 1265
+	*** 001be5	83 46 fc 01 		add	WORD PTR -4[bp],OFFSET 1
+					L01095:
+	*** 001be9	83 7e fc 14 		cmp	WORD PTR -4[bp],OFFSET 20
+	*** 001bed	7d 03 e9 48 ff 		jl	L01092
+					L01094:
+; ; Line 1266
+; Line 1266
+					L01090:
+	*** 001bf2	5f 			pop	di
+	*** 001bf3	5e 			pop	si
+	*** 001bf4	c9 			leave
+	*** 001bf5	cb 			ret	OFFSET 0
+Local Size: 12
+; Line 0
+; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; Line 1270
+					_missile_update:
+	*** 001bf6	c8 00 00 00 		enter	OFFSET L01131,OFFSET 0
+	*** 001bfa	56 			push	si
+	*** 001bfb	57 			push	di
+; i = fffc
+; ; Line 1271
+; ; ; Line 1273
+	*** 001bfc	c7 46 fc 00 00 		mov	WORD PTR -4[bp],OFFSET 0
+	*** 001c01	e9 00 00 		jmp	L01102
+					L01099:
+; ; Line 1274
+	*** 001c04	6b 46 fc 12 		_imul3 	ax,WORD PTR -4[bp],OFFSET 18
+	*** 001c08	bb 00 00 		mov	bx,OFFSET _missiles
+	*** 001c0b	03 d8 			add	bx,ax
+	*** 001c0d	83 7f 10 00 		cmp	WORD PTR 16[bx],OFFSET 0
+	*** 001c11	75 03 e9 00 00 		je	L01103
+; ; Line 1275
+; ; ; Line 1277
+	*** 001c16	6a 00 			push	OFFSET 0
+	*** 001c18	6b 46 fc 12 		_imul3 	ax,WORD PTR -4[bp],OFFSET 18
+	*** 001c1c	bb 00 00 		mov	bx,OFFSET _missiles
+	*** 001c1f	03 d8 			add	bx,ax
+	*** 001c21	9b d9 47 0c 		fld	DWORD PTR 12[bx]
+	*** 001c25	9a 00 00 00 00 		call	FAR PTR __aFftol
+	*** 001c2c	50 			push	ax
+	*** 001c2d	6b 46 fc 12 		_imul3 	ax,WORD PTR -4[bp],OFFSET 18
+	*** 001c31	bb 00 00 		mov	bx,OFFSET _missiles
+	*** 001c34	03 d8 			add	bx,ax
+	*** 001c36	9b d9 47 08 		fld	DWORD PTR 8[bx]
+	*** 001c3a	9a 00 00 00 00 		call	FAR PTR __aFftol
+	*** 001c41	50 			push	ax
+	*** 001c42	9a 00 00 00 00 		call	FAR PTR _Plot_Pixel_Fast
+	*** 001c47	83 c4 06 		add	sp,OFFSET 6
+; ; ; ; Line 1280
+	*** 001c4a	6b 46 fc 12 		_imul3 	ax,WORD PTR -4[bp],OFFSET 18
+	*** 001c4e	bb 00 00 		mov	bx,OFFSET _missiles
+	*** 001c51	03 d8 			add	bx,ax
+	*** 001c53	9b d9 47 08 		fld	DWORD PTR 8[bx]
+	*** 001c57	6b 46 fc 12 		_imul3 	ax,WORD PTR -4[bp],OFFSET 18
+	*** 001c5d	8b d8 			mov	bx,ax
+	*** 001c5f	9b d8 87 00 00 		fadd	ST(0),DWORD PTR _missiles[bx]
+	*** 001c64	6b 46 fc 12 		_imul3 	ax,WORD PTR -4[bp],OFFSET 18
+	*** 001c68	bb 00 00 		mov	bx,OFFSET _missiles
+	*** 001c6b	03 d8 			add	bx,ax
+	*** 001c6d	9b d9 5f 08 		fstp	DWORD PTR 8[bx]
+; ; Line 1281
+	*** 001c73	6b 46 fc 12 		_imul3 	ax,WORD PTR -4[bp],OFFSET 18
+	*** 001c77	bb 00 00 		mov	bx,OFFSET _missiles
+	*** 001c7a	03 d8 			add	bx,ax
+	*** 001c7c	9b d9 47 0c 		fld	DWORD PTR 12[bx]
+	*** 001c80	6b 46 fc 12 		_imul3 	ax,WORD PTR -4[bp],OFFSET 18
+	*** 001c86	bb 00 00 		mov	bx,OFFSET _missiles
+	*** 001c89	03 d8 			add	bx,ax
+	*** 001c8b	9b d8 47 04 		fadd	ST(0),DWORD PTR 4[bx]
+	*** 001c8f	6b 46 fc 12 		_imul3 	ax,WORD PTR -4[bp],OFFSET 18
+	*** 001c93	bb 00 00 		mov	bx,OFFSET _missiles
+	*** 001c96	03 d8 			add	bx,ax
+	*** 001c98	9b d9 5f 0c 		fstp	DWORD PTR 12[bx]
+; ; ; ; Line 1284
+; ; Line 1285
+	*** 001c9e	b8 00 00 		mov	ax,OFFSET 0
+	*** 001ca1	99 			cwd
+	*** 001ca2	89 46 f4 		mov	WORD PTR -12[bp],ax
+	*** 001ca5	89 56 f6 		mov	WORD PTR -10[bp],dx
+	*** 001ca8	9b db 46 f4 		fldi	DWORD PTR -12[bp]
+	*** 001cac	6b 46 fc 12 		_imul3 	ax,WORD PTR -4[bp],OFFSET 18
+	*** 001cb2	bb 00 00 		mov	bx,OFFSET _missiles
+	*** 001cb5	03 d8 			add	bx,ax
+	*** 001cb7	9b d9 47 08 		fld	DWORD PTR 8[bx]
+	*** 001cbb	9b d9 c9 		fxch	ST(1)
+	*** 001cbe	9b d9 c9 		fxch	ST(1)
+	*** 001cc1	9a 00 00 00 00 		call	FAR PTR __aFfcompp
+	*** 001cc6	73 03 e9 00 00 		jb	L01105
+	*** 001ccb	b8 40 01 		mov	ax,OFFSET 320
+	*** 001cce	99 			cwd
+	*** 001ccf	89 46 f4 		mov	WORD PTR -12[bp],ax
+	*** 001cd2	89 56 f6 		mov	WORD PTR -10[bp],dx
+	*** 001cd5	9b db 46 f4 		fldi	DWORD PTR -12[bp]
+	*** 001cd9	6b 46 fc 12 		_imul3 	ax,WORD PTR -4[bp],OFFSET 18
+	*** 001cdf	bb 00 00 		mov	bx,OFFSET _missiles
+	*** 001ce2	03 d8 			add	bx,ax
+	*** 001ce4	9b d9 47 08 		fld	DWORD PTR 8[bx]
+	*** 001ce8	9b d9 c9 		fxch	ST(1)
+	*** 001ceb	9b d9 c9 		fxch	ST(1)
+	*** 001cee	9a 00 00 00 00 		call	FAR PTR __aFfcompp
+	*** 001cf3	72 03 e9 00 00 		jae	L01105
+	*** 001cf8	b8 00 00 		mov	ax,OFFSET 0
+	*** 001cfb	99 			cwd
+	*** 001cfc	89 46 f4 		mov	WORD PTR -12[bp],ax
+	*** 001cff	89 56 f6 		mov	WORD PTR -10[bp],dx
+	*** 001d02	9b db 46 f4 		fldi	DWORD PTR -12[bp]
+	*** 001d06	6b 46 fc 12 		_imul3 	ax,WORD PTR -4[bp],OFFSET 18
+	*** 001d0c	bb 00 00 		mov	bx,OFFSET _missiles
+	*** 001d0f	03 d8 			add	bx,ax
+	*** 001d11	9b d9 47 0c 		fld	DWORD PTR 12[bx]
+	*** 001d15	9b d9 c9 		fxch	ST(1)
+	*** 001d18	9b d9 c9 		fxch	ST(1)
+	*** 001d1b	9a 00 00 00 00 		call	FAR PTR __aFfcompp
+	*** 001d20	73 03 e9 00 00 		jb	L01105
+	*** 001d25	b8 c8 00 		mov	ax,OFFSET 200
+	*** 001d28	99 			cwd
+	*** 001d29	89 46 f4 		mov	WORD PTR -12[bp],ax
+	*** 001d2c	89 56 f6 		mov	WORD PTR -10[bp],dx
+	*** 001d2f	9b db 46 f4 		fldi	DWORD PTR -12[bp]
+	*** 001d33	6b 46 fc 12 		_imul3 	ax,WORD PTR -4[bp],OFFSET 18
+	*** 001d39	bb 00 00 		mov	bx,OFFSET _missiles
+	*** 001d3c	03 d8 			add	bx,ax
+	*** 001d3e	9b d9 47 0c 		fld	DWORD PTR 12[bx]
+	*** 001d42	9b d9 c9 		fxch	ST(1)
+	*** 001d45	9b d9 c9 		fxch	ST(1)
+	*** 001d48	9a 00 00 00 00 		call	FAR PTR __aFfcompp
+	*** 001d4d	73 03 e9 00 00 		jb	L01104
+					L01105:
+; ; Line 1286
+; ; Line 1287
+	*** 001d52	6b 46 fc 12 		_imul3 	ax,WORD PTR -4[bp],OFFSET 18
+	*** 001d56	bb 00 00 		mov	bx,OFFSET _missiles
+	*** 001d59	03 d8 			add	bx,ax
+	*** 001d5b	c7 47 10 00 00 		mov	WORD PTR 16[bx],OFFSET 0
+; ; Line 1288
+	*** 001d60	e9 00 00 		jmp	L01106
+					L01104:
+; Line 1288
+; ; Line 1289
+	*** 001d63	6a 0f 			push	OFFSET 15
+	*** 001d65	6b 46 fc 12 		_imul3 	ax,WORD PTR -4[bp],OFFSET 18
+	*** 001d69	bb 00 00 		mov	bx,OFFSET _missiles
+	*** 001d6c	03 d8 			add	bx,ax
+	*** 001d6e	9b d9 47 0c 		fld	DWORD PTR 12[bx]
+	*** 001d72	9a 00 00 00 00 		call	FAR PTR __aFftol
+	*** 001d79	50 			push	ax
+	*** 001d7a	6b 46 fc 12 		_imul3 	ax,WORD PTR -4[bp],OFFSET 18
+	*** 001d7e	bb 00 00 		mov	bx,OFFSET _missiles
+	*** 001d81	03 d8 			add	bx,ax
+	*** 001d83	9b d9 47 08 		fld	DWORD PTR 8[bx]
+	*** 001d87	9a 00 00 00 00 		call	FAR PTR __aFftol
+	*** 001d8e	50 			push	ax
+	*** 001d8f	9a 00 00 00 00 		call	FAR PTR _Plot_Pixel_Fast
+	*** 001d94	83 c4 06 		add	sp,OFFSET 6
+; ; Line 1290
+					L01106:
+; ; Line 1291
+; ; Line 1292
+					L01103:
+					L01100:
+; Line 1292
+	*** 001d97	83 46 fc 01 		add	WORD PTR -4[bp],OFFSET 1
+					L01102:
+	*** 001d9b	83 7e fc 14 		cmp	WORD PTR -4[bp],OFFSET 20
+	*** 001d9f	7d 03 e9 60 fe 		jl	L01099
+					L01101:
+; ; Line 1293
+; Line 1293
+					L01097:
+	*** 001da4	5f 			pop	di
+	*** 001da5	5e 			pop	si
+	*** 001da6	c9 			leave
+	*** 001da7	cb 			ret	OFFSET 0
+Local Size: 12
+; Line 0

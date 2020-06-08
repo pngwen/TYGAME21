@@ -1,0 +1,230 @@
+; File circle.c
+; //Draw a circle
+; #include <io.h>
+; #include <stdlib.h>
+; #include "graph3.h"
+; #include "graph4.h"
+; #include "graph5.h"
+; 
+; 
+; // P R O T O T Y P E S ////////////////////////////////////////////////////////
+; void draw_circle(double x, double y, double r, unsigned char c);
+; 
+; int main()
+; {
+; Line 13
+					_main:
+	*** 000000	c8 00 00 00 		enter	OFFSET L00488,OFFSET 0
+	*** 000004	56 			push	si
+	*** 000005	57 			push	di
+; //set up trig tables
+; Create_Tables();
+; Line 15
+	*** 000006	9a 00 00 00 00 		call	FAR PTR _Create_Tables
+; 
+; //go graphical
+; Set_Video_Mode(VGA256);
+; Line 18
+	*** 00000b	6a 13 			push	OFFSET 19
+	*** 00000d	9a 00 00 00 00 		call	FAR PTR _Set_Video_Mode
+	*** 000012	83 c4 02 		add	sp,OFFSET 2
+; 
+; //wait for keypress
+; while(!kbhit())
+; Line 21
+					L00468:
+	*** 000015	9a 00 00 00 00 		call	FAR PTR _kbhit
+	*** 00001a	3d 00 00 		cmp	ax,OFFSET 0
+	*** 00001d	74 03 e9 00 00 		jne	L00469
+; {
+; Line 22
+;     draw_circle(rand()%320, rand()%200, rand()%50, rand()%256);
+; Line 23
+	*** 000022	9a 00 00 00 00 		call	FAR PTR _rand
+	*** 000027	b9 00 01 		mov	cx,OFFSET 256
+	*** 00002a	99 			cwd
+	*** 00002b	f7 f9 			idiv	cx
+	*** 00002d	52 			push	dx
+	*** 00002e	83 ec 08 		sub	sp,OFFSET 8
+	*** 000031	9a 00 00 00 00 		call	FAR PTR _rand
+	*** 000036	b9 32 00 		mov	cx,OFFSET 50
+	*** 000039	99 			cwd
+	*** 00003a	f7 f9 			idiv	cx
+	*** 00003c	8b c2 			mov	ax,dx
+	*** 00003e	99 			cwd
+	*** 00003f	89 46 f6 		mov	WORD PTR -10[bp],ax
+	*** 000042	89 56 f8 		mov	WORD PTR -8[bp],dx
+	*** 000045	9b db 46 f6 		fldi	DWORD PTR -10[bp]
+	*** 000049	8b dc 			mov	bx,sp
+	*** 00004d	9b dd 1f 		fstp	QWORD PTR ss:[bx]
+	*** 000050	83 ec 08 		sub	sp,OFFSET 8
+	*** 000055	9a 00 00 00 00 		call	FAR PTR _rand
+	*** 00005a	b9 c8 00 		mov	cx,OFFSET 200
+	*** 00005d	99 			cwd
+	*** 00005e	f7 f9 			idiv	cx
+	*** 000060	8b c2 			mov	ax,dx
+	*** 000062	99 			cwd
+	*** 000063	89 46 ee 		mov	WORD PTR -18[bp],ax
+	*** 000066	89 56 f0 		mov	WORD PTR -16[bp],dx
+	*** 000069	9b db 46 ee 		fldi	DWORD PTR -18[bp]
+	*** 00006d	8b dc 			mov	bx,sp
+	*** 000071	9b dd 1f 		fstp	QWORD PTR ss:[bx]
+	*** 000074	83 ec 08 		sub	sp,OFFSET 8
+	*** 000079	9a 00 00 00 00 		call	FAR PTR _rand
+	*** 00007e	b9 40 01 		mov	cx,OFFSET 320
+	*** 000081	99 			cwd
+	*** 000082	f7 f9 			idiv	cx
+	*** 000084	8b c2 			mov	ax,dx
+	*** 000086	99 			cwd
+	*** 000087	89 46 e6 		mov	WORD PTR -26[bp],ax
+	*** 00008a	89 56 e8 		mov	WORD PTR -24[bp],dx
+	*** 00008d	9b db 46 e6 		fldi	DWORD PTR -26[bp]
+	*** 000091	8b dc 			mov	bx,sp
+	*** 000095	9b dd 1f 		fstp	QWORD PTR ss:[bx]
+	*** 000098	9a 00 00 00 00 		call	FAR PTR _draw_circle
+	*** 00009f	83 c4 1a 		add	sp,OFFSET 26
+; }
+; Line 24
+; Line 24
+	*** 0000a2	e9 70 ff 		jmp	L00468
+					L00469:
+; 
+; //back to text mode
+; Set_Video_Mode(TEXT_MODE);
+; Line 27
+	*** 0000a5	6a 03 			push	OFFSET 3
+	*** 0000a7	9a 00 00 00 00 		call	FAR PTR _Set_Video_Mode
+	*** 0000ac	83 c4 02 		add	sp,OFFSET 2
+; }
+; Line 28
+; Line 28
+					L00465:
+	*** 0000af	5f 			pop	di
+	*** 0000b0	5e 			pop	si
+	*** 0000b1	c9 			leave
+	*** 0000b2	cb 			ret	OFFSET 0
+Local Size: 26
+; Line 0
+; 
+; 
+; //draw a circle at (x,y) with radius r
+; void draw_circle(double x, double y, double r, unsigned char c)
+; {
+; int angle;
+; double px, py;
+; for(angle = 0; angle < 360; angle++)
+; {
+;     px = x + r*cos_look[angle];
+;     py = y + r*sin_look[angle];
+;     if(px >= 0 && px < 320 && py >= 0 && py < 200) {
+;       Plot_Pixel_Fast(px, py, c);
+;     }
+; }
+; }
+; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; Line 33
+; x = 0006
+; y = 000e
+; r = 0016
+; c = 001e
+					_draw_circle:
+	*** 0000b4	c8 00 00 00 		enter	OFFSET L00489,OFFSET 0
+	*** 0000b8	56 			push	si
+	*** 0000b9	57 			push	di
+; angle = fffc
+; px = fff4
+; py = ffec
+; ; Line 34
+; ; Line 35
+; ; Line 36
+	*** 0000ba	c7 46 fc 00 00 		mov	WORD PTR -4[bp],OFFSET 0
+	*** 0000bf	e9 00 00 		jmp	L00486
+					L00483:
+; ; Line 37
+; ; Line 38
+	*** 0000c2	8b 5e fc 		mov	bx,WORD PTR -4[bp]
+	*** 0000c5	d1 e3 			shl	bx,OFFSET 1
+	*** 0000c7	d1 e3 			shl	bx,OFFSET 1
+	*** 0000c9	9b d9 87 00 00 		fld	DWORD PTR _cos_look[bx]
+	*** 0000ce	9b dd 46 16 		fld	QWORD PTR 22[bp]
+	*** 0000d2	9b d9 c9 		fxch	ST(1)
+	*** 0000d5	9b de c9 		fmulp	ST(1),ST(0)
+	*** 0000d8	9b dd 46 06 		fld	QWORD PTR 6[bp]
+	*** 0000dc	9b d9 c9 		fxch	ST(1)
+	*** 0000df	9b de c1 		faddp	ST(1),ST(0)
+	*** 0000e2	9b dd 5e f4 		fstp	QWORD PTR -12[bp]
+; ; Line 39
+	*** 0000e8	8b 5e fc 		mov	bx,WORD PTR -4[bp]
+	*** 0000eb	d1 e3 			shl	bx,OFFSET 1
+	*** 0000ed	d1 e3 			shl	bx,OFFSET 1
+	*** 0000ef	9b d9 87 00 00 		fld	DWORD PTR _sin_look[bx]
+	*** 0000f4	9b dd 46 16 		fld	QWORD PTR 22[bp]
+	*** 0000f8	9b d9 c9 		fxch	ST(1)
+	*** 0000fb	9b de c9 		fmulp	ST(1),ST(0)
+	*** 0000fe	9b dd 46 0e 		fld	QWORD PTR 14[bp]
+	*** 000102	9b d9 c9 		fxch	ST(1)
+	*** 000105	9b de c1 		faddp	ST(1),ST(0)
+	*** 000108	9b dd 5e ec 		fstp	QWORD PTR -20[bp]
+; ; Line 40
+	*** 00010e	b8 00 00 		mov	ax,OFFSET 0
+	*** 000111	99 			cwd
+	*** 000112	89 46 e4 		mov	WORD PTR -28[bp],ax
+	*** 000115	89 56 e6 		mov	WORD PTR -26[bp],dx
+	*** 000118	9b db 46 e4 		fldi	DWORD PTR -28[bp]
+	*** 00011c	9b dd 46 f4 		fld	QWORD PTR -12[bp]
+	*** 000120	9a 00 00 00 00 		call	FAR PTR __aFfcompp
+	*** 000127	73 03 e9 00 00 		jb	L00487
+	*** 00012c	b8 40 01 		mov	ax,OFFSET 320
+	*** 00012f	99 			cwd
+	*** 000130	89 46 e4 		mov	WORD PTR -28[bp],ax
+	*** 000133	89 56 e6 		mov	WORD PTR -26[bp],dx
+	*** 000136	9b db 46 e4 		fldi	DWORD PTR -28[bp]
+	*** 00013a	9b dd 46 f4 		fld	QWORD PTR -12[bp]
+	*** 00013e	9a 00 00 00 00 		call	FAR PTR __aFfcompp
+	*** 000145	72 03 e9 00 00 		jae	L00487
+	*** 00014a	b8 00 00 		mov	ax,OFFSET 0
+	*** 00014d	99 			cwd
+	*** 00014e	89 46 e4 		mov	WORD PTR -28[bp],ax
+	*** 000151	89 56 e6 		mov	WORD PTR -26[bp],dx
+	*** 000154	9b db 46 e4 		fldi	DWORD PTR -28[bp]
+	*** 000158	9b dd 46 ec 		fld	QWORD PTR -20[bp]
+	*** 00015c	9a 00 00 00 00 		call	FAR PTR __aFfcompp
+	*** 000163	73 03 e9 00 00 		jb	L00487
+	*** 000168	b8 c8 00 		mov	ax,OFFSET 200
+	*** 00016b	99 			cwd
+	*** 00016c	89 46 e4 		mov	WORD PTR -28[bp],ax
+	*** 00016f	89 56 e6 		mov	WORD PTR -26[bp],dx
+	*** 000172	9b db 46 e4 		fldi	DWORD PTR -28[bp]
+	*** 000176	9b dd 46 ec 		fld	QWORD PTR -20[bp]
+	*** 00017a	9a 00 00 00 00 		call	FAR PTR __aFfcompp
+	*** 000181	72 03 e9 00 00 		jae	L00487
+; ; Line 41
+	*** 000186	8a 46 1e 		mov	al,BYTE PTR 30[bp]
+	*** 000189	25 ff 00 		and	ax,OFFSET 255
+	*** 00018c	50 			push	ax
+	*** 00018d	9b dd 46 ec 		fld	QWORD PTR -20[bp]
+	*** 000191	9a 00 00 00 00 		call	FAR PTR __aFftol
+	*** 000198	50 			push	ax
+	*** 000199	9b dd 46 f4 		fld	QWORD PTR -12[bp]
+	*** 00019d	9a 00 00 00 00 		call	FAR PTR __aFftol
+	*** 0001a4	50 			push	ax
+	*** 0001a5	9a 00 00 00 00 		call	FAR PTR _Plot_Pixel_Fast
+	*** 0001aa	83 c4 06 		add	sp,OFFSET 6
+; ; Line 42
+; ; Line 43
+					L00487:
+					L00484:
+; Line 43
+	*** 0001ad	83 46 fc 01 		add	WORD PTR -4[bp],OFFSET 1
+					L00486:
+	*** 0001b1	81 7e fc 68 01 		cmp	WORD PTR -4[bp],OFFSET 360
+	*** 0001b6	7d 03 e9 07 ff 		jl	L00483
+					L00485:
+; ; Line 44
+; Line 44
+					L00479:
+	*** 0001bb	5f 			pop	di
+	*** 0001bc	5e 			pop	si
+	*** 0001bd	c9 			leave
+	*** 0001be	cb 			ret	OFFSET 0
+Local Size: 28
+; Line 0

@@ -1,0 +1,528 @@
+; File stest.c
+; //Draw a circle
+; #include <stdio.h>
+; #include <io.h>
+; #include <stdlib.h>
+; #include "graph3.h"
+; #include "graph4.h"
+; #include "graph5.h"
+; 
+; 
+; polygon ship;
+; 
+; void clip_test();
+; void no_clip_test();
+; 
+; int main()
+; {
+; Line 16
+					_main:
+	*** 000000	c8 00 00 00 		enter	OFFSET L00556,OFFSET 0
+	*** 000004	56 			push	si
+	*** 000005	57 			push	di
+; 
+; // build up a little spaceship polygon
+; ship.vertices[0].x = 3;
+; Line 19
+	*** 000006	b8 03 00 		mov	ax,OFFSET 3
+	*** 000009	99 			cwd
+	*** 00000a	89 46 f6 		mov	WORD PTR -10[bp],ax
+	*** 00000d	89 56 f8 		mov	WORD PTR -8[bp],dx
+	*** 000010	9b db 46 f6 		fldi	DWORD PTR -10[bp]
+	*** 000014	9b d9 1e 0e 00 		fstp	DWORD PTR _ship+14
+; ship.vertices[0].y = -19;
+; Line 20
+	*** 00001b	b8 ed ff 		mov	ax,OFFSET -19
+	*** 00001e	99 			cwd
+	*** 00001f	89 46 f6 		mov	WORD PTR -10[bp],ax
+	*** 000022	89 56 f8 		mov	WORD PTR -8[bp],dx
+	*** 000025	9b db 46 f6 		fldi	DWORD PTR -10[bp]
+	*** 000029	9b d9 1e 12 00 		fstp	DWORD PTR _ship+18
+; 
+; ship.vertices[1].x = 12;
+; Line 22
+	*** 000030	b8 0c 00 		mov	ax,OFFSET 12
+	*** 000033	99 			cwd
+	*** 000034	89 46 f6 		mov	WORD PTR -10[bp],ax
+	*** 000037	89 56 f8 		mov	WORD PTR -8[bp],dx
+	*** 00003a	9b db 46 f6 		fldi	DWORD PTR -10[bp]
+	*** 00003e	9b d9 1e 16 00 		fstp	DWORD PTR _ship+22
+; ship.vertices[1].y = -1;
+; Line 23
+	*** 000045	b8 ff ff 		mov	ax,OFFSET -1
+	*** 000048	99 			cwd
+	*** 000049	89 46 f6 		mov	WORD PTR -10[bp],ax
+	*** 00004c	89 56 f8 		mov	WORD PTR -8[bp],dx
+	*** 00004f	9b db 46 f6 		fldi	DWORD PTR -10[bp]
+	*** 000053	9b d9 1e 1a 00 		fstp	DWORD PTR _ship+26
+; 
+; ship.vertices[2].x = 17;
+; Line 25
+	*** 00005a	b8 11 00 		mov	ax,OFFSET 17
+	*** 00005d	99 			cwd
+	*** 00005e	89 46 f6 		mov	WORD PTR -10[bp],ax
+	*** 000061	89 56 f8 		mov	WORD PTR -8[bp],dx
+	*** 000064	9b db 46 f6 		fldi	DWORD PTR -10[bp]
+	*** 000068	9b d9 1e 1e 00 		fstp	DWORD PTR _ship+30
+; ship.vertices[2].y = 2;
+; Line 26
+	*** 00006f	b8 02 00 		mov	ax,OFFSET 2
+	*** 000072	99 			cwd
+	*** 000073	89 46 f6 		mov	WORD PTR -10[bp],ax
+	*** 000076	89 56 f8 		mov	WORD PTR -8[bp],dx
+	*** 000079	9b db 46 f6 		fldi	DWORD PTR -10[bp]
+	*** 00007d	9b d9 1e 22 00 		fstp	DWORD PTR _ship+34
+; 
+; ship.vertices[3].x = 17;
+; Line 28
+	*** 000084	b8 11 00 		mov	ax,OFFSET 17
+	*** 000087	99 			cwd
+	*** 000088	89 46 f6 		mov	WORD PTR -10[bp],ax
+	*** 00008b	89 56 f8 		mov	WORD PTR -8[bp],dx
+	*** 00008e	9b db 46 f6 		fldi	DWORD PTR -10[bp]
+	*** 000092	9b d9 1e 26 00 		fstp	DWORD PTR _ship+38
+; ship.vertices[3].y = 9;
+; Line 29
+	*** 000099	b8 09 00 		mov	ax,OFFSET 9
+	*** 00009c	99 			cwd
+	*** 00009d	89 46 f6 		mov	WORD PTR -10[bp],ax
+	*** 0000a0	89 56 f8 		mov	WORD PTR -8[bp],dx
+	*** 0000a3	9b db 46 f6 		fldi	DWORD PTR -10[bp]
+	*** 0000a7	9b d9 1e 2a 00 		fstp	DWORD PTR _ship+42
+; 
+; ship.vertices[4].x = 8;
+; Line 31
+	*** 0000ae	b8 08 00 		mov	ax,OFFSET 8
+	*** 0000b1	99 			cwd
+	*** 0000b2	89 46 f6 		mov	WORD PTR -10[bp],ax
+	*** 0000b5	89 56 f8 		mov	WORD PTR -8[bp],dx
+	*** 0000b8	9b db 46 f6 		fldi	DWORD PTR -10[bp]
+	*** 0000bc	9b d9 1e 2e 00 		fstp	DWORD PTR _ship+46
+; ship.vertices[4].y = 14;
+; Line 32
+	*** 0000c3	b8 0e 00 		mov	ax,OFFSET 14
+	*** 0000c6	99 			cwd
+	*** 0000c7	89 46 f6 		mov	WORD PTR -10[bp],ax
+	*** 0000ca	89 56 f8 		mov	WORD PTR -8[bp],dx
+	*** 0000cd	9b db 46 f6 		fldi	DWORD PTR -10[bp]
+	*** 0000d1	9b d9 1e 32 00 		fstp	DWORD PTR _ship+50
+; 
+; ship.vertices[5].x = 5;
+; Line 34
+	*** 0000d8	b8 05 00 		mov	ax,OFFSET 5
+	*** 0000db	99 			cwd
+	*** 0000dc	89 46 f6 		mov	WORD PTR -10[bp],ax
+	*** 0000df	89 56 f8 		mov	WORD PTR -8[bp],dx
+	*** 0000e2	9b db 46 f6 		fldi	DWORD PTR -10[bp]
+	*** 0000e6	9b d9 1e 36 00 		fstp	DWORD PTR _ship+54
+; ship.vertices[5].y = 8;
+; Line 35
+	*** 0000ed	b8 08 00 		mov	ax,OFFSET 8
+	*** 0000f0	99 			cwd
+	*** 0000f1	89 46 f6 		mov	WORD PTR -10[bp],ax
+	*** 0000f4	89 56 f8 		mov	WORD PTR -8[bp],dx
+	*** 0000f7	9b db 46 f6 		fldi	DWORD PTR -10[bp]
+	*** 0000fb	9b d9 1e 3a 00 		fstp	DWORD PTR _ship+58
+; 
+; ship.vertices[6].x = -5;
+; Line 37
+	*** 000102	b8 fb ff 		mov	ax,OFFSET -5
+	*** 000105	99 			cwd
+	*** 000106	89 46 f6 		mov	WORD PTR -10[bp],ax
+	*** 000109	89 56 f8 		mov	WORD PTR -8[bp],dx
+	*** 00010c	9b db 46 f6 		fldi	DWORD PTR -10[bp]
+	*** 000110	9b d9 1e 3e 00 		fstp	DWORD PTR _ship+62
+; ship.vertices[6].y = 8;
+; Line 38
+	*** 000117	b8 08 00 		mov	ax,OFFSET 8
+	*** 00011a	99 			cwd
+	*** 00011b	89 46 f6 		mov	WORD PTR -10[bp],ax
+	*** 00011e	89 56 f8 		mov	WORD PTR -8[bp],dx
+	*** 000121	9b db 46 f6 		fldi	DWORD PTR -10[bp]
+	*** 000125	9b d9 1e 42 00 		fstp	DWORD PTR _ship+66
+; 
+; ship.vertices[7].x = -8;
+; Line 40
+	*** 00012c	b8 f8 ff 		mov	ax,OFFSET -8
+	*** 00012f	99 			cwd
+	*** 000130	89 46 f6 		mov	WORD PTR -10[bp],ax
+	*** 000133	89 56 f8 		mov	WORD PTR -8[bp],dx
+	*** 000136	9b db 46 f6 		fldi	DWORD PTR -10[bp]
+	*** 00013a	9b d9 1e 46 00 		fstp	DWORD PTR _ship+70
+; ship.vertices[7].y = 14;
+; Line 41
+	*** 000141	b8 0e 00 		mov	ax,OFFSET 14
+	*** 000144	99 			cwd
+	*** 000145	89 46 f6 		mov	WORD PTR -10[bp],ax
+	*** 000148	89 56 f8 		mov	WORD PTR -8[bp],dx
+	*** 00014b	9b db 46 f6 		fldi	DWORD PTR -10[bp]
+	*** 00014f	9b d9 1e 4a 00 		fstp	DWORD PTR _ship+74
+; 
+; ship.vertices[8].x = -17;
+; Line 43
+	*** 000156	b8 ef ff 		mov	ax,OFFSET -17
+	*** 000159	99 			cwd
+	*** 00015a	89 46 f6 		mov	WORD PTR -10[bp],ax
+	*** 00015d	89 56 f8 		mov	WORD PTR -8[bp],dx
+	*** 000160	9b db 46 f6 		fldi	DWORD PTR -10[bp]
+	*** 000164	9b d9 1e 4e 00 		fstp	DWORD PTR _ship+78
+; ship.vertices[8].y = 9;
+; Line 44
+	*** 00016b	b8 09 00 		mov	ax,OFFSET 9
+	*** 00016e	99 			cwd
+	*** 00016f	89 46 f6 		mov	WORD PTR -10[bp],ax
+	*** 000172	89 56 f8 		mov	WORD PTR -8[bp],dx
+	*** 000175	9b db 46 f6 		fldi	DWORD PTR -10[bp]
+	*** 000179	9b d9 1e 52 00 		fstp	DWORD PTR _ship+82
+; 
+; ship.vertices[9].x = -17;
+; Line 46
+	*** 000180	b8 ef ff 		mov	ax,OFFSET -17
+	*** 000183	99 			cwd
+	*** 000184	89 46 f6 		mov	WORD PTR -10[bp],ax
+	*** 000187	89 56 f8 		mov	WORD PTR -8[bp],dx
+	*** 00018a	9b db 46 f6 		fldi	DWORD PTR -10[bp]
+	*** 00018e	9b d9 1e 56 00 		fstp	DWORD PTR _ship+86
+; ship.vertices[9].y = 2;
+; Line 47
+	*** 000195	b8 02 00 		mov	ax,OFFSET 2
+	*** 000198	99 			cwd
+	*** 000199	89 46 f6 		mov	WORD PTR -10[bp],ax
+	*** 00019c	89 56 f8 		mov	WORD PTR -8[bp],dx
+	*** 00019f	9b db 46 f6 		fldi	DWORD PTR -10[bp]
+	*** 0001a3	9b d9 1e 5a 00 		fstp	DWORD PTR _ship+90
+; 
+; ship.vertices[10].x = -12;
+; Line 49
+	*** 0001aa	b8 f4 ff 		mov	ax,OFFSET -12
+	*** 0001ad	99 			cwd
+	*** 0001ae	89 46 f6 		mov	WORD PTR -10[bp],ax
+	*** 0001b1	89 56 f8 		mov	WORD PTR -8[bp],dx
+	*** 0001b4	9b db 46 f6 		fldi	DWORD PTR -10[bp]
+	*** 0001b8	9b d9 1e 5e 00 		fstp	DWORD PTR _ship+94
+; ship.vertices[10].y = -1;
+; Line 50
+	*** 0001bf	b8 ff ff 		mov	ax,OFFSET -1
+	*** 0001c2	99 			cwd
+	*** 0001c3	89 46 f6 		mov	WORD PTR -10[bp],ax
+	*** 0001c6	89 56 f8 		mov	WORD PTR -8[bp],dx
+	*** 0001c9	9b db 46 f6 		fldi	DWORD PTR -10[bp]
+	*** 0001cd	9b d9 1e 62 00 		fstp	DWORD PTR _ship+98
+; 
+; ship.vertices[11].x = -3;
+; Line 52
+	*** 0001d4	b8 fd ff 		mov	ax,OFFSET -3
+	*** 0001d7	99 			cwd
+	*** 0001d8	89 46 f6 		mov	WORD PTR -10[bp],ax
+	*** 0001db	89 56 f8 		mov	WORD PTR -8[bp],dx
+	*** 0001de	9b db 46 f6 		fldi	DWORD PTR -10[bp]
+	*** 0001e2	9b d9 1e 66 00 		fstp	DWORD PTR _ship+102
+; ship.vertices[11].y = -19;
+; Line 53
+	*** 0001e9	b8 ed ff 		mov	ax,OFFSET -19
+	*** 0001ec	99 			cwd
+	*** 0001ed	89 46 f6 		mov	WORD PTR -10[bp],ax
+	*** 0001f0	89 56 f8 		mov	WORD PTR -8[bp],dx
+	*** 0001f3	9b db 46 f6 		fldi	DWORD PTR -10[bp]
+	*** 0001f7	9b d9 1e 6a 00 		fstp	DWORD PTR _ship+106
+; 
+; ship.vertices[12].x = -3;
+; Line 55
+	*** 0001fe	b8 fd ff 		mov	ax,OFFSET -3
+	*** 000201	99 			cwd
+	*** 000202	89 46 f6 		mov	WORD PTR -10[bp],ax
+	*** 000205	89 56 f8 		mov	WORD PTR -8[bp],dx
+	*** 000208	9b db 46 f6 		fldi	DWORD PTR -10[bp]
+	*** 00020c	9b d9 1e 6e 00 		fstp	DWORD PTR _ship+110
+; ship.vertices[12].y = -8;
+; Line 56
+	*** 000213	b8 f8 ff 		mov	ax,OFFSET -8
+	*** 000216	99 			cwd
+	*** 000217	89 46 f6 		mov	WORD PTR -10[bp],ax
+	*** 00021a	89 56 f8 		mov	WORD PTR -8[bp],dx
+	*** 00021d	9b db 46 f6 		fldi	DWORD PTR -10[bp]
+	*** 000221	9b d9 1e 72 00 		fstp	DWORD PTR _ship+114
+; 
+; ship.vertices[13].x = 3;
+; Line 58
+	*** 000228	b8 03 00 		mov	ax,OFFSET 3
+	*** 00022b	99 			cwd
+	*** 00022c	89 46 f6 		mov	WORD PTR -10[bp],ax
+	*** 00022f	89 56 f8 		mov	WORD PTR -8[bp],dx
+	*** 000232	9b db 46 f6 		fldi	DWORD PTR -10[bp]
+	*** 000236	9b d9 1e 76 00 		fstp	DWORD PTR _ship+118
+; ship.vertices[13].y = -8;
+; Line 59
+	*** 00023d	b8 f8 ff 		mov	ax,OFFSET -8
+	*** 000240	99 			cwd
+	*** 000241	89 46 f6 		mov	WORD PTR -10[bp],ax
+	*** 000244	89 56 f8 		mov	WORD PTR -8[bp],dx
+	*** 000247	9b db 46 f6 		fldi	DWORD PTR -10[bp]
+	*** 00024b	9b d9 1e 7a 00 		fstp	DWORD PTR _ship+122
+; 
+; // set position of shaceship
+; 
+; ship.lxo = 160;
+; Line 63
+	*** 000252	c7 06 08 00 a0 00 	mov	WORD PTR _ship+8,OFFSET 160
+; ship.lyo = 100;
+; Line 64
+	*** 000258	c7 06 0a 00 64 00 	mov	WORD PTR _ship+10,OFFSET 100
+; 
+; ship.num_vertices = 14;
+; Line 66
+	*** 00025e	c7 06 0c 00 0e 00 	mov	WORD PTR _ship+12,OFFSET 14
+; ship.b_color      = 1;
+; Line 67
+	*** 000264	c7 06 00 00 01 00 	mov	WORD PTR _ship,OFFSET 1
+; ship.closed       = 1;
+; Line 68
+	*** 00026a	c7 06 04 00 01 00 	mov	WORD PTR _ship+4,OFFSET 1
+; 
+; //set up trig tables
+; Create_Tables();
+; Line 71
+	*** 000270	9a 00 00 00 00 		call	FAR PTR _Create_Tables
+; 
+; 
+; printf("No Clip Test\n");
+; Line 74
+	*** 000275	68 00 00 		push	OFFSET L00528
+	*** 000278	9a 00 00 00 00 		call	FAR PTR _printf
+	*** 00027d	83 c4 02 		add	sp,OFFSET 2
+; getch();
+; Line 75
+	*** 000280	9a 00 00 00 00 		call	FAR PTR _getch
+; no_clip_test();
+; Line 76
+	*** 000285	9a 00 00 00 00 		call	FAR PTR _no_clip_test
+; 
+; printf("Clip Test\n");
+; Line 78
+	*** 00028a	68 0e 00 		push	OFFSET L00530
+	*** 00028d	9a 00 00 00 00 		call	FAR PTR _printf
+	*** 000292	83 c4 02 		add	sp,OFFSET 2
+; getch();
+; Line 79
+	*** 000295	9a 00 00 00 00 		call	FAR PTR _getch
+; clip_test();
+; Line 80
+	*** 00029a	9a 00 00 00 00 		call	FAR PTR _clip_test
+; 
+; }
+; Line 82
+; Line 82
+					L00527:
+	*** 00029f	5f 			pop	di
+	*** 0002a0	5e 			pop	si
+	*** 0002a1	c9 			leave
+	*** 0002a2	cb 			ret	OFFSET 0
+Local Size: 10
+; Line 0
+; 
+; 
+; void Scale2_Polygon(polygon_ptr poly, float sx, float sy)
+; {
+; 
+; int index;
+; 
+; // scale each vertex of the polygon
+; 
+; for (index=0; index<poly->num_vertices; index++)
+;     {
+;     // multiply by the scaling factor
+; 
+;     poly->vertices[index].x*=sx;
+;     poly->vertices[index].y*=sy;
+; 
+;     } // end for
+; 
+; } // end Scale_Polygon
+; 
+; 
+; void clip_test()
+; {
+; unsigned long int i;
+; Set_Video_Mode(VGA256);
+; for(i=0; i<100000l; i++) {
+;     Draw_Polygon_Clip((polygon_ptr)&ship);
+; }
+; Set_Video_Mode(TEXT_MODE);
+; }
+; 
+; 
+; void no_clip_test()
+; {
+; unsigned long int i;
+; Set_Video_Mode(VGA256);
+; for(i=0; i<100000l; i++) {
+;     Draw_Polygon((polygon_ptr)&ship);
+; }
+; Set_Video_Mode(TEXT_MODE);
+; }
+; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; Line 86
+; poly = 0006
+; sx = 0008
+; sy = 000c
+					_Scale2_Polygon:
+	*** 0002a4	c8 00 00 00 		enter	OFFSET L00557,OFFSET 0
+	*** 0002a8	56 			push	si
+	*** 0002a9	57 			push	di
+; index = fffc
+; ; ; Line 88
+; ; ; ; ; Line 92
+	*** 0002aa	c7 46 fc 00 00 		mov	WORD PTR -4[bp],OFFSET 0
+	*** 0002af	e9 00 00 		jmp	L00540
+					L00541:
+	*** 0002b2	83 46 fc 01 		add	WORD PTR -4[bp],OFFSET 1
+					L00540:
+	*** 0002b6	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 0002b9	8b 47 0c 		mov	ax,WORD PTR 12[bx]
+	*** 0002bc	39 46 fc 		cmp	WORD PTR -4[bp],ax
+	*** 0002bf	7c 03 e9 00 00 		jge	L00542
+; ; Line 93
+; ; ; ; Line 96
+	*** 0002c4	b8 0e 00 		mov	ax,OFFSET 14
+	*** 0002c7	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 0002ca	03 d8 			add	bx,ax
+	*** 0002cc	8b 46 fc 		mov	ax,WORD PTR -4[bp]
+	*** 0002cf	d1 e0 			shl	ax,OFFSET 1
+	*** 0002d1	d1 e0 			shl	ax,OFFSET 1
+	*** 0002d3	d1 e0 			shl	ax,OFFSET 1
+	*** 0002d5	03 d8 			add	bx,ax
+	*** 0002d7	9b d9 07 		fld	DWORD PTR [bx]
+	*** 0002da	9b d8 4e 08 		fmul	ST(0),DWORD PTR 8[bp]
+	*** 0002de	b8 0e 00 		mov	ax,OFFSET 14
+	*** 0002e1	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 0002e4	03 d8 			add	bx,ax
+	*** 0002e6	8b 46 fc 		mov	ax,WORD PTR -4[bp]
+	*** 0002e9	d1 e0 			shl	ax,OFFSET 1
+	*** 0002eb	d1 e0 			shl	ax,OFFSET 1
+	*** 0002ed	d1 e0 			shl	ax,OFFSET 1
+	*** 0002ef	03 d8 			add	bx,ax
+	*** 0002f1	9b d9 1f 		fstp	DWORD PTR [bx]
+; ; Line 97
+	*** 0002f6	b8 0e 00 		mov	ax,OFFSET 14
+	*** 0002f9	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 0002fc	03 d8 			add	bx,ax
+	*** 0002fe	8b 46 fc 		mov	ax,WORD PTR -4[bp]
+	*** 000301	d1 e0 			shl	ax,OFFSET 1
+	*** 000303	d1 e0 			shl	ax,OFFSET 1
+	*** 000305	d1 e0 			shl	ax,OFFSET 1
+	*** 000307	03 d8 			add	bx,ax
+	*** 000309	9b d9 47 04 		fld	DWORD PTR 4[bx]
+	*** 00030d	9b d8 4e 0c 		fmul	ST(0),DWORD PTR 12[bp]
+	*** 000311	b8 0e 00 		mov	ax,OFFSET 14
+	*** 000314	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000317	03 d8 			add	bx,ax
+	*** 000319	8b 46 fc 		mov	ax,WORD PTR -4[bp]
+	*** 00031c	d1 e0 			shl	ax,OFFSET 1
+	*** 00031e	d1 e0 			shl	ax,OFFSET 1
+	*** 000320	d1 e0 			shl	ax,OFFSET 1
+	*** 000322	03 d8 			add	bx,ax
+	*** 000324	9b d9 5f 04 		fstp	DWORD PTR 4[bx]
+; ; ; Line 99
+; Line 99
+	*** 00032a	e9 85 ff 		jmp	L00541
+					L00542:
+; ; ; Line 101
+; Line 101
+					L00538:
+	*** 00032d	5f 			pop	di
+	*** 00032e	5e 			pop	si
+	*** 00032f	c9 			leave
+	*** 000330	cb 			ret	OFFSET 0
+Local Size: 4
+; Line 0
+; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; Line 105
+					_clip_test:
+	*** 000332	c8 00 00 00 		enter	OFFSET L00558,OFFSET 0
+	*** 000336	56 			push	si
+	*** 000337	57 			push	di
+; i = fffa
+; ; Line 106
+; ; Line 107
+	*** 000338	6a 13 			push	OFFSET 19
+	*** 00033a	9a 00 00 00 00 		call	FAR PTR _Set_Video_Mode
+	*** 00033f	83 c4 02 		add	sp,OFFSET 2
+; ; Line 108
+	*** 000342	c7 46 fa 00 00 		mov	WORD PTR -6[bp],OFFSET 0
+	*** 000347	c7 46 fc 00 00 		mov	WORD PTR -4[bp],OFFSET 0
+	*** 00034c	e9 00 00 		jmp	L00549
+					L00546:
+; ; Line 109
+	*** 00034f	68 00 00 		push	OFFSET _ship
+	*** 000352	9a 00 00 00 00 		call	FAR PTR _Draw_Polygon_Clip
+	*** 000357	83 c4 02 		add	sp,OFFSET 2
+; ; Line 110
+					L00547:
+; Line 110
+	*** 00035a	83 46 fa 01 		add	WORD PTR -6[bp],OFFSET 1
+	*** 00035e	83 56 fc 00 		adc	WORD PTR -4[bp],OFFSET 0
+					L00549:
+	*** 000362	83 7e fc 01 		cmp	WORD PTR -4[bp],OFFSET 1
+	*** 000366	73 03 e9 e4 ff 		jb	L00546
+	*** 00036b	76 03 e9 00 00 		ja	L00559
+	*** 000370	81 7e fa a0 86 		cmp	WORD PTR -6[bp],OFFSET -31072
+	*** 000375	73 03 e9 d5 ff 		jb	L00546
+					L00559:
+					L00548:
+; ; Line 111
+	*** 00037a	6a 03 			push	OFFSET 3
+	*** 00037c	9a 00 00 00 00 		call	FAR PTR _Set_Video_Mode
+	*** 000381	83 c4 02 		add	sp,OFFSET 2
+; ; Line 112
+; Line 112
+					L00544:
+	*** 000384	5f 			pop	di
+	*** 000385	5e 			pop	si
+	*** 000386	c9 			leave
+	*** 000387	cb 			ret	OFFSET 0
+Local Size: 6
+; Line 0
+; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; Line 116
+					_no_clip_test:
+	*** 000388	c8 00 00 00 		enter	OFFSET L00560,OFFSET 0
+	*** 00038c	56 			push	si
+	*** 00038d	57 			push	di
+; i = fffa
+; ; Line 117
+; ; Line 118
+	*** 00038e	6a 13 			push	OFFSET 19
+	*** 000390	9a 00 00 00 00 		call	FAR PTR _Set_Video_Mode
+	*** 000395	83 c4 02 		add	sp,OFFSET 2
+; ; Line 119
+	*** 000398	c7 46 fa 00 00 		mov	WORD PTR -6[bp],OFFSET 0
+	*** 00039d	c7 46 fc 00 00 		mov	WORD PTR -4[bp],OFFSET 0
+	*** 0003a2	e9 00 00 		jmp	L00555
+					L00552:
+; ; Line 120
+	*** 0003a5	68 00 00 		push	OFFSET _ship
+	*** 0003a8	9a 00 00 00 00 		call	FAR PTR _Draw_Polygon
+	*** 0003ad	83 c4 02 		add	sp,OFFSET 2
+; ; Line 121
+					L00553:
+; Line 121
+	*** 0003b0	83 46 fa 01 		add	WORD PTR -6[bp],OFFSET 1
+	*** 0003b4	83 56 fc 00 		adc	WORD PTR -4[bp],OFFSET 0
+					L00555:
+	*** 0003b8	83 7e fc 01 		cmp	WORD PTR -4[bp],OFFSET 1
+	*** 0003bc	73 03 e9 e4 ff 		jb	L00552
+	*** 0003c1	76 03 e9 00 00 		ja	L00561
+	*** 0003c6	81 7e fa a0 86 		cmp	WORD PTR -6[bp],OFFSET -31072
+	*** 0003cb	73 03 e9 d5 ff 		jb	L00552
+					L00561:
+					L00554:
+; ; Line 122
+	*** 0003d0	6a 03 			push	OFFSET 3
+	*** 0003d2	9a 00 00 00 00 		call	FAR PTR _Set_Video_Mode
+	*** 0003d7	83 c4 02 		add	sp,OFFSET 2
+; ; Line 123
+; Line 123
+					L00550:
+	*** 0003da	5f 			pop	di
+	*** 0003db	5e 			pop	si
+	*** 0003dc	c9 			leave
+	*** 0003dd	cb 			ret	OFFSET 0
+Local Size: 6
+; Line 0

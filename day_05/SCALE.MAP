@@ -1,0 +1,55 @@
+Stack Allocation = 8192 bytes
+
+ Start  Stop   Length Name                   Class
+ 00000H 003AAH 003ABH SCALE_TEXT             CODE
+ 003ACH 007BDH 00412H GRAPH1_TEXT            CODE
+ 007BEH 01691H 00ED4H GRAPH5_TEXT            CODE
+ 01692H 0397CH 022EBH _TEXT                  CODE
+ 03980H 0607FH 02700H EMULATOR_TEXT          CODE
+ 06080H 06080H 00000H C_ETEXT                ENDCODE
+ 06080H 061EFH 00170H EMULATOR_DATA          FAR_DATA
+ 061F0H 06231H 00042H NULL                   BEGDATA
+ 06232H 0663DH 0040CH _DATA                  DATA
+ 0663EH 0663FH 00002H XIQC                   DATA
+ 06640H 0664BH 0000CH DBDATA                 DATA
+ 0664CH 06659H 0000EH CDATA                  DATA
+ 0665AH 0665AH 00000H XIB                    DATA
+ 0665AH 06665H 0000CH XI                     DATA
+ 06666H 06666H 00000H XIE                    DATA
+ 06666H 06666H 00000H XIFB                   DATA
+ 06666H 06666H 00000H XIF                    DATA
+ 06666H 06666H 00000H XIFE                   DATA
+ 06666H 06666H 00000H XPB                    DATA
+ 06666H 06666H 00000H XP                     DATA
+ 06666H 06666H 00000H XPE                    DATA
+ 06666H 06666H 00000H XCB                    DATA
+ 06666H 06666H 00000H XC                     DATA
+ 06666H 06666H 00000H XCE                    DATA
+ 06666H 06666H 00000H XCFB                   DATA
+ 06666H 06666H 00000H XCFCRT                 DATA
+ 06666H 06666H 00000H XCF                    DATA
+ 06666H 06666H 00000H XCFE                   DATA
+ 06666H 06666H 00000H XIFCB                  DATA
+ 06666H 06666H 00000H XIFU                   DATA
+ 06666H 06666H 00000H XIFL                   DATA
+ 06666H 06666H 00000H XIFM                   DATA
+ 06666H 06666H 00000H XIFCE                  DATA
+ 06666H 06685H 00020H CONST                  CONST
+ 06686H 0668DH 00008H HDR                    MSG
+ 0668EH 0686DH 001E0H MSG                    MSG
+ 0686EH 0686FH 00002H PAD                    MSG
+ 06870H 06870H 00001H EPAD                   MSG
+ 06872H 0688BH 0001AH _BSS                   BSS
+ 0688CH 0688CH 00000H XOB                    BSS
+ 0688CH 0688CH 00000H XO                     BSS
+ 0688CH 0688CH 00000H XOE                    BSS
+ 0688CH 0688CH 00000H XOFB                   BSS
+ 0688CH 0688CH 00000H XOF                    BSS
+ 0688CH 0688CH 00000H XOFE                   BSS
+ 06890H 073D7H 00B48H c_common               BSS
+ 073E0H 093DFH 02000H STACK                  STACK
+
+ Origin   Group
+ 061F:0   DGROUP
+
+Program entry point at 0169:0012

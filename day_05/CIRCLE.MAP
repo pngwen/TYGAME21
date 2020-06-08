@@ -1,0 +1,55 @@
+Stack Allocation = 8192 bytes
+
+ Start  Stop   Length Name                   Class
+ 00000H 001BEH 001BFH CIRCLE_TEXT            CODE
+ 001C0H 005D1H 00412H GRAPH1_TEXT            CODE
+ 005D2H 014A5H 00ED4H GRAPH5_TEXT            CODE
+ 014A6H 037FCH 02357H _TEXT                  CODE
+ 03800H 05EFFH 02700H EMULATOR_TEXT          CODE
+ 05F00H 05F00H 00000H C_ETEXT                ENDCODE
+ 05F00H 0606FH 00170H EMULATOR_DATA          FAR_DATA
+ 06070H 060B1H 00042H NULL                   BEGDATA
+ 060B2H 064C1H 00410H _DATA                  DATA
+ 064C2H 064C3H 00002H XIQC                   DATA
+ 064C4H 064CFH 0000CH DBDATA                 DATA
+ 064D0H 064DDH 0000EH CDATA                  DATA
+ 064DEH 064DEH 00000H XIB                    DATA
+ 064DEH 064E9H 0000CH XI                     DATA
+ 064EAH 064EAH 00000H XIE                    DATA
+ 064EAH 064EAH 00000H XIFB                   DATA
+ 064EAH 064EAH 00000H XIF                    DATA
+ 064EAH 064EAH 00000H XIFE                   DATA
+ 064EAH 064EAH 00000H XPB                    DATA
+ 064EAH 064EAH 00000H XP                     DATA
+ 064EAH 064EAH 00000H XPE                    DATA
+ 064EAH 064EAH 00000H XCB                    DATA
+ 064EAH 064EAH 00000H XC                     DATA
+ 064EAH 064EAH 00000H XCE                    DATA
+ 064EAH 064EAH 00000H XCFB                   DATA
+ 064EAH 064EAH 00000H XCFCRT                 DATA
+ 064EAH 064EAH 00000H XCF                    DATA
+ 064EAH 064EAH 00000H XCFE                   DATA
+ 064EAH 064EAH 00000H XIFCB                  DATA
+ 064EAH 064EAH 00000H XIFU                   DATA
+ 064EAH 064EAH 00000H XIFL                   DATA
+ 064EAH 064EAH 00000H XIFM                   DATA
+ 064EAH 064EAH 00000H XIFCE                  DATA
+ 064EAH 06501H 00018H CONST                  CONST
+ 06502H 06509H 00008H HDR                    MSG
+ 0650AH 066E9H 001E0H MSG                    MSG
+ 066EAH 066EBH 00002H PAD                    MSG
+ 066ECH 066ECH 00001H EPAD                   MSG
+ 066EEH 06707H 0001AH _BSS                   BSS
+ 06708H 06708H 00000H XOB                    BSS
+ 06708H 06708H 00000H XO                     BSS
+ 06708H 06708H 00000H XOE                    BSS
+ 06708H 06708H 00000H XOFB                   BSS
+ 06708H 06708H 00000H XOF                    BSS
+ 06708H 06708H 00000H XOFE                   BSS
+ 06710H 07257H 00B48H c_common               BSS
+ 07260H 0925FH 02000H STACK                  STACK
+
+ Origin   Group
+ 0607:0   DGROUP
+
+Program entry point at 014A:0016

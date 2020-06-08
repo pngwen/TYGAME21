@@ -1,0 +1,438 @@
+; File scale.c
+; //Draw a circle
+; #include <io.h>
+; #include <stdlib.h>
+; #include "graph3.h"
+; #include "graph4.h"
+; #include "graph5.h"
+; 
+; 
+; void Scale2_Polygon(polygon_ptr poly, float sx, float sy);
+; 
+; 
+; int main()
+; {
+; Line 13
+					_main:
+	*** 000000	c8 00 00 00 		enter	OFFSET L00482,OFFSET 0
+	*** 000004	56 			push	si
+	*** 000005	57 			push	di
+; ship = ff70
+; polygon ship;
+; Line 14
+; 
+; // build up a little spaceship polygon
+; ship.vertices[0].x = 3;
+; Line 17
+	*** 000006	b8 03 00 		mov	ax,OFFSET 3
+	*** 000009	99 			cwd
+	*** 00000a	89 86 68 ff 		mov	WORD PTR -152[bp],ax
+	*** 00000e	89 96 6a ff 		mov	WORD PTR -150[bp],dx
+	*** 000012	9b db 86 68 ff 		fldi	DWORD PTR -152[bp]
+	*** 000017	9b d9 9e 7e ff 		fstp	DWORD PTR -130[bp]
+; ship.vertices[0].y = -19;
+; Line 18
+	*** 00001e	b8 ed ff 		mov	ax,OFFSET -19
+	*** 000021	99 			cwd
+	*** 000022	89 86 68 ff 		mov	WORD PTR -152[bp],ax
+	*** 000026	89 96 6a ff 		mov	WORD PTR -150[bp],dx
+	*** 00002a	9b db 86 68 ff 		fldi	DWORD PTR -152[bp]
+	*** 00002f	9b d9 5e 82 		fstp	DWORD PTR -126[bp]
+; 
+; ship.vertices[1].x = 12;
+; Line 20
+	*** 000035	b8 0c 00 		mov	ax,OFFSET 12
+	*** 000038	99 			cwd
+	*** 000039	89 86 68 ff 		mov	WORD PTR -152[bp],ax
+	*** 00003d	89 96 6a ff 		mov	WORD PTR -150[bp],dx
+	*** 000041	9b db 86 68 ff 		fldi	DWORD PTR -152[bp]
+	*** 000046	9b d9 5e 86 		fstp	DWORD PTR -122[bp]
+; ship.vertices[1].y = -1;
+; Line 21
+	*** 00004c	b8 ff ff 		mov	ax,OFFSET -1
+	*** 00004f	99 			cwd
+	*** 000050	89 86 68 ff 		mov	WORD PTR -152[bp],ax
+	*** 000054	89 96 6a ff 		mov	WORD PTR -150[bp],dx
+	*** 000058	9b db 86 68 ff 		fldi	DWORD PTR -152[bp]
+	*** 00005d	9b d9 5e 8a 		fstp	DWORD PTR -118[bp]
+; 
+; ship.vertices[2].x = 17;
+; Line 23
+	*** 000063	b8 11 00 		mov	ax,OFFSET 17
+	*** 000066	99 			cwd
+	*** 000067	89 86 68 ff 		mov	WORD PTR -152[bp],ax
+	*** 00006b	89 96 6a ff 		mov	WORD PTR -150[bp],dx
+	*** 00006f	9b db 86 68 ff 		fldi	DWORD PTR -152[bp]
+	*** 000074	9b d9 5e 8e 		fstp	DWORD PTR -114[bp]
+; ship.vertices[2].y = 2;
+; Line 24
+	*** 00007a	b8 02 00 		mov	ax,OFFSET 2
+	*** 00007d	99 			cwd
+	*** 00007e	89 86 68 ff 		mov	WORD PTR -152[bp],ax
+	*** 000082	89 96 6a ff 		mov	WORD PTR -150[bp],dx
+	*** 000086	9b db 86 68 ff 		fldi	DWORD PTR -152[bp]
+	*** 00008b	9b d9 5e 92 		fstp	DWORD PTR -110[bp]
+; 
+; ship.vertices[3].x = 17;
+; Line 26
+	*** 000091	b8 11 00 		mov	ax,OFFSET 17
+	*** 000094	99 			cwd
+	*** 000095	89 86 68 ff 		mov	WORD PTR -152[bp],ax
+	*** 000099	89 96 6a ff 		mov	WORD PTR -150[bp],dx
+	*** 00009d	9b db 86 68 ff 		fldi	DWORD PTR -152[bp]
+	*** 0000a2	9b d9 5e 96 		fstp	DWORD PTR -106[bp]
+; ship.vertices[3].y = 9;
+; Line 27
+	*** 0000a8	b8 09 00 		mov	ax,OFFSET 9
+	*** 0000ab	99 			cwd
+	*** 0000ac	89 86 68 ff 		mov	WORD PTR -152[bp],ax
+	*** 0000b0	89 96 6a ff 		mov	WORD PTR -150[bp],dx
+	*** 0000b4	9b db 86 68 ff 		fldi	DWORD PTR -152[bp]
+	*** 0000b9	9b d9 5e 9a 		fstp	DWORD PTR -102[bp]
+; 
+; ship.vertices[4].x = 8;
+; Line 29
+	*** 0000bf	b8 08 00 		mov	ax,OFFSET 8
+	*** 0000c2	99 			cwd
+	*** 0000c3	89 86 68 ff 		mov	WORD PTR -152[bp],ax
+	*** 0000c7	89 96 6a ff 		mov	WORD PTR -150[bp],dx
+	*** 0000cb	9b db 86 68 ff 		fldi	DWORD PTR -152[bp]
+	*** 0000d0	9b d9 5e 9e 		fstp	DWORD PTR -98[bp]
+; ship.vertices[4].y = 14;
+; Line 30
+	*** 0000d6	b8 0e 00 		mov	ax,OFFSET 14
+	*** 0000d9	99 			cwd
+	*** 0000da	89 86 68 ff 		mov	WORD PTR -152[bp],ax
+	*** 0000de	89 96 6a ff 		mov	WORD PTR -150[bp],dx
+	*** 0000e2	9b db 86 68 ff 		fldi	DWORD PTR -152[bp]
+	*** 0000e7	9b d9 5e a2 		fstp	DWORD PTR -94[bp]
+; 
+; ship.vertices[5].x = 5;
+; Line 32
+	*** 0000ed	b8 05 00 		mov	ax,OFFSET 5
+	*** 0000f0	99 			cwd
+	*** 0000f1	89 86 68 ff 		mov	WORD PTR -152[bp],ax
+	*** 0000f5	89 96 6a ff 		mov	WORD PTR -150[bp],dx
+	*** 0000f9	9b db 86 68 ff 		fldi	DWORD PTR -152[bp]
+	*** 0000fe	9b d9 5e a6 		fstp	DWORD PTR -90[bp]
+; ship.vertices[5].y = 8;
+; Line 33
+	*** 000104	b8 08 00 		mov	ax,OFFSET 8
+	*** 000107	99 			cwd
+	*** 000108	89 86 68 ff 		mov	WORD PTR -152[bp],ax
+	*** 00010c	89 96 6a ff 		mov	WORD PTR -150[bp],dx
+	*** 000110	9b db 86 68 ff 		fldi	DWORD PTR -152[bp]
+	*** 000115	9b d9 5e aa 		fstp	DWORD PTR -86[bp]
+; 
+; ship.vertices[6].x = -5;
+; Line 35
+	*** 00011b	b8 fb ff 		mov	ax,OFFSET -5
+	*** 00011e	99 			cwd
+	*** 00011f	89 86 68 ff 		mov	WORD PTR -152[bp],ax
+	*** 000123	89 96 6a ff 		mov	WORD PTR -150[bp],dx
+	*** 000127	9b db 86 68 ff 		fldi	DWORD PTR -152[bp]
+	*** 00012c	9b d9 5e ae 		fstp	DWORD PTR -82[bp]
+; ship.vertices[6].y = 8;
+; Line 36
+	*** 000132	b8 08 00 		mov	ax,OFFSET 8
+	*** 000135	99 			cwd
+	*** 000136	89 86 68 ff 		mov	WORD PTR -152[bp],ax
+	*** 00013a	89 96 6a ff 		mov	WORD PTR -150[bp],dx
+	*** 00013e	9b db 86 68 ff 		fldi	DWORD PTR -152[bp]
+	*** 000143	9b d9 5e b2 		fstp	DWORD PTR -78[bp]
+; 
+; ship.vertices[7].x = -8;
+; Line 38
+	*** 000149	b8 f8 ff 		mov	ax,OFFSET -8
+	*** 00014c	99 			cwd
+	*** 00014d	89 86 68 ff 		mov	WORD PTR -152[bp],ax
+	*** 000151	89 96 6a ff 		mov	WORD PTR -150[bp],dx
+	*** 000155	9b db 86 68 ff 		fldi	DWORD PTR -152[bp]
+	*** 00015a	9b d9 5e b6 		fstp	DWORD PTR -74[bp]
+; ship.vertices[7].y = 14;
+; Line 39
+	*** 000160	b8 0e 00 		mov	ax,OFFSET 14
+	*** 000163	99 			cwd
+	*** 000164	89 86 68 ff 		mov	WORD PTR -152[bp],ax
+	*** 000168	89 96 6a ff 		mov	WORD PTR -150[bp],dx
+	*** 00016c	9b db 86 68 ff 		fldi	DWORD PTR -152[bp]
+	*** 000171	9b d9 5e ba 		fstp	DWORD PTR -70[bp]
+; 
+; ship.vertices[8].x = -17;
+; Line 41
+	*** 000177	b8 ef ff 		mov	ax,OFFSET -17
+	*** 00017a	99 			cwd
+	*** 00017b	89 86 68 ff 		mov	WORD PTR -152[bp],ax
+	*** 00017f	89 96 6a ff 		mov	WORD PTR -150[bp],dx
+	*** 000183	9b db 86 68 ff 		fldi	DWORD PTR -152[bp]
+	*** 000188	9b d9 5e be 		fstp	DWORD PTR -66[bp]
+; ship.vertices[8].y = 9;
+; Line 42
+	*** 00018e	b8 09 00 		mov	ax,OFFSET 9
+	*** 000191	99 			cwd
+	*** 000192	89 86 68 ff 		mov	WORD PTR -152[bp],ax
+	*** 000196	89 96 6a ff 		mov	WORD PTR -150[bp],dx
+	*** 00019a	9b db 86 68 ff 		fldi	DWORD PTR -152[bp]
+	*** 00019f	9b d9 5e c2 		fstp	DWORD PTR -62[bp]
+; 
+; ship.vertices[9].x = -17;
+; Line 44
+	*** 0001a5	b8 ef ff 		mov	ax,OFFSET -17
+	*** 0001a8	99 			cwd
+	*** 0001a9	89 86 68 ff 		mov	WORD PTR -152[bp],ax
+	*** 0001ad	89 96 6a ff 		mov	WORD PTR -150[bp],dx
+	*** 0001b1	9b db 86 68 ff 		fldi	DWORD PTR -152[bp]
+	*** 0001b6	9b d9 5e c6 		fstp	DWORD PTR -58[bp]
+; ship.vertices[9].y = 2;
+; Line 45
+	*** 0001bc	b8 02 00 		mov	ax,OFFSET 2
+	*** 0001bf	99 			cwd
+	*** 0001c0	89 86 68 ff 		mov	WORD PTR -152[bp],ax
+	*** 0001c4	89 96 6a ff 		mov	WORD PTR -150[bp],dx
+	*** 0001c8	9b db 86 68 ff 		fldi	DWORD PTR -152[bp]
+	*** 0001cd	9b d9 5e ca 		fstp	DWORD PTR -54[bp]
+; 
+; ship.vertices[10].x = -12;
+; Line 47
+	*** 0001d3	b8 f4 ff 		mov	ax,OFFSET -12
+	*** 0001d6	99 			cwd
+	*** 0001d7	89 86 68 ff 		mov	WORD PTR -152[bp],ax
+	*** 0001db	89 96 6a ff 		mov	WORD PTR -150[bp],dx
+	*** 0001df	9b db 86 68 ff 		fldi	DWORD PTR -152[bp]
+	*** 0001e4	9b d9 5e ce 		fstp	DWORD PTR -50[bp]
+; ship.vertices[10].y = -1;
+; Line 48
+	*** 0001ea	b8 ff ff 		mov	ax,OFFSET -1
+	*** 0001ed	99 			cwd
+	*** 0001ee	89 86 68 ff 		mov	WORD PTR -152[bp],ax
+	*** 0001f2	89 96 6a ff 		mov	WORD PTR -150[bp],dx
+	*** 0001f6	9b db 86 68 ff 		fldi	DWORD PTR -152[bp]
+	*** 0001fb	9b d9 5e d2 		fstp	DWORD PTR -46[bp]
+; 
+; ship.vertices[11].x = -3;
+; Line 50
+	*** 000201	b8 fd ff 		mov	ax,OFFSET -3
+	*** 000204	99 			cwd
+	*** 000205	89 86 68 ff 		mov	WORD PTR -152[bp],ax
+	*** 000209	89 96 6a ff 		mov	WORD PTR -150[bp],dx
+	*** 00020d	9b db 86 68 ff 		fldi	DWORD PTR -152[bp]
+	*** 000212	9b d9 5e d6 		fstp	DWORD PTR -42[bp]
+; ship.vertices[11].y = -19;
+; Line 51
+	*** 000218	b8 ed ff 		mov	ax,OFFSET -19
+	*** 00021b	99 			cwd
+	*** 00021c	89 86 68 ff 		mov	WORD PTR -152[bp],ax
+	*** 000220	89 96 6a ff 		mov	WORD PTR -150[bp],dx
+	*** 000224	9b db 86 68 ff 		fldi	DWORD PTR -152[bp]
+	*** 000229	9b d9 5e da 		fstp	DWORD PTR -38[bp]
+; 
+; ship.vertices[12].x = -3;
+; Line 53
+	*** 00022f	b8 fd ff 		mov	ax,OFFSET -3
+	*** 000232	99 			cwd
+	*** 000233	89 86 68 ff 		mov	WORD PTR -152[bp],ax
+	*** 000237	89 96 6a ff 		mov	WORD PTR -150[bp],dx
+	*** 00023b	9b db 86 68 ff 		fldi	DWORD PTR -152[bp]
+	*** 000240	9b d9 5e de 		fstp	DWORD PTR -34[bp]
+; ship.vertices[12].y = -8;
+; Line 54
+	*** 000246	b8 f8 ff 		mov	ax,OFFSET -8
+	*** 000249	99 			cwd
+	*** 00024a	89 86 68 ff 		mov	WORD PTR -152[bp],ax
+	*** 00024e	89 96 6a ff 		mov	WORD PTR -150[bp],dx
+	*** 000252	9b db 86 68 ff 		fldi	DWORD PTR -152[bp]
+	*** 000257	9b d9 5e e2 		fstp	DWORD PTR -30[bp]
+; 
+; ship.vertices[13].x = 3;
+; Line 56
+	*** 00025d	b8 03 00 		mov	ax,OFFSET 3
+	*** 000260	99 			cwd
+	*** 000261	89 86 68 ff 		mov	WORD PTR -152[bp],ax
+	*** 000265	89 96 6a ff 		mov	WORD PTR -150[bp],dx
+	*** 000269	9b db 86 68 ff 		fldi	DWORD PTR -152[bp]
+	*** 00026e	9b d9 5e e6 		fstp	DWORD PTR -26[bp]
+; ship.vertices[13].y = -8;
+; Line 57
+	*** 000274	b8 f8 ff 		mov	ax,OFFSET -8
+	*** 000277	99 			cwd
+	*** 000278	89 86 68 ff 		mov	WORD PTR -152[bp],ax
+	*** 00027c	89 96 6a ff 		mov	WORD PTR -150[bp],dx
+	*** 000280	9b db 86 68 ff 		fldi	DWORD PTR -152[bp]
+	*** 000285	9b d9 5e ea 		fstp	DWORD PTR -22[bp]
+; 
+; // set position of shaceship
+; 
+; ship.lxo = 160;
+; Line 61
+	*** 00028b	c7 86 78 ff a0 00 	mov	WORD PTR -136[bp],OFFSET 160
+; ship.lyo = 100;
+; Line 62
+	*** 000291	c7 86 7a ff 64 00 	mov	WORD PTR -134[bp],OFFSET 100
+; 
+; ship.num_vertices = 14;
+; Line 64
+	*** 000297	c7 86 7c ff 0e 00 	mov	WORD PTR -132[bp],OFFSET 14
+; ship.b_color      = 1;
+; Line 65
+	*** 00029d	c7 86 70 ff 01 00 	mov	WORD PTR -144[bp],OFFSET 1
+; ship.closed       = 1;
+; Line 66
+	*** 0002a3	c7 86 74 ff 01 00 	mov	WORD PTR -140[bp],OFFSET 1
+; 
+; //set up trig tables
+; Create_Tables();
+; Line 69
+	*** 0002a9	9a 00 00 00 00 		call	FAR PTR _Create_Tables
+; 
+; //go graphical
+; Set_Video_Mode(VGA256);
+; Line 72
+	*** 0002ae	6a 13 			push	OFFSET 19
+	*** 0002b0	9a 00 00 00 00 		call	FAR PTR _Set_Video_Mode
+	*** 0002b5	83 c4 02 		add	sp,OFFSET 2
+; 
+; //scale and draw
+; Scale2_Polygon(&ship, 1.5, 5);
+; Line 75
+	*** 0002b8	83 ec 04 		sub	sp,OFFSET 4
+	*** 0002bb	b8 05 00 		mov	ax,OFFSET 5
+	*** 0002be	99 			cwd
+	*** 0002bf	89 86 68 ff 		mov	WORD PTR -152[bp],ax
+	*** 0002c3	89 96 6a ff 		mov	WORD PTR -150[bp],dx
+	*** 0002c7	9b db 86 68 ff 		fldi	DWORD PTR -152[bp]
+	*** 0002cc	8b dc 			mov	bx,sp
+	*** 0002d0	9b d9 1f 		fstp	DWORD PTR ss:[bx]
+	*** 0002d3	83 ec 04 		sub	sp,OFFSET 4
+	*** 0002d8	9b dd 06 00 00 		fld	QWORD PTR con0
+	*** 0002dd	8b dc 			mov	bx,sp
+	*** 0002e1	9b d9 1f 		fstp	DWORD PTR ss:[bx]
+	*** 0002e4	8d 86 70 ff 		lea	ax,WORD PTR -144[bp]
+	*** 0002ea	50 			push	ax
+	*** 0002eb	9a 00 00 00 00 		call	FAR PTR _Scale2_Polygon
+	*** 0002f0	83 c4 0a 		add	sp,OFFSET 10
+; Draw_Polygon_Clip((polygon_ptr)&ship);
+; Line 76
+	*** 0002f3	8d 86 70 ff 		lea	ax,WORD PTR -144[bp]
+	*** 0002f7	50 			push	ax
+	*** 0002f8	9a 00 00 00 00 		call	FAR PTR _Draw_Polygon_Clip
+	*** 0002fd	83 c4 02 		add	sp,OFFSET 2
+; 
+; //wait for keypress
+; while(!kbhit());
+; Line 79
+					L00467:
+	*** 000300	9a 00 00 00 00 		call	FAR PTR _kbhit
+	*** 000305	3d 00 00 		cmp	ax,OFFSET 0
+	*** 000308	74 03 e9 00 00 		jne	L00468
+	*** 00030d	e9 f0 ff 		jmp	L00467
+					L00468:
+; 
+; //back to text mode
+; Set_Video_Mode(TEXT_MODE);
+; Line 82
+	*** 000310	6a 03 			push	OFFSET 3
+	*** 000312	9a 00 00 00 00 		call	FAR PTR _Set_Video_Mode
+	*** 000317	83 c4 02 		add	sp,OFFSET 2
+; }
+; Line 83
+; Line 83
+					L00463:
+	*** 00031a	5f 			pop	di
+	*** 00031b	5e 			pop	si
+	*** 00031c	c9 			leave
+	*** 00031d	cb 			ret	OFFSET 0
+Local Size: 152
+; Line 0
+; 
+; 
+; void Scale2_Polygon(polygon_ptr poly, float sx, float sy)
+; {
+; 
+; int index;
+; 
+; // scale each vertex of the polygon
+; 
+; for (index=0; index<poly->num_vertices; index++)
+;     {
+;     // multiply by the scaling factor
+; 
+;     poly->vertices[index].x*=sx;
+;     poly->vertices[index].y*=sy;
+; 
+;     } // end for
+; 
+; } // end Scale_Polygon
+; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; Line 87
+; poly = 0006
+; sx = 0008
+; sy = 000c
+					_Scale2_Polygon:
+	*** 00031e	c8 00 00 00 		enter	OFFSET L00484,OFFSET 0
+	*** 000322	56 			push	si
+	*** 000323	57 			push	di
+; index = fffc
+; ; ; Line 89
+; ; ; ; ; Line 93
+	*** 000324	c7 46 fc 00 00 		mov	WORD PTR -4[bp],OFFSET 0
+	*** 000329	e9 00 00 		jmp	L00478
+					L00479:
+	*** 00032c	83 46 fc 01 		add	WORD PTR -4[bp],OFFSET 1
+					L00478:
+	*** 000330	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000333	8b 47 0c 		mov	ax,WORD PTR 12[bx]
+	*** 000336	39 46 fc 		cmp	WORD PTR -4[bp],ax
+	*** 000339	7c 03 e9 00 00 		jge	L00480
+; ; Line 94
+; ; ; ; Line 97
+	*** 00033e	b8 0e 00 		mov	ax,OFFSET 14
+	*** 000341	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000344	03 d8 			add	bx,ax
+	*** 000346	8b 46 fc 		mov	ax,WORD PTR -4[bp]
+	*** 000349	d1 e0 			shl	ax,OFFSET 1
+	*** 00034b	d1 e0 			shl	ax,OFFSET 1
+	*** 00034d	d1 e0 			shl	ax,OFFSET 1
+	*** 00034f	03 d8 			add	bx,ax
+	*** 000351	9b d9 07 		fld	DWORD PTR [bx]
+	*** 000354	9b d8 4e 08 		fmul	ST(0),DWORD PTR 8[bp]
+	*** 000358	b8 0e 00 		mov	ax,OFFSET 14
+	*** 00035b	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 00035e	03 d8 			add	bx,ax
+	*** 000360	8b 46 fc 		mov	ax,WORD PTR -4[bp]
+	*** 000363	d1 e0 			shl	ax,OFFSET 1
+	*** 000365	d1 e0 			shl	ax,OFFSET 1
+	*** 000367	d1 e0 			shl	ax,OFFSET 1
+	*** 000369	03 d8 			add	bx,ax
+	*** 00036b	9b d9 1f 		fstp	DWORD PTR [bx]
+; ; Line 98
+	*** 000370	b8 0e 00 		mov	ax,OFFSET 14
+	*** 000373	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000376	03 d8 			add	bx,ax
+	*** 000378	8b 46 fc 		mov	ax,WORD PTR -4[bp]
+	*** 00037b	d1 e0 			shl	ax,OFFSET 1
+	*** 00037d	d1 e0 			shl	ax,OFFSET 1
+	*** 00037f	d1 e0 			shl	ax,OFFSET 1
+	*** 000381	03 d8 			add	bx,ax
+	*** 000383	9b d9 47 04 		fld	DWORD PTR 4[bx]
+	*** 000387	9b d8 4e 0c 		fmul	ST(0),DWORD PTR 12[bp]
+	*** 00038b	b8 0e 00 		mov	ax,OFFSET 14
+	*** 00038e	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000391	03 d8 			add	bx,ax
+	*** 000393	8b 46 fc 		mov	ax,WORD PTR -4[bp]
+	*** 000396	d1 e0 			shl	ax,OFFSET 1
+	*** 000398	d1 e0 			shl	ax,OFFSET 1
+	*** 00039a	d1 e0 			shl	ax,OFFSET 1
+	*** 00039c	03 d8 			add	bx,ax
+	*** 00039e	9b d9 5f 04 		fstp	DWORD PTR 4[bx]
+; ; ; Line 100
+; Line 100
+	*** 0003a4	e9 85 ff 		jmp	L00479
+					L00480:
+; ; ; Line 102
+; Line 102
+					L00476:
+	*** 0003a7	5f 			pop	di
+	*** 0003a8	5e 			pop	si
+	*** 0003a9	c9 			leave
+	*** 0003aa	cb 			ret	OFFSET 0
+Local Size: 4
+; Line 0

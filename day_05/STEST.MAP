@@ -1,0 +1,55 @@
+Stack Allocation = 8192 bytes
+
+ Start  Stop   Length Name                   Class
+ 00000H 003DDH 003DEH STEST_TEXT             CODE
+ 003DEH 007EFH 00412H GRAPH1_TEXT            CODE
+ 007F0H 016C3H 00ED4H GRAPH5_TEXT            CODE
+ 016C4H 0463EH 02F7BH _TEXT                  CODE
+ 04640H 06D3FH 02700H EMULATOR_TEXT          CODE
+ 06D40H 06D40H 00000H C_ETEXT                ENDCODE
+ 06D40H 06EAFH 00170H EMULATOR_DATA          FAR_DATA
+ 06EB0H 06EF1H 00042H NULL                   BEGDATA
+ 06EF2H 074CFH 005DEH _DATA                  DATA
+ 074D0H 074D1H 00002H XIQC                   DATA
+ 074D2H 074DDH 0000CH DBDATA                 DATA
+ 074DEH 074EBH 0000EH CDATA                  DATA
+ 074ECH 074ECH 00000H XIB                    DATA
+ 074ECH 074F7H 0000CH XI                     DATA
+ 074F8H 074F8H 00000H XIE                    DATA
+ 074F8H 074F8H 00000H XIFB                   DATA
+ 074F8H 074F8H 00000H XIF                    DATA
+ 074F8H 074F8H 00000H XIFE                   DATA
+ 074F8H 074F8H 00000H XPB                    DATA
+ 074F8H 074FBH 00004H XP                     DATA
+ 074FCH 074FCH 00000H XPE                    DATA
+ 074FCH 074FCH 00000H XCB                    DATA
+ 074FCH 074FCH 00000H XC                     DATA
+ 074FCH 074FCH 00000H XCE                    DATA
+ 074FCH 074FCH 00000H XCFB                   DATA
+ 074FCH 074FCH 00000H XCFCRT                 DATA
+ 074FCH 074FCH 00000H XCF                    DATA
+ 074FCH 074FCH 00000H XCFE                   DATA
+ 074FCH 074FCH 00000H XIFCB                  DATA
+ 074FCH 074FCH 00000H XIFU                   DATA
+ 074FCH 074FCH 00000H XIFL                   DATA
+ 074FCH 074FCH 00000H XIFM                   DATA
+ 074FCH 074FCH 00000H XIFCE                  DATA
+ 074FCH 07513H 00018H CONST                  CONST
+ 07514H 0751BH 00008H HDR                    MSG
+ 0751CH 076FBH 001E0H MSG                    MSG
+ 076FCH 076FDH 00002H PAD                    MSG
+ 076FEH 076FEH 00001H EPAD                   MSG
+ 07700H 07719H 0001AH _BSS                   BSS
+ 0771AH 0771AH 00000H XOB                    BSS
+ 0771AH 0771AH 00000H XO                     BSS
+ 0771AH 0771AH 00000H XOE                    BSS
+ 0771AH 0771AH 00000H XOFB                   BSS
+ 0771AH 0771AH 00000H XOF                    BSS
+ 0771AH 0771AH 00000H XOFE                   BSS
+ 07720H 082F5H 00BD6H c_common               BSS
+ 08300H 0A2FFH 02000H STACK                  STACK
+
+ Origin   Group
+ 06EB:0   DGROUP
+
+Program entry point at 016C:0014

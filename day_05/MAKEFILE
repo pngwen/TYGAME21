@@ -1,0 +1,18 @@
+all: circle.exe scale.exe stest.exe rockdemo.exe
+
+circle.exe: circle.obj
+	link /ST:8192 /CO circle,,,graphics.lib+..\gamelib\gamelib.lib,,
+circle.obj: circle.c
+	cl -AM -Zi -c -Fc -Gs -G2 circle.c
+scale.exe: scale.obj
+	link /ST:8192 /CO scale,,,graphics.lib+..\gamelib\gamelib.lib,,
+scale.obj: scale.c
+	cl -AM -Zi -c -Fc -Gs -G2 scale.c
+stest.exe: stest.obj
+	link /ST:8192 /CO stest,,,graphics.lib+..\gamelib\gamelib.lib,,
+stest.obj: stest.c
+	cl -AM -Zi -c -Fc -Gs -G2 stest.c
+rockdemo.exe: rockdemo.obj
+	link /ST:8192 /CO rockdemo,,,graphics.lib+..\gamelib\gamelib.lib,,
+rockdemo.obj: rockdemo.c
+	cl -AM -Zi -c -Fc -Gs -G2 rockdemo.c

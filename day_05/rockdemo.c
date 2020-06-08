@@ -39,6 +39,8 @@
                                // impedence or energy friction is 377 ohms
                                // that's why light maxes out at 186,300 MPS
 
+#define NUM_MISSILES	20
+#define MISSILE_SPEED   8.0f
 // S T R U C T U R E S ///////////////////////////////////////////////////////
 
 typedef struct vertex_typ
@@ -47,6 +49,14 @@ typedef struct vertex_typ
         float x,y;        // the vertex in 2-D
 
         } vertex, *vertex_ptr;
+
+
+typedef struct missile_typ
+{
+    float vx, vy;           //velocity vector
+    float x, y;             //position
+    unsigned int active;    //whether the missile is active
+} missile;
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -83,6 +93,9 @@ typedef struct object_typ
 // P R O T O T Y P E S ///////////////////////////////////////////////////////
 
 void Bline(int xo, int yo, int x1,int y1, unsigned char color);
+void missile_init();
+void missile_fire(polygon *ship, int angle);
+void missile_update();
 
 // G L O B A L S  ////////////////////////////////////////////////////////////
 
@@ -100,6 +113,8 @@ int poly_clip_min_x = POLY_CLIP_MIN_X,
 // the asteroid field
 
 object rocks[NUM_ROCKS];
+
+missile missiles[NUM_MISSILES];
 
 // F U N C T I O N S /////////////////////////////////////////////////////////
 
@@ -983,6 +998,9 @@ Set_Video_Mode(VGA256);
 
 Create_Tables();
 
+// initialize missiles
+missile_init();
+
 // SECTION 2 /////////////////////////////////////////////////////////////////
 
 // build up a little spaceship polygon
@@ -1065,7 +1083,7 @@ while(!done)
      Draw_Polygon_Clip((polygon_ptr)&ship);
 
      // move everything
-
+     missile_update();
      engines=0;
 
 // SECTION 4 /////////////////////////////////////////////////////////////////
@@ -1139,6 +1157,9 @@ while(!done)
                  done=1;
                  } break;
 
+              case ' ':
+	         missile_fire(&ship, angle);
+		 break;
               } // end switch
 
         } // end if kbhit
@@ -1215,5 +1236,60 @@ while(!done)
 Set_Video_Mode(TEXT_MODE);
 
 } // end main
+
+
+// MISSILE FUNCTIONS
+void missile_init()
+{
+int i;
+
+for(i=0; i<NUM_MISSILES; i++) {
+    missiles[i].active = 0;
+}
+}
+
+
+void missile_fire(polygon *ship, int angle)
+{
+int i;
+
+for(i=0; i<NUM_MISSILES; i++) {
+    if(!missiles[i].active) {
+	missiles[i].active = 1;
+	missiles[i].x = ship->lxo;
+	missiles[i].y = ship->lyo;
+	missiles[i].vx = -MISSILE_SPEED * cos_look[angle];
+	missiles[i].vy = -MISSILE_SPEED * sin_look[angle];
+	return;
+    }
+}
+}
+
+
+void missile_update()
+{
+int i;
+
+for(i=0; i<NUM_MISSILES; i++) {
+    if(missiles[i].active)
+    {
+	//erase missile
+	Plot_Pixel_Fast((int)missiles[i].x, (int)missiles[i].y, 0);
+
+	//move missile
+	missiles[i].x += missiles[i].vx;
+	missiles[i].y += missiles[i].vy;
+
+	//dispose or draw
+	if(missiles[i].x < 0 || missiles[i].x >= 320 ||
+	   missiles[i].y < 0 || missiles[i].y >= 200)
+	{
+	    missiles[i].active=0;
+	} else {
+	    Plot_Pixel_Fast((int)missiles[i].x, (int)missiles[i].y, 0x0f);
+	}
+    }
+}
+}
 
 

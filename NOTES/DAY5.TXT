@@ -1,0 +1,48 @@
+Day 5 June 6, 2020
+==================
+Today was a nice lesson in trigonometry and 2d geometry.  The chapter 
+developed a few polygon drawing functions and some standard line drawing
+algorithms. 
+
+I think this is a nice concrete mathematics lesson.
+
+Exercises
+=========
+1. Write a function that draws a circle of any radius. 
+   
+   I wrote the function without clipping first, and then added pixel by
+   pixel clipping.  My original version used the math.h sin and cos functions
+   (along with the radian conversions).
+   
+   I then made it continuously generate circles of random colors, radii,
+   and centers.  I then switched over to using the gamelib's table based
+   trig functions.  I did not time the difference, but the table approach
+   is visibly much faster.  
+   
+   The code is all in circle.c.
+
+2. Write a function that scales a polygon differently on each axis; that is
+   there's a separate scaling for both x- and y-axis.
+   
+   Pretty straightforward.  This is in scale.c, along with a small test
+   scaling the ship from rockdemo.  
+   
+3. Time and analyze the defference in performance of Draw_Polygon() and 
+   Draw_Polygon_Clip(). 
+   
+   Draw_Polygon was able to draw 100,000 polygons in 60 seconds.
+   Draw_Polygon_Clip was able to draw 100,000 polygons in 71 seconds.
+   
+   The polygon in both cases was the ship from rockemo.
+   
+4. Make the ship in rockdemo fire missiles. 
+
+   Done.  Not too bad.  I made a missile structure, and I made an array
+   of 20 missiles.  This is modeled after the missile system in mech wars,
+   though it is simpler.  Space fires.  A little bit of trigonometry 
+   sets the missile on the right path.
+
+5. Place a black hole into rockdemo by creating a local gravity field 
+   somewhere on the screen.
+   
+6. Extra Credit: See if you can derive the rotation equations.
