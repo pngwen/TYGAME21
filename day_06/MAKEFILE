@@ -1,0 +1,11 @@
+all: robo.exe ..\gamelib\gamelib.lib
+
+robo.exe: robo.obj ..\gamelib\gamelib.lib
+	link /ST:8192 /CO robo,,,graphics.lib+..\gamelib\gamelib.lib,,
+robo.obj: robo.c
+	cl -AM -Zi -c -Fc -Gs -G2 robo.c
+	
+..\gamelib\gamelib.lib: graph6.obj
+	lib ..\gamelib\gamelib.lib -+graph6
+graph6.obj: graph6.c 
+	cl -AM -Zi -c -Fc -Gs -G2 graph6.c

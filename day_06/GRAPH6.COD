@@ -1,0 +1,2139 @@
+; File graph6.c
+; 
+; // I N C L U D E S ///////////////////////////////////////////////////////////
+; 
+; #include <io.h>
+; #include <conio.h>
+; #include <stdio.h>
+; #include <stdlib.h>
+; #include <dos.h>
+; #include <bios.h>
+; #include <fcntl.h>
+; #include <memory.h>
+; #include <malloc.h>
+; #include <math.h>
+; #include <string.h>
+; 
+; #include "graph3.h"
+; #include "graph4.h"
+; #include "graph6.h"
+; 
+; // G L O B A L S  ////////////////////////////////////////////////////////////
+; 
+; unsigned char far *double_buffer = NULL;
+; 
+; unsigned int buffer_height        = SCREEN_HEIGHT;
+; 
+; unsigned int buffer_size = SCREEN_WIDTH*SCREEN_HEIGHT/2;
+; 
+; // F U N C T I O N S /////////////////////////////////////////////////////////
+; 
+; void Show_Double_Buffer(char far *buffer)
+; {
+; Line 31
+; buffer = 0006
+					_Show_Double_Buffer:
+	*** 000000	c8 00 00 00 		enter	OFFSET L01045,OFFSET 0
+	*** 000004	56 			push	si
+	*** 000005	57 			push	di
+; // this functions copies the doubele buffer into the video buffer
+; 
+; _asm
+; Line 34
+;    {
+; Line 35
+;    push ds               ; save DS on stack
+; Line 36
+	*** 000006	1e 			push	ds
+;    mov cx,buffer_size    ; this is the size of buffer in WORDS
+; Line 37
+	*** 000007	8b 0e 06 00 		mov	cx,WORD PTR _buffer_size
+;    les di,video_buffer   ; es:di is destination of memory move
+; Line 38
+	*** 00000b	c4 3e 00 00 		les	di,DWORD PTR _video_buffer
+;    lds si,buffer         ; ds:si is source of memory move
+; Line 39
+	*** 00000f	c5 76 06 		lds	si,DWORD PTR 6[bp]
+;    cld                   ; make sure to move in the right direction
+; Line 40
+	*** 000012	fc 			cld
+;    rep movsw             ; move all the words
+; Line 41
+	*** 000013	f3 			rep
+	*** 000014	a5 			movs
+;    pop ds                ; restore the data segment
+; Line 42
+	*** 000015	1f 			pop	ds
+;    } // end asm
+; Line 43
+; 
+; } // end Show_Double_Buffer
+; Line 45
+; Line 45
+					L00847:
+	*** 000016	5f 			pop	di
+	*** 000017	5e 			pop	si
+	*** 000018	c9 			leave
+	*** 000019	cb 			ret	OFFSET 0
+Local Size: 2
+; Line 0
+; 
+; //////////////////////////////////////////////////////////////////////////////
+; 
+; int Create_Double_Buffer(int num_lines)
+; {
+; 
+; // allocate enough memory to hold the double buffer
+; 
+; if ((double_buffer = (unsigned char far *)_fmalloc(SCREEN_WIDTH * (num_lines + 1)))==NULL)
+;    return(0);
+; 
+; // set the height of the buffer and compute it's size
+; 
+; buffer_height = num_lines;
+; 
+; buffer_size = SCREEN_WIDTH * num_lines/2;
+; 
+; // fill the buffer with black
+; 
+; _fmemset(double_buffer, 0, SCREEN_WIDTH * num_lines);
+; 
+; // everything was ok
+; 
+; return(1);
+; 
+; } // end Init_Double_Buffer
+; 
+; ///////////////////////////////////////////////////////////////////////////////
+; 
+; void Fill_Double_Buffer(int color)
+; {
+; // this function fills in the double buffer with the sent color
+; 
+; _fmemset(double_buffer, color, SCREEN_WIDTH * buffer_height);
+; 
+; } // end Fill_Double_Buffer
+; 
+; //////////////////////////////////////////////////////////////////////////////
+; 
+; void Delete_Double_Buffer(void)
+; {
+; // this function free's up the memory allocated by the double buffer
+; // make sure to use FAR version
+; 
+; if (double_buffer)
+;   _ffree(double_buffer);
+; 
+; } // end Delete_Double_Buffer
+; 
+; //////////////////////////////////////////////////////////////////////////////
+; Line 50
+; num_lines = 0006
+					_Create_Double_Buffer:
+	*** 00001a	c8 00 00 00 		enter	OFFSET L01046,OFFSET 0
+	*** 00001e	56 			push	si
+	*** 00001f	57 			push	di
+; 
+; void Plot_Pixel_Fast_DB(int x,int y,unsigned char color)
+; {
+; 
+; Line 54
+	*** 000020	8b 46 06 		mov	ax,WORD PTR 6[bp]
+	*** 000023	05 01 00 		add	ax,OFFSET 1
+	*** 000026	b9 40 01 		mov	cx,OFFSET 320
+	*** 000029	f7 e9 			imul	cx
+	*** 00002b	50 			push	ax
+	*** 00002c	9a 00 00 00 00 		call	FAR PTR __fmalloc
+	*** 000031	83 c4 02 		add	sp,OFFSET 2
+	*** 000034	a3 00 00 		mov	WORD PTR _double_buffer,ax
+	*** 000037	89 16 02 00 		mov	WORD PTR _double_buffer+2,dx
+	*** 00003b	3d 00 00 		cmp	ax,OFFSET 0
+	*** 00003e	74 03 e9 00 00 		jne	L00851
+	*** 000043	83 fa 00 		cmp	dx,OFFSET 0
+	*** 000046	74 03 e9 00 00 		jne	L00851
+; // plots the pixel in the desired color a little quicker using binary shifting
+; Line 55
+	*** 00004b	b8 00 00 		mov	ax,OFFSET 0
+	*** 00004e	e9 00 00 		jmp	L00850
+; // to accomplish the multiplications
+; 
+; // use the fact that 320*y = 256*y + 64*y = y<<8 + y<<6
+; 
+; Line 59
+					L00851:
+	*** 000051	8b 46 06 		mov	ax,WORD PTR 6[bp]
+	*** 000054	a3 04 00 		mov	WORD PTR _buffer_height,ax
+; double_buffer[((y<<8) + (y<<6)) + x] = color;
+; 
+; Line 61
+	*** 000057	8b 46 06 		mov	ax,WORD PTR 6[bp]
+	*** 00005a	b9 40 01 		mov	cx,OFFSET 320
+	*** 00005d	f7 e9 			imul	cx
+	*** 00005f	b9 02 00 		mov	cx,OFFSET 2
+	*** 000062	2b d2 			sub	dx,dx
+	*** 000064	f7 f1 			div	cx
+	*** 000066	a3 06 00 		mov	WORD PTR _buffer_size,ax
+; } // end Plot_Pixel_Fast_DB
+; 
+; //////////////////////////////////////////////////////////////////////////////
+; 
+; Line 65
+	*** 000069	8b 46 06 		mov	ax,WORD PTR 6[bp]
+	*** 00006c	b9 40 01 		mov	cx,OFFSET 320
+	*** 00006f	f7 e9 			imul	cx
+	*** 000071	50 			push	ax
+	*** 000072	6a 00 			push	OFFSET 0
+	*** 000074	ff 36 02 00 		push	WORD PTR _double_buffer+2
+	*** 000078	ff 36 00 00 		push	WORD PTR _double_buffer
+	*** 00007c	9a 00 00 00 00 		call	FAR PTR __fmemset
+	*** 000081	83 c4 08 		add	sp,OFFSET 8
+; void Scale_Sprite(sprite_ptr sprite,float scale)
+; {
+; 
+; // this function scales a sprite by computing the number of source pixels
+; Line 69
+	*** 000084	b8 01 00 		mov	ax,OFFSET 1
+	*** 000087	e9 00 00 		jmp	L00850
+; // needed to satisfy the number of destination pixels
+; // note: this function works in the double buffer
+; Line 71
+; Line 71
+					L00850:
+	*** 00008a	5f 			pop	di
+	*** 00008b	5e 			pop	si
+	*** 00008c	c9 			leave
+	*** 00008d	cb 			ret	OFFSET 0
+Local Size: 2
+; Line 0
+; 
+; char far *work_sprite;
+; 
+; int work_offset=0,
+;     offset,
+;     x,
+;     y;
+; 
+; unsigned char data;
+; 
+; float y_scale_index,
+;       x_scale_step,
+;       y_scale_step,
+;       x_scale_index;
+; 
+; // set first source pixel
+; 
+; y_scale_index = 0;
+; 
+; // compute floating point step
+; 
+; y_scale_step = sprite_height/scale;
+; x_scale_step = sprite_width/scale;
+; 
+; // alias a pointer to sprite for ease of access
+; 
+; work_sprite = sprite->frames[sprite->curr_frame];
+; 
+; // compute offset of sprite in video buffer
+; 
+; offset = (sprite->y << 8) + (sprite->y << 6) + sprite->x;
+; 
+; // row by row scale object
+; 
+; for (y=0; y<(int)(scale); y++)
+;     {
+;     // copy the next row into the screen buffer using memcpy for speed
+; 
+;     x_scale_index=0;
+; 
+;     for (x=0; x<(int)scale; x++)
+;         {
+; 
+;         // test for transparent pixel i.e. 0, if not transparent then draw
+; 
+;         if ((data=work_sprite[work_offset+(int)x_scale_index]))
+;              double_buffer[offset+x] = data;
+; 
+;         x_scale_index+=(x_scale_step);
+; 
+;         } // end for x
+; 
+;     // using the floating scale_step, index to next source pixel
+; 
+;     y_scale_index+=y_scale_step;
+; 
+;     // move to next line in video buffer and in sprite bitmap buffer
+; 
+;     offset      += SCREEN_WIDTH;
+;     work_offset = sprite_width*(int)(y_scale_index);
+; 
+;     } // end for y
+; 
+; } // end Scale_Sprite
+; 
+; ////////////////////////////////////////////////////////////////////////////////
+; 
+; void Behind_Sprite_DB(sprite_ptr sprite)
+; {
+; 
+; // this function scans the background behind a sprite so that when the sprite
+; // is draw, the background isnn'y obliterated
+; 
+; char far *work_back;
+; int work_offset=0,offset,y;
+; 
+; Line 76
+; color = 0006
+					_Fill_Double_Buffer:
+	*** 00008e	c8 00 00 00 		enter	OFFSET L01047,OFFSET 0
+	*** 000092	56 			push	si
+	*** 000093	57 			push	di
+; // alias a pointer to sprite background for ease of access
+; 
+; work_back = sprite->background;
+; Line 79
+	*** 000094	b8 40 01 		mov	ax,OFFSET 320
+	*** 000097	f7 2e 04 00 		imul	WORD PTR _buffer_height
+	*** 00009b	50 			push	ax
+	*** 00009c	ff 76 06 		push	WORD PTR 6[bp]
+	*** 00009f	ff 36 02 00 		push	WORD PTR _double_buffer+2
+	*** 0000a3	ff 36 00 00 		push	WORD PTR _double_buffer
+	*** 0000a7	9a 00 00 00 00 		call	FAR PTR __fmemset
+	*** 0000ac	83 c4 08 		add	sp,OFFSET 8
+; 
+; // compute offset of background in video buffer
+; Line 81
+; Line 81
+					L00854:
+	*** 0000af	5f 			pop	di
+	*** 0000b0	5e 			pop	si
+	*** 0000b1	c9 			leave
+	*** 0000b2	cb 			ret	OFFSET 0
+Local Size: 2
+; Line 0
+; 
+; offset = (sprite->y << 8) + (sprite->y << 6) + sprite->x;
+; 
+; for (y=0; y<sprite_height; y++)
+;     {
+;     // copy the next row out off screen buffer into sprite background buffer
+; 
+;     _fmemcpy((char far *)&work_back[work_offset],
+;              (char far *)&double_buffer[offset],
+;              sprite_width);
+; 
+;     // move to next line in double buffer and in sprite background buffer
+; 
+;     offset      += SCREEN_WIDTH;
+;     work_offset += sprite_width;
+; 
+;     } // end for y
+; 
+; } // end Behind_Sprite_DB
+; 
+; //////////////////////////////////////////////////////////////////////////////
+; 
+; void Erase_Sprite_DB(sprite_ptr sprite)
+; {
+; // replace the background that was behind the sprite
+; 
+; // this function replaces the background that was saved from where a sprite
+; // was going to be placed
+; 
+; char far *work_back;
+; int work_offset=0,offset,y;
+; 
+; // alias a pointer to sprite background for ease of access
+; 
+; work_back = sprite->background;
+; 
+; // compute offset of background in double buffer
+; 
+; offset = (sprite->y << 8) + (sprite->y << 6) + sprite->x;
+; 
+; for (y=0; y<sprite_height; y++)
+;     {
+;     // copy the next row out off screen buffer into sprite background buffer
+; 
+;     _fmemcpy((char far *)&double_buffer[offset],
+;              (char far *)&work_back[work_offset],
+;              sprite_width);
+; 
+;     // move to next line in video buffer and in sprite background buffer
+; 
+;     offset      += SCREEN_WIDTH;
+;     work_offset += sprite_width;
+; 
+;     } // end for y
+; 
+; 
+; } // end Erase_Sprite_DB
+; 
+; //////////////////////////////////////////////////////////////////////////////
+; 
+; void Draw_Sprite_DB(sprite_ptr sprite)
+; {
+; 
+; // this function draws a sprite on the screen row by row very quickly
+; // note the use of shifting to implement multplication
+; 
+; char far *work_sprite;
+; int work_offset=0,offset,x,y;
+; unsigned char data;
+; 
+; // alias a pointer to sprite for ease of access
+; 
+; work_sprite = sprite->frames[sprite->curr_frame];
+; 
+; // compute offset of sprite in video buffer
+; 
+; offset = (sprite->y << 8) + (sprite->y << 6) + sprite->x;
+; 
+; for (y=0; y<sprite_height; y++)
+;     {
+;     // copy the next row into the double buffer using memcpy for speed
+; 
+;     for (x=0; x<sprite_width; x++)
+;         {
+; 
+;         // test for transparent pixel i.e. 0, if not transparent then draw
+; Line 86
+					_Delete_Double_Buffer:
+	*** 0000b4	c8 00 00 00 		enter	OFFSET L01048,OFFSET 0
+	*** 0000b8	56 			push	si
+	*** 0000b9	57 			push	di
+; 
+;         if ((data=work_sprite[work_offset+x]))
+;              double_buffer[offset+x] = data;
+; 
+; Line 90
+	*** 0000ba	83 3e 00 00 00 		cmp	WORD PTR _double_buffer,OFFSET 0
+	*** 0000bf	74 03 e9 00 00 		jne	L01049
+	*** 0000c4	83 3e 02 00 00 		cmp	WORD PTR _double_buffer+2,OFFSET 0
+	*** 0000c9	75 03 e9 00 00 		je	L00856
+					L01049:
+;         } // end for x
+; Line 91
+	*** 0000ce	ff 36 02 00 		push	WORD PTR _double_buffer+2
+	*** 0000d2	ff 36 00 00 		push	WORD PTR _double_buffer
+	*** 0000d6	9a 00 00 00 00 		call	FAR PTR __ffree
+	*** 0000db	83 c4 04 		add	sp,OFFSET 4
+; 
+;     // move to next line in double buffer and in sprite bitmap buffer
+; Line 93
+					L00856:
+; Line 93
+					L00855:
+	*** 0000de	5f 			pop	di
+	*** 0000df	5e 			pop	si
+	*** 0000e0	c9 			leave
+	*** 0000e1	cb 			ret	OFFSET 0
+Local Size: 2
+; Line 0
+; 
+;     offset      += SCREEN_WIDTH;
+;     work_offset += sprite_width;
+; 
+;     } // end for y
+; 
+; } // end Draw_Sprite_DB
+; 
+; ///////////////////////////////////////////////////////////////////////////////
+; 
+; void Fade_Lights(void)
+; {
+; // this functions fades the lights by slowly decreasing the color values
+; // in all color registers
+; 
+; int pal_reg,index;
+; RGB_color color;
+; 
+; for (index=0; index<30; index++)
+;     {
+; 
+;     for (pal_reg=1; pal_reg<255; pal_reg++)
+;         {
+;         // get the color to fade
+; 
+;         Get_Palette_Register(pal_reg,(RGB_color_ptr)&color);
+; 
+;         if (color.red   > 5) color.red-=3;
+;         else
+;            color.red = 0;
+; 
+;         if (color.green > 5) color.green-=3;
+;         else
+;            color.green = 0;
+;         if (color.blue  > 5) color.blue-=3;
+;         else
+;            color.blue = 0;
+; 
+;         // set the color to a diminished intensity
+; 
+;         Set_Palette_Register(pal_reg,(RGB_color_ptr)&color);
+; 
+;         } // end for pal_reg
+; 
+;     // wait a bit
+; 
+;     Delay(2);
+; 
+;     } // end fade for
+; 
+; } // end Fade_Lights
+; 
+; //////////////////////////////////////////////////////////////////////////////
+; 
+; void Disolve(void)
+; {
+; // disolve screen by ploting zillions of black pixels
+; 
+; unsigned long index;
+; 
+; for (index=0; index<=300000; index++,Plot_Pixel_Fast(rand()%320, rand()%200, 0));
+; 
+; } // end Disolve
+; 
+; 
+; void Disolve_Color(unsigned char color)
+; {
+; // disolve screen by ploting zillions of black pixels
+; 
+; unsigned long index;
+; 
+; for (index=0; index<=300000; index++,Plot_Pixel_Fast(rand()%320, rand()%200, color));
+; 
+; } // end Disolve
+; 
+; //////////////////////////////////////////////////////////////////////////////
+; 
+; void Melt(void)
+; {
+; 
+; // this function "melts" the screen by moving little worms at different speeds
+; // down the screen.  These worms change to the color thy are eating
+; 
+; int index,ticks=0;
+; 
+; worm worms[NUM_WORMS]; // the array of worms used to make the screen melt
+; 
+; // initialize the worms
+; 
+; for (index=0; index<160; index++)
+;     {
+; 
+;     worms[index].color   = Get_Pixel(index,0);
+;     worms[index].speed   = 3 + rand()%9;
+;     worms[index].y       = 0;
+;     worms[index].counter = 0;
+; 
+;     // draw the worm
+; Line 98
+; x = 0006
+; y = 0008
+; color = 000a
+					_Plot_Pixel_Fast_DB:
+	*** 0000e2	c8 00 00 00 		enter	OFFSET L01050,OFFSET 0
+	*** 0000e6	56 			push	si
+	*** 0000e7	57 			push	di
+; 
+;     Plot_Pixel_Fast((index<<1),0,(char)worms[index].color);
+;     Plot_Pixel_Fast((index<<1),1,(char)worms[index].color);
+;     Plot_Pixel_Fast((index<<1),2,(char)worms[index].color);
+; 
+; 
+;     Plot_Pixel_Fast((index<<1)+1,0,(char)worms[index].color);
+; Line 105
+	*** 0000e8	8b 46 08 		mov	ax,WORD PTR 8[bp]
+	*** 0000eb	c1 e0 06 		shl	ax,OFFSET 6
+	*** 0000ee	8b 56 08 		mov	dx,WORD PTR 8[bp]
+	*** 0000f1	c1 e2 08 		shl	dx,OFFSET 8
+	*** 0000f4	03 d0 			add	dx,ax
+	*** 0000f6	03 56 06 		add	dx,WORD PTR 6[bp]
+	*** 0000f9	8b 1e 00 00 		mov	bx,WORD PTR _double_buffer
+	*** 0000fd	8b 0e 02 00 		mov	cx,WORD PTR _double_buffer+2
+	*** 000101	03 da 			add	bx,dx
+	*** 000103	8e c1 			mov	es,cx
+	*** 000105	8a 46 0a 		mov	al,BYTE PTR 10[bp]
+	*** 000108	26 88 07 		mov	BYTE PTR es:[bx],al
+;     Plot_Pixel_Fast((index<<1)+1,1,(char)worms[index].color);
+;     Plot_Pixel_Fast((index<<1)+1,2,(char)worms[index].color);
+; Line 107
+; Line 107
+					L00863:
+	*** 00010b	5f 			pop	di
+	*** 00010c	5e 			pop	si
+	*** 00010d	c9 			leave
+	*** 00010e	cb 			ret	OFFSET 0
+Local Size: 2
+; Line 0
+; 
+;     } // end index
+; 
+; // do screen melt
+; 
+; while(++ticks<1800)
+;      {
+; 
+;      // process each worm
+; 
+;      for (index=0; index<320; index++)
+;          {
+;          // is it time to move worm
+; 
+;          if (++worms[index].counter == worms[index].speed)
+;             {
+;             // reset counter
+; 
+;             worms[index].counter = 0;
+; 
+;             worms[index].color = Get_Pixel(index,worms[index].y+4);
+; 
+;             // has worm hit bottom?
+; 
+;             if (worms[index].y < 193)
+;                {
+; 
+;                Plot_Pixel_Fast((index<<1),worms[index].y,0);
+;                Plot_Pixel_Fast((index<<1),worms[index].y+1,(char)worms[index].color);
+;                Plot_Pixel_Fast((index<<1),worms[index].y+2,(char)worms[index].color);
+;                Plot_Pixel_Fast((index<<1),worms[index].y+3,(char)worms[index].color);
+; 
+;                Plot_Pixel_Fast((index<<1)+1,worms[index].y,0);
+;                Plot_Pixel_Fast((index<<1)+1,worms[index].y+1,(char)worms[index].color);
+;                Plot_Pixel_Fast((index<<1)+1,worms[index].y+2,(char)worms[index].color);
+;                Plot_Pixel_Fast((index<<1)+1,worms[index].y+3,(char)worms[index].color);
+; 
+;                worms[index].y++;
+; 
+;                } // end if worm isn't at bottom yet
+; 
+;             } // end if time to move worm
+; 
+;          } // end index
+; 
+;      // accelerate melt
+; 
+;      if (!(ticks % 500))
+;         {
+; 
+;         for (index=0; index<160; index++)
+;             worms[index].speed--;
+; 
+;         } // end if time to accelerate melt
+; 
+;      } // end while
+; 
+; } // end Melt
+; 
+; //////////////////////////////////////////////////////////////////////////////
+; 
+; void Sheer(void)
+; {
+; // this program "sheers" the screen for lack of a better word.
+; 
+; long index;
+; int x,y;
+; 
+; // select starting point of sheers
+; 
+; x=rand()%320;
+; y=rand()%200;
+; 
+; // do it a few times to make sure whole screen is destroyed
+; 
+; for (index=0; index<100000; index++)
+;     {
+; 
+;     // move sheers
+; 
+;     x+=17; // note the use of prime numbers
+;     y+=13;
+; 
+;     // test if sheers are of boundaries, if so roll them over
+; 
+;     if (x>319)
+;        x = x - 319;
+; 
+;     if (y>199)
+;        y = y - 199;
+; 
+;     // plot the pixel in black
+; 
+;     Plot_Pixel_Fast(x,y,0);
+; 
+;     } // end for index
+; 
+; } // end Sheer
+; 
+; //////////////////////////////////////////////////////////////////////////////////
+; 
+; void Wait_For_Vsync(void)
+; {
+; // this function waits for the start of a vertical retrace, if a vertical
+; // retrace is in progress then it waits until the next one
+; 
+; while(_inp(VGA_INPUT_STATUS_1) & VGA_VSYNC_MASK)
+;      {
+;      // do nothing, vga is in retrace
+;      } // end while
+; 
+; // now wait for vysnc and exit
+; Line 112
+; sprite = 0006
+; scale = 0008
+					_Scale_Sprite:
+	*** 000110	c8 00 00 00 		enter	OFFSET L01051,OFFSET 0
+	*** 000114	56 			push	si
+	*** 000115	57 			push	di
+; y_scale_index = fffa
+; offset = fff8
+; y = fff6
+; x_scale_index = fff2
+; x = fff0
+; work_offset = ffee
+; y_scale_step = ffea
+; data = ffe8
+; work_sprite = ffe4
+; x_scale_step = ffe0
+; 
+; while(!(_inp(VGA_INPUT_STATUS_1) & VGA_VSYNC_MASK))
+;      {
+;      // do nothing, wait for start of retrace
+;      } // end while
+; 
+; Line 118
+; // at this point a vertical retrace is occuring, so return back to caller
+; 
+; Line 120
+	*** 000116	c7 46 ee 00 00 		mov	WORD PTR -18[bp],OFFSET 0
+; } // end Wait_For_Vsync
+; Line 121
+; 
+; Line 122
+; ///////////////////////////////////////////////////////////////////////////////
+; Line 123
+; 
+; void Blit_Char_DB(int xc,int yc,char c,int color,int trans_flag)
+; Line 125
+; {
+; // this function uses the rom 8x8 character set to blit a character into the
+; Line 127
+; // double buffer,notice the trick used to extract bits out of each character
+; Line 128
+; // byte that comprises a line
+; Line 129
+; 
+; Line 130
+; int offset,x,y;
+; char far *work_char;
+; unsigned char bit_mask = 0x80;
+; 
+; Line 134
+	*** 00011b	b8 00 00 		mov	ax,OFFSET 0
+	*** 00011e	99 			cwd
+	*** 00011f	89 46 d8 		mov	WORD PTR -40[bp],ax
+	*** 000122	89 56 da 		mov	WORD PTR -38[bp],dx
+	*** 000125	9b db 46 d8 		fldi	DWORD PTR -40[bp]
+	*** 000129	9b d9 5e fa 		fstp	DWORD PTR -6[bp]
+; // compute starting offset in rom character lookup table
+; 
+; work_char = rom_char_set + c * CHAR_HEIGHT;
+; 
+; Line 138
+	*** 00012f	a1 00 00 		mov	ax,WORD PTR _sprite_height
+	*** 000132	ba 00 00 		mov	dx,OFFSET 0
+	*** 000135	89 46 d8 		mov	WORD PTR -40[bp],ax
+	*** 000138	89 56 da 		mov	WORD PTR -38[bp],dx
+	*** 00013b	9b db 46 d8 		fldi	DWORD PTR -40[bp]
+	*** 00013f	9b d8 76 08 		fdiv	ST(0),DWORD PTR 8[bp]
+	*** 000143	9b d9 5e ea 		fstp	DWORD PTR -22[bp]
+; // compute offset of character in video buffer
+; Line 139
+	*** 000149	a1 00 00 		mov	ax,WORD PTR _sprite_width
+	*** 00014c	ba 00 00 		mov	dx,OFFSET 0
+	*** 00014f	89 46 d8 		mov	WORD PTR -40[bp],ax
+	*** 000152	89 56 da 		mov	WORD PTR -38[bp],dx
+	*** 000155	9b db 46 d8 		fldi	DWORD PTR -40[bp]
+	*** 000159	9b d8 76 08 		fdiv	ST(0),DWORD PTR 8[bp]
+	*** 00015d	9b d9 5e e0 		fstp	DWORD PTR -32[bp]
+; 
+; offset = (yc << 8) + (yc << 6) + xc;
+; 
+; for (y=0; y<CHAR_HEIGHT; y++)
+; Line 143
+	*** 000163	b8 14 00 		mov	ax,OFFSET 20
+	*** 000166	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000169	03 d8 			add	bx,ax
+	*** 00016b	89 5e de 		mov	WORD PTR -34[bp],bx
+	*** 00016e	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000171	8b 47 74 		mov	ax,WORD PTR 116[bx]
+	*** 000174	d1 e0 			shl	ax,OFFSET 1
+	*** 000176	d1 e0 			shl	ax,OFFSET 1
+	*** 000178	8b 5e de 		mov	bx,WORD PTR -34[bp]
+	*** 00017b	03 d8 			add	bx,ax
+	*** 00017d	8b 07 			mov	ax,WORD PTR [bx]
+	*** 00017f	8b 57 02 		mov	dx,WORD PTR 2[bx]
+	*** 000182	89 46 e4 		mov	WORD PTR -28[bp],ax
+	*** 000185	89 56 e6 		mov	WORD PTR -26[bp],dx
+;     {
+;     // reset bit mask
+; 
+;     bit_mask = 0x80;
+; Line 147
+	*** 000188	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 00018b	8b 47 02 		mov	ax,WORD PTR 2[bx]
+	*** 00018e	c1 e0 06 		shl	ax,OFFSET 6
+	*** 000191	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000194	8b 57 02 		mov	dx,WORD PTR 2[bx]
+	*** 000197	c1 e2 08 		shl	dx,OFFSET 8
+	*** 00019a	03 d0 			add	dx,ax
+	*** 00019c	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 00019f	03 17 			add	dx,WORD PTR [bx]
+	*** 0001a1	89 56 f8 		mov	WORD PTR -8[bp],dx
+; 
+;     for (x=0; x<CHAR_WIDTH; x++)
+;         {
+;         // test for transparent pixel i.e. 0, if not transparent then draw
+; Line 151
+	*** 0001a4	c7 46 f6 00 00 		mov	WORD PTR -10[bp],OFFSET 0
+	*** 0001a9	e9 00 00 		jmp	L00879
+					L00880:
+	*** 0001ac	83 46 f6 01 		add	WORD PTR -10[bp],OFFSET 1
+					L00879:
+	*** 0001b0	9b d9 46 08 		fld	DWORD PTR 8[bp]
+	*** 0001b4	9a 00 00 00 00 		call	FAR PTR __aFftol
+	*** 0001bb	39 46 f6 		cmp	WORD PTR -10[bp],ax
+	*** 0001be	7c 03 e9 00 00 		jge	L00881
+; 
+; Line 152
+;         if ((*work_char & bit_mask))
+;              double_buffer[offset+x] = color;
+; 
+; Line 155
+	*** 0001c3	b8 00 00 		mov	ax,OFFSET 0
+	*** 0001c6	99 			cwd
+	*** 0001c7	89 46 d8 		mov	WORD PTR -40[bp],ax
+	*** 0001ca	89 56 da 		mov	WORD PTR -38[bp],dx
+	*** 0001cd	9b db 46 d8 		fldi	DWORD PTR -40[bp]
+	*** 0001d1	9b d9 5e f2 		fstp	DWORD PTR -14[bp]
+;         else if (!trans_flag)  // takes care of transparency
+;             double_buffer[offset+x] = 0;
+; Line 157
+	*** 0001d7	c7 46 f0 00 00 		mov	WORD PTR -16[bp],OFFSET 0
+	*** 0001dc	e9 00 00 		jmp	L00883
+					L00884:
+	*** 0001df	83 46 f0 01 		add	WORD PTR -16[bp],OFFSET 1
+					L00883:
+	*** 0001e3	9b d9 46 08 		fld	DWORD PTR 8[bp]
+	*** 0001e7	9a 00 00 00 00 		call	FAR PTR __aFftol
+	*** 0001ee	39 46 f0 		cmp	WORD PTR -16[bp],ax
+	*** 0001f1	7c 03 e9 00 00 		jge	L00885
+; 
+; Line 158
+;         // shift bit mask
+; 
+;         bit_mask = (bit_mask>>1);
+; 
+; Line 162
+	*** 0001f6	9b d9 46 f2 		fld	DWORD PTR -14[bp]
+	*** 0001fa	9a 00 00 00 00 		call	FAR PTR __aFftol
+	*** 000201	03 46 ee 		add	ax,WORD PTR -18[bp]
+	*** 000204	8b 5e e4 		mov	bx,WORD PTR -28[bp]
+	*** 000207	8b 4e e6 		mov	cx,WORD PTR -26[bp]
+	*** 00020a	03 d8 			add	bx,ax
+	*** 00020c	8e c1 			mov	es,cx
+	*** 00020e	26 8a 07 		mov	al,BYTE PTR es:[bx]
+	*** 000211	88 46 e8 		mov	BYTE PTR -24[bp],al
+	*** 000214	25 ff 00 		and	ax,OFFSET 255
+	*** 000217	3d 00 00 		cmp	ax,OFFSET 0
+	*** 00021a	75 03 e9 00 00 		je	L00887
+;         } // end for x
+; Line 163
+	*** 00021f	8b 46 f8 		mov	ax,WORD PTR -8[bp]
+	*** 000222	03 46 f0 		add	ax,WORD PTR -16[bp]
+	*** 000225	8b 1e 00 00 		mov	bx,WORD PTR _double_buffer
+	*** 000229	8b 0e 02 00 		mov	cx,WORD PTR _double_buffer+2
+	*** 00022d	03 d8 			add	bx,ax
+	*** 00022f	8e c1 			mov	es,cx
+	*** 000231	8a 46 e8 		mov	al,BYTE PTR -24[bp]
+	*** 000234	26 88 07 		mov	BYTE PTR es:[bx],al
+; 
+;     // move to next line in video buffer and in rom character data area
+; Line 165
+					L00887:
+	*** 000237	9b d9 46 f2 		fld	DWORD PTR -14[bp]
+	*** 00023b	9b d8 46 e0 		fadd	ST(0),DWORD PTR -32[bp]
+	*** 00023f	9b d9 5e f2 		fstp	DWORD PTR -14[bp]
+; 
+;     offset      += SCREEN_WIDTH;
+; Line 167
+; Line 167
+	*** 000245	e9 97 ff 		jmp	L00884
+					L00885:
+;     work_char++;
+; 
+;     } // end for y
+; 
+; Line 171
+	*** 000248	9b d9 46 fa 		fld	DWORD PTR -6[bp]
+	*** 00024c	9b d8 46 ea 		fadd	ST(0),DWORD PTR -22[bp]
+	*** 000250	9b d9 5e fa 		fstp	DWORD PTR -6[bp]
+; } // end Blit_Char_DB
+; 
+; //////////////////////////////////////////////////////////////////////////////
+; 
+; Line 175
+	*** 000256	81 46 f8 40 01 		add	WORD PTR -8[bp],OFFSET 320
+; void Blit_String_DB(int x,int y,int color, char *string,int trans_flag)
+; Line 176
+	*** 00025b	9b d9 46 fa 		fld	DWORD PTR -6[bp]
+	*** 00025f	9a 00 00 00 00 		call	FAR PTR __aFftol
+	*** 000266	f7 2e 00 00 		imul	WORD PTR _sprite_width
+	*** 00026a	89 46 ee 		mov	WORD PTR -18[bp],ax
+; {
+; // this function blits an entire string into the double buffer with fixed
+; Line 178
+; Line 178
+	*** 00026d	e9 3c ff 		jmp	L00880
+					L00881:
+; // spacing between each character.  it calls blit_char.
+; 
+; Line 180
+; Line 180
+					L00868:
+	*** 000270	5f 			pop	di
+	*** 000271	5e 			pop	si
+	*** 000272	c9 			leave
+	*** 000273	cb 			ret	OFFSET 0
+Local Size: 40
+; Line 0
+; int index;
+; 
+; for (index=0; string[index]!=0; index++)
+;      {
+; 
+;      Blit_Char_DB(x+(index<<3),y,string[index],color,trans_flag);
+; 
+;      } /* end while */
+; 
+; } /* end Blit_String_DB */
+; 
+; ///////////////////////////////////////////////////////////////////////////////
+; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; Line 185
+; sprite = 0006
+					_Behind_Sprite_DB:
+	*** 000274	c8 00 00 00 		enter	OFFSET L01053,OFFSET 0
+	*** 000278	56 			push	si
+	*** 000279	57 			push	di
+; offset = fffc
+; y = fffa
+; work_offset = fff8
+; work_back = fff4
+; ; ; ; ; ; Line 190
+; ; Line 191
+	*** 00027a	c7 46 f8 00 00 		mov	WORD PTR -8[bp],OFFSET 0
+; ; ; ; ; Line 195
+	*** 00027f	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000282	8b 47 7a 		mov	ax,WORD PTR 122[bx]
+	*** 000285	8b 57 7c 		mov	dx,WORD PTR 124[bx]
+	*** 000288	89 46 f4 		mov	WORD PTR -12[bp],ax
+	*** 00028b	89 56 f6 		mov	WORD PTR -10[bp],dx
+; ; ; ; ; Line 199
+	*** 00028e	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000291	8b 47 02 		mov	ax,WORD PTR 2[bx]
+	*** 000294	c1 e0 06 		shl	ax,OFFSET 6
+	*** 000297	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 00029a	8b 57 02 		mov	dx,WORD PTR 2[bx]
+	*** 00029d	c1 e2 08 		shl	dx,OFFSET 8
+	*** 0002a0	03 d0 			add	dx,ax
+	*** 0002a2	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 0002a5	03 17 			add	dx,WORD PTR [bx]
+	*** 0002a7	89 56 fc 		mov	WORD PTR -4[bp],dx
+; ; ; Line 201
+	*** 0002aa	c7 46 fa 00 00 		mov	WORD PTR -6[bp],OFFSET 0
+	*** 0002af	e9 00 00 		jmp	L00898
+					L00895:
+; ; Line 202
+; ; ; ; Line 205
+; ; Line 206
+; ; Line 207
+	*** 0002b2	ff 36 00 00 		push	WORD PTR _sprite_width
+	*** 0002b6	8b 46 fc 		mov	ax,WORD PTR -4[bp]
+	*** 0002b9	8b 0e 00 00 		mov	cx,WORD PTR _double_buffer
+	*** 0002bd	8b 16 02 00 		mov	dx,WORD PTR _double_buffer+2
+	*** 0002c1	03 c8 			add	cx,ax
+	*** 0002c3	52 			push	dx
+	*** 0002c4	51 			push	cx
+	*** 0002c5	8b 46 f8 		mov	ax,WORD PTR -8[bp]
+	*** 0002c8	8b 4e f4 		mov	cx,WORD PTR -12[bp]
+	*** 0002cb	8b 56 f6 		mov	dx,WORD PTR -10[bp]
+	*** 0002ce	03 c8 			add	cx,ax
+	*** 0002d0	52 			push	dx
+	*** 0002d1	51 			push	cx
+	*** 0002d2	9a 00 00 00 00 		call	FAR PTR __fmemcpy
+	*** 0002d7	83 c4 0a 		add	sp,OFFSET 10
+; ; ; ; ; Line 211
+	*** 0002da	81 46 fc 40 01 		add	WORD PTR -4[bp],OFFSET 320
+; ; Line 212
+	*** 0002df	a1 00 00 		mov	ax,WORD PTR _sprite_width
+	*** 0002e2	01 46 f8 		add	WORD PTR -8[bp],ax
+; ; ; Line 214
+					L00896:
+; Line 214
+	*** 0002e5	83 46 fa 01 		add	WORD PTR -6[bp],OFFSET 1
+					L00898:
+	*** 0002e9	8b 46 fa 		mov	ax,WORD PTR -6[bp]
+	*** 0002ec	3b 06 00 00 		cmp	ax,WORD PTR _sprite_height
+	*** 0002f0	73 03 e9 bd ff 		jb	L00895
+					L00897:
+; ; ; Line 216
+; Line 216
+					L00890:
+	*** 0002f5	5f 			pop	di
+	*** 0002f6	5e 			pop	si
+	*** 0002f7	c9 			leave
+	*** 0002f8	cb 			ret	OFFSET 0
+Local Size: 12
+; Line 0
+; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; Line 221
+; sprite = 0006
+					_Erase_Sprite_DB:
+	*** 0002fa	c8 00 00 00 		enter	OFFSET L01054,OFFSET 0
+	*** 0002fe	56 			push	si
+	*** 0002ff	57 			push	di
+; offset = fffc
+; y = fffa
+; work_offset = fff8
+; work_back = fff4
+; ; ; ; ; ; ; Line 227
+; ; Line 228
+	*** 000300	c7 46 f8 00 00 		mov	WORD PTR -8[bp],OFFSET 0
+; ; ; ; ; Line 232
+	*** 000305	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000308	8b 47 7a 		mov	ax,WORD PTR 122[bx]
+	*** 00030b	8b 57 7c 		mov	dx,WORD PTR 124[bx]
+	*** 00030e	89 46 f4 		mov	WORD PTR -12[bp],ax
+	*** 000311	89 56 f6 		mov	WORD PTR -10[bp],dx
+; ; ; ; ; Line 236
+	*** 000314	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000317	8b 47 02 		mov	ax,WORD PTR 2[bx]
+	*** 00031a	c1 e0 06 		shl	ax,OFFSET 6
+	*** 00031d	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000320	8b 57 02 		mov	dx,WORD PTR 2[bx]
+	*** 000323	c1 e2 08 		shl	dx,OFFSET 8
+	*** 000326	03 d0 			add	dx,ax
+	*** 000328	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 00032b	03 17 			add	dx,WORD PTR [bx]
+	*** 00032d	89 56 fc 		mov	WORD PTR -4[bp],dx
+; ; ; Line 238
+	*** 000330	c7 46 fa 00 00 		mov	WORD PTR -6[bp],OFFSET 0
+	*** 000335	e9 00 00 		jmp	L00909
+					L00906:
+; ; Line 239
+; ; ; ; Line 242
+; ; Line 243
+; ; Line 244
+	*** 000338	ff 36 00 00 		push	WORD PTR _sprite_width
+	*** 00033c	8b 46 f8 		mov	ax,WORD PTR -8[bp]
+	*** 00033f	8b 4e f4 		mov	cx,WORD PTR -12[bp]
+	*** 000342	8b 56 f6 		mov	dx,WORD PTR -10[bp]
+	*** 000345	03 c8 			add	cx,ax
+	*** 000347	52 			push	dx
+	*** 000348	51 			push	cx
+	*** 000349	8b 46 fc 		mov	ax,WORD PTR -4[bp]
+	*** 00034c	8b 0e 00 00 		mov	cx,WORD PTR _double_buffer
+	*** 000350	8b 16 02 00 		mov	dx,WORD PTR _double_buffer+2
+	*** 000354	03 c8 			add	cx,ax
+	*** 000356	52 			push	dx
+	*** 000357	51 			push	cx
+	*** 000358	9a 00 00 00 00 		call	FAR PTR __fmemcpy
+	*** 00035d	83 c4 0a 		add	sp,OFFSET 10
+; ; ; ; ; Line 248
+	*** 000360	81 46 fc 40 01 		add	WORD PTR -4[bp],OFFSET 320
+; ; Line 249
+	*** 000365	a1 00 00 		mov	ax,WORD PTR _sprite_width
+	*** 000368	01 46 f8 		add	WORD PTR -8[bp],ax
+; ; ; Line 251
+					L00907:
+; Line 251
+	*** 00036b	83 46 fa 01 		add	WORD PTR -6[bp],OFFSET 1
+					L00909:
+	*** 00036f	8b 46 fa 		mov	ax,WORD PTR -6[bp]
+	*** 000372	3b 06 00 00 		cmp	ax,WORD PTR _sprite_height
+	*** 000376	73 03 e9 bd ff 		jb	L00906
+					L00908:
+; ; ; ; Line 254
+; Line 254
+					L00901:
+	*** 00037b	5f 			pop	di
+	*** 00037c	5e 			pop	si
+	*** 00037d	c9 			leave
+	*** 00037e	cb 			ret	OFFSET 0
+Local Size: 12
+; Line 0
+; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; Line 259
+; sprite = 0006
+					_Draw_Sprite_DB:
+	*** 000380	c8 00 00 00 		enter	OFFSET L01055,OFFSET 0
+	*** 000384	56 			push	si
+	*** 000385	57 			push	di
+; offset = fffc
+; y = fffa
+; x = fff8
+; work_offset = fff6
+; data = fff4
+; work_sprite = fff0
+; ; ; ; ; ; Line 264
+; ; Line 265
+	*** 000386	c7 46 f6 00 00 		mov	WORD PTR -10[bp],OFFSET 0
+; ; Line 266
+; ; ; ; ; Line 270
+	*** 00038b	b8 14 00 		mov	ax,OFFSET 20
+	*** 00038e	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000391	03 d8 			add	bx,ax
+	*** 000393	89 5e ee 		mov	WORD PTR -18[bp],bx
+	*** 000396	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 000399	8b 47 74 		mov	ax,WORD PTR 116[bx]
+	*** 00039c	d1 e0 			shl	ax,OFFSET 1
+	*** 00039e	d1 e0 			shl	ax,OFFSET 1
+	*** 0003a0	8b 5e ee 		mov	bx,WORD PTR -18[bp]
+	*** 0003a3	03 d8 			add	bx,ax
+	*** 0003a5	8b 07 			mov	ax,WORD PTR [bx]
+	*** 0003a7	8b 57 02 		mov	dx,WORD PTR 2[bx]
+	*** 0003aa	89 46 f0 		mov	WORD PTR -16[bp],ax
+	*** 0003ad	89 56 f2 		mov	WORD PTR -14[bp],dx
+; ; ; ; ; Line 274
+	*** 0003b0	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 0003b3	8b 47 02 		mov	ax,WORD PTR 2[bx]
+	*** 0003b6	c1 e0 06 		shl	ax,OFFSET 6
+	*** 0003b9	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 0003bc	8b 57 02 		mov	dx,WORD PTR 2[bx]
+	*** 0003bf	c1 e2 08 		shl	dx,OFFSET 8
+	*** 0003c2	03 d0 			add	dx,ax
+	*** 0003c4	8b 5e 06 		mov	bx,WORD PTR 6[bp]
+	*** 0003c7	03 17 			add	dx,WORD PTR [bx]
+	*** 0003c9	89 56 fc 		mov	WORD PTR -4[bp],dx
+; ; ; Line 276
+	*** 0003cc	c7 46 fa 00 00 		mov	WORD PTR -6[bp],OFFSET 0
+	*** 0003d1	e9 00 00 		jmp	L00922
+					L00919:
+; ; Line 277
+; ; ; ; Line 280
+	*** 0003d4	c7 46 f8 00 00 		mov	WORD PTR -8[bp],OFFSET 0
+	*** 0003d9	e9 00 00 		jmp	L00926
+					L00923:
+; ; Line 281
+; ; ; ; ; Line 285
+	*** 0003dc	8b 46 f6 		mov	ax,WORD PTR -10[bp]
+	*** 0003df	03 46 f8 		add	ax,WORD PTR -8[bp]
+	*** 0003e2	8b 5e f0 		mov	bx,WORD PTR -16[bp]
+	*** 0003e5	8b 4e f2 		mov	cx,WORD PTR -14[bp]
+	*** 0003e8	03 d8 			add	bx,ax
+	*** 0003ea	8e c1 			mov	es,cx
+	*** 0003ec	26 8a 07 		mov	al,BYTE PTR es:[bx]
+	*** 0003ef	88 46 f4 		mov	BYTE PTR -12[bp],al
+	*** 0003f2	25 ff 00 		and	ax,OFFSET 255
+	*** 0003f5	3d 00 00 		cmp	ax,OFFSET 0
+	*** 0003f8	75 03 e9 00 00 		je	L00927
+; ; Line 286
+	*** 0003fd	8b 46 fc 		mov	ax,WORD PTR -4[bp]
+	*** 000400	03 46 f8 		add	ax,WORD PTR -8[bp]
+	*** 000403	8b 1e 00 00 		mov	bx,WORD PTR _double_buffer
+	*** 000407	8b 0e 02 00 		mov	cx,WORD PTR _double_buffer+2
+	*** 00040b	03 d8 			add	bx,ax
+	*** 00040d	8e c1 			mov	es,cx
+	*** 00040f	8a 46 f4 		mov	al,BYTE PTR -12[bp]
+	*** 000412	26 88 07 		mov	BYTE PTR es:[bx],al
+; ; ; Line 288
+					L00927:
+					L00924:
+; Line 288
+	*** 000415	83 46 f8 01 		add	WORD PTR -8[bp],OFFSET 1
+					L00926:
+	*** 000419	8b 46 f8 		mov	ax,WORD PTR -8[bp]
+	*** 00041c	3b 06 00 00 		cmp	ax,WORD PTR _sprite_width
+	*** 000420	73 03 e9 b7 ff 		jb	L00923
+					L00925:
+; ; ; ; ; Line 292
+	*** 000425	81 46 fc 40 01 		add	WORD PTR -4[bp],OFFSET 320
+; ; Line 293
+	*** 00042a	a1 00 00 		mov	ax,WORD PTR _sprite_width
+	*** 00042d	01 46 f6 		add	WORD PTR -10[bp],ax
+; ; ; Line 295
+					L00920:
+; Line 295
+	*** 000430	83 46 fa 01 		add	WORD PTR -6[bp],OFFSET 1
+					L00922:
+	*** 000434	8b 46 fa 		mov	ax,WORD PTR -6[bp]
+	*** 000437	3b 06 00 00 		cmp	ax,WORD PTR _sprite_height
+	*** 00043b	73 03 e9 94 ff 		jb	L00919
+					L00921:
+; ; ; Line 297
+; Line 297
+					L00912:
+	*** 000440	5f 			pop	di
+	*** 000441	5e 			pop	si
+	*** 000442	c9 			leave
+	*** 000443	cb 			ret	OFFSET 0
+Local Size: 18
+; Line 0
+; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; Line 302
+					_Fade_Lights:
+	*** 000444	c8 00 00 00 		enter	OFFSET L01056,OFFSET 0
+	*** 000448	56 			push	si
+	*** 000449	57 			push	di
+; pal_reg = fffc
+; color = fff8
+; index = fff6
+; ; ; ; ; Line 306
+; ; Line 307
+; ; ; Line 309
+	*** 00044a	c7 46 f6 00 00 		mov	WORD PTR -10[bp],OFFSET 0
+	*** 00044f	e9 00 00 		jmp	L00935
+					L00932:
+; ; Line 310
+; ; ; Line 312
+	*** 000452	c7 46 fc 01 00 		mov	WORD PTR -4[bp],OFFSET 1
+	*** 000457	e9 00 00 		jmp	L00939
+					L00936:
+; ; Line 313
+; ; ; ; Line 316
+	*** 00045a	8d 46 f8 		lea	ax,WORD PTR -8[bp]
+	*** 00045d	50 			push	ax
+	*** 00045e	ff 76 fc 		push	WORD PTR -4[bp]
+	*** 000461	9a 00 00 00 00 		call	FAR PTR _Get_Palette_Register
+	*** 000466	83 c4 04 		add	sp,OFFSET 4
+; ; ; Line 318
+	*** 000469	8a 46 f8 		mov	al,BYTE PTR -8[bp]
+	*** 00046c	25 ff 00 		and	ax,OFFSET 255
+	*** 00046f	3d 05 00 		cmp	ax,OFFSET 5
+	*** 000472	7f 03 e9 00 00 		jle	L00940
+	*** 000477	80 6e f8 03 		sub	BYTE PTR -8[bp],OFFSET 3
+; ; Line 319
+	*** 00047b	e9 00 00 		jmp	L00941
+					L00940:
+; Line 319
+; ; Line 320
+	*** 00047e	c6 46 f8 00 		mov	BYTE PTR -8[bp],OFFSET 0
+					L00941:
+; ; ; Line 322
+	*** 000482	8a 46 f9 		mov	al,BYTE PTR -7[bp]
+	*** 000485	25 ff 00 		and	ax,OFFSET 255
+	*** 000488	3d 05 00 		cmp	ax,OFFSET 5
+	*** 00048b	7f 03 e9 00 00 		jle	L00942
+	*** 000490	80 6e f9 03 		sub	BYTE PTR -7[bp],OFFSET 3
+; ; Line 323
+	*** 000494	e9 00 00 		jmp	L00943
+					L00942:
+; Line 323
+; ; Line 324
+	*** 000497	c6 46 f9 00 		mov	BYTE PTR -7[bp],OFFSET 0
+					L00943:
+; ; Line 325
+	*** 00049b	8a 46 fa 		mov	al,BYTE PTR -6[bp]
+	*** 00049e	25 ff 00 		and	ax,OFFSET 255
+	*** 0004a1	3d 05 00 		cmp	ax,OFFSET 5
+	*** 0004a4	7f 03 e9 00 00 		jle	L00944
+	*** 0004a9	80 6e fa 03 		sub	BYTE PTR -6[bp],OFFSET 3
+; ; Line 326
+	*** 0004ad	e9 00 00 		jmp	L00945
+					L00944:
+; Line 326
+; ; Line 327
+	*** 0004b0	c6 46 fa 00 		mov	BYTE PTR -6[bp],OFFSET 0
+					L00945:
+; ; ; ; ; Line 331
+	*** 0004b4	8d 46 f8 		lea	ax,WORD PTR -8[bp]
+	*** 0004b7	50 			push	ax
+	*** 0004b8	ff 76 fc 		push	WORD PTR -4[bp]
+	*** 0004bb	9a 00 00 00 00 		call	FAR PTR _Set_Palette_Register
+	*** 0004c0	83 c4 04 		add	sp,OFFSET 4
+; ; ; Line 333
+					L00937:
+; Line 333
+	*** 0004c3	83 46 fc 01 		add	WORD PTR -4[bp],OFFSET 1
+					L00939:
+	*** 0004c7	81 7e fc ff 00 		cmp	WORD PTR -4[bp],OFFSET 255
+	*** 0004cc	7d 03 e9 89 ff 		jl	L00936
+					L00938:
+; ; ; ; ; Line 337
+	*** 0004d1	6a 02 			push	OFFSET 2
+	*** 0004d3	9a 00 00 00 00 		call	FAR PTR _Delay
+	*** 0004d8	83 c4 02 		add	sp,OFFSET 2
+; ; ; Line 339
+					L00933:
+; Line 339
+	*** 0004db	83 46 f6 01 		add	WORD PTR -10[bp],OFFSET 1
+					L00935:
+	*** 0004df	83 7e f6 1e 		cmp	WORD PTR -10[bp],OFFSET 30
+	*** 0004e3	7d 03 e9 6a ff 		jl	L00932
+					L00934:
+; ; ; Line 341
+; Line 341
+					L00928:
+	*** 0004e8	5f 			pop	di
+	*** 0004e9	5e 			pop	si
+	*** 0004ea	c9 			leave
+	*** 0004eb	cb 			ret	OFFSET 0
+Local Size: 10
+; Line 0
+; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; Line 346
+					_Disolve:
+	*** 0004ec	c8 00 00 00 		enter	OFFSET L01057,OFFSET 0
+	*** 0004f0	56 			push	si
+	*** 0004f1	57 			push	di
+; index = fffa
+; ; ; ; Line 349
+; ; ; Line 351
+	*** 0004f2	c7 46 fa 00 00 		mov	WORD PTR -6[bp],OFFSET 0
+	*** 0004f7	c7 46 fc 00 00 		mov	WORD PTR -4[bp],OFFSET 0
+	*** 0004fc	e9 00 00 		jmp	L00948
+					L00949:
+	*** 0004ff	8b 46 fa 		mov	ax,WORD PTR -6[bp]
+	*** 000502	8b 56 fc 		mov	dx,WORD PTR -4[bp]
+	*** 000505	83 46 fa 01 		add	WORD PTR -6[bp],OFFSET 1
+	*** 000509	83 56 fc 00 		adc	WORD PTR -4[bp],OFFSET 0
+	*** 00050d	6a 00 			push	OFFSET 0
+	*** 00050f	9a 00 00 00 00 		call	FAR PTR _rand
+	*** 000514	b9 c8 00 		mov	cx,OFFSET 200
+	*** 000517	99 			cwd
+	*** 000518	f7 f9 			idiv	cx
+	*** 00051a	52 			push	dx
+	*** 00051b	9a 00 00 00 00 		call	FAR PTR _rand
+	*** 000520	b9 40 01 		mov	cx,OFFSET 320
+	*** 000523	99 			cwd
+	*** 000524	f7 f9 			idiv	cx
+	*** 000526	52 			push	dx
+	*** 000527	9a 00 00 00 00 		call	FAR PTR _Plot_Pixel_Fast
+	*** 00052c	83 c4 06 		add	sp,OFFSET 6
+					L00948:
+	*** 00052f	83 7e fc 04 		cmp	WORD PTR -4[bp],OFFSET 4
+	*** 000533	76 03 e9 00 00 		ja	L00950
+	*** 000538	73 03 e9 00 00 		jb	L01058
+	*** 00053d	81 7e fa e0 93 		cmp	WORD PTR -6[bp],OFFSET -27680
+	*** 000542	76 03 e9 00 00 		ja	L00950
+					L01058:
+	*** 000547	e9 b5 ff 		jmp	L00949
+					L00950:
+; ; ; Line 353
+; Line 353
+					L00946:
+	*** 00054a	5f 			pop	di
+	*** 00054b	5e 			pop	si
+	*** 00054c	c9 			leave
+	*** 00054d	cb 			ret	OFFSET 0
+Local Size: 6
+; Line 0
+; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; Line 357
+; color = 0006
+					_Disolve_Color:
+	*** 00054e	c8 00 00 00 		enter	OFFSET L01059,OFFSET 0
+	*** 000552	56 			push	si
+	*** 000553	57 			push	di
+; index = fffa
+; ; ; ; Line 360
+; ; ; Line 362
+	*** 000554	c7 46 fa 00 00 		mov	WORD PTR -6[bp],OFFSET 0
+	*** 000559	c7 46 fc 00 00 		mov	WORD PTR -4[bp],OFFSET 0
+	*** 00055e	e9 00 00 		jmp	L00956
+					L00957:
+	*** 000561	8b 46 fa 		mov	ax,WORD PTR -6[bp]
+	*** 000564	8b 56 fc 		mov	dx,WORD PTR -4[bp]
+	*** 000567	83 46 fa 01 		add	WORD PTR -6[bp],OFFSET 1
+	*** 00056b	83 56 fc 00 		adc	WORD PTR -4[bp],OFFSET 0
+	*** 00056f	8a 46 06 		mov	al,BYTE PTR 6[bp]
+	*** 000572	25 ff 00 		and	ax,OFFSET 255
+	*** 000575	50 			push	ax
+	*** 000576	9a 00 00 00 00 		call	FAR PTR _rand
+	*** 00057b	b9 c8 00 		mov	cx,OFFSET 200
+	*** 00057e	99 			cwd
+	*** 00057f	f7 f9 			idiv	cx
+	*** 000581	52 			push	dx
+	*** 000582	9a 00 00 00 00 		call	FAR PTR _rand
+	*** 000587	b9 40 01 		mov	cx,OFFSET 320
+	*** 00058a	99 			cwd
+	*** 00058b	f7 f9 			idiv	cx
+	*** 00058d	52 			push	dx
+	*** 00058e	9a 00 00 00 00 		call	FAR PTR _Plot_Pixel_Fast
+	*** 000593	83 c4 06 		add	sp,OFFSET 6
+					L00956:
+	*** 000596	83 7e fc 04 		cmp	WORD PTR -4[bp],OFFSET 4
+	*** 00059a	76 03 e9 00 00 		ja	L00958
+	*** 00059f	73 03 e9 00 00 		jb	L01060
+	*** 0005a4	81 7e fa e0 93 		cmp	WORD PTR -6[bp],OFFSET -27680
+	*** 0005a9	76 03 e9 00 00 		ja	L00958
+					L01060:
+	*** 0005ae	e9 b0 ff 		jmp	L00957
+					L00958:
+; ; ; Line 364
+; Line 364
+					L00954:
+	*** 0005b1	5f 			pop	di
+	*** 0005b2	5e 			pop	si
+	*** 0005b3	c9 			leave
+	*** 0005b4	cb 			ret	OFFSET 0
+Local Size: 6
+; Line 0
+; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; Line 369
+					_Melt:
+	*** 0005b6	c8 00 00 00 		enter	OFFSET L01061,OFFSET 0
+	*** 0005ba	56 			push	si
+	*** 0005bb	57 			push	di
+; worms = f5fe
+; ticks = f5fc
+; index = f5fa
+; ; ; ; ; ; Line 374
+	*** 0005bc	c7 86 fc f5 00 00 	mov	WORD PTR -2564[bp],OFFSET 0
+; ; ; Line 376
+; ; ; ; ; Line 380
+	*** 0005c2	c7 86 fa f5 00 00 	mov	WORD PTR -2566[bp],OFFSET 0
+	*** 0005c8	e9 00 00 		jmp	L00967
+					L00964:
+; ; Line 381
+; ; ; Line 383
+	*** 0005cb	6a 00 			push	OFFSET 0
+	*** 0005cd	ff b6 fa f5 		push	WORD PTR -2566[bp]
+	*** 0005d1	9a 00 00 00 00 		call	FAR PTR _Get_Pixel
+	*** 0005d6	83 c4 04 		add	sp,OFFSET 4
+	*** 0005d9	25 ff 00 		and	ax,OFFSET 255
+	*** 0005dc	8b 96 fa f5 		mov	dx,WORD PTR -2566[bp]
+	*** 0005e0	d1 e2 			shl	dx,OFFSET 1
+	*** 0005e2	d1 e2 			shl	dx,OFFSET 1
+	*** 0005e4	d1 e2 			shl	dx,OFFSET 1
+	*** 0005e6	8d 9e fe f5 		lea	bx,WORD PTR -2562[bp]
+	*** 0005ea	03 da 			add	bx,dx
+	*** 0005ec	89 47 02 		mov	WORD PTR ss:2[bx],ax
+; ; Line 384
+	*** 0005ef	9a 00 00 00 00 		call	FAR PTR _rand
+	*** 0005f4	b9 09 00 		mov	cx,OFFSET 9
+	*** 0005f7	99 			cwd
+	*** 0005f8	f7 f9 			idiv	cx
+	*** 0005fa	83 c2 03 		add	dx,OFFSET 3
+	*** 0005fd	8b 86 fa f5 		mov	ax,WORD PTR -2566[bp]
+	*** 000601	d1 e0 			shl	ax,OFFSET 1
+	*** 000603	d1 e0 			shl	ax,OFFSET 1
+	*** 000605	d1 e0 			shl	ax,OFFSET 1
+	*** 000607	8d 9e fe f5 		lea	bx,WORD PTR -2562[bp]
+	*** 00060b	03 d8 			add	bx,ax
+	*** 00060d	89 57 04 		mov	WORD PTR ss:4[bx],dx
+; ; Line 385
+	*** 000610	8b 86 fa f5 		mov	ax,WORD PTR -2566[bp]
+	*** 000614	d1 e0 			shl	ax,OFFSET 1
+	*** 000616	d1 e0 			shl	ax,OFFSET 1
+	*** 000618	d1 e0 			shl	ax,OFFSET 1
+	*** 00061a	8d 9e fe f5 		lea	bx,WORD PTR -2562[bp]
+	*** 00061e	03 d8 			add	bx,ax
+	*** 000620	c7 07 00 00 		mov	WORD PTR ss:[bx],OFFSET 0
+; ; Line 386
+	*** 000624	8b 86 fa f5 		mov	ax,WORD PTR -2566[bp]
+	*** 000628	d1 e0 			shl	ax,OFFSET 1
+	*** 00062a	d1 e0 			shl	ax,OFFSET 1
+	*** 00062c	d1 e0 			shl	ax,OFFSET 1
+	*** 00062e	8d 9e fe f5 		lea	bx,WORD PTR -2562[bp]
+	*** 000632	03 d8 			add	bx,ax
+	*** 000634	c7 47 06 00 00 		mov	WORD PTR ss:6[bx],OFFSET 0
+; ; ; ; ; Line 390
+	*** 000639	8b 86 fa f5 		mov	ax,WORD PTR -2566[bp]
+	*** 00063d	d1 e0 			shl	ax,OFFSET 1
+	*** 00063f	d1 e0 			shl	ax,OFFSET 1
+	*** 000641	d1 e0 			shl	ax,OFFSET 1
+	*** 000643	8d 9e fe f5 		lea	bx,WORD PTR -2562[bp]
+	*** 000647	03 d8 			add	bx,ax
+	*** 000649	8b 47 02 		mov	ax,WORD PTR ss:2[bx]
+	*** 00064c	98 			cbw
+	*** 00064d	50 			push	ax
+	*** 00064e	6a 00 			push	OFFSET 0
+	*** 000650	8b 86 fa f5 		mov	ax,WORD PTR -2566[bp]
+	*** 000654	d1 e0 			shl	ax,OFFSET 1
+	*** 000656	50 			push	ax
+	*** 000657	9a 00 00 00 00 		call	FAR PTR _Plot_Pixel_Fast
+	*** 00065c	83 c4 06 		add	sp,OFFSET 6
+; ; Line 391
+	*** 00065f	8b 86 fa f5 		mov	ax,WORD PTR -2566[bp]
+	*** 000663	d1 e0 			shl	ax,OFFSET 1
+	*** 000665	d1 e0 			shl	ax,OFFSET 1
+	*** 000667	d1 e0 			shl	ax,OFFSET 1
+	*** 000669	8d 9e fe f5 		lea	bx,WORD PTR -2562[bp]
+	*** 00066d	03 d8 			add	bx,ax
+	*** 00066f	8b 47 02 		mov	ax,WORD PTR ss:2[bx]
+	*** 000672	98 			cbw
+	*** 000673	50 			push	ax
+	*** 000674	6a 01 			push	OFFSET 1
+	*** 000676	8b 86 fa f5 		mov	ax,WORD PTR -2566[bp]
+	*** 00067a	d1 e0 			shl	ax,OFFSET 1
+	*** 00067c	50 			push	ax
+	*** 00067d	9a 00 00 00 00 		call	FAR PTR _Plot_Pixel_Fast
+	*** 000682	83 c4 06 		add	sp,OFFSET 6
+; ; Line 392
+	*** 000685	8b 86 fa f5 		mov	ax,WORD PTR -2566[bp]
+	*** 000689	d1 e0 			shl	ax,OFFSET 1
+	*** 00068b	d1 e0 			shl	ax,OFFSET 1
+	*** 00068d	d1 e0 			shl	ax,OFFSET 1
+	*** 00068f	8d 9e fe f5 		lea	bx,WORD PTR -2562[bp]
+	*** 000693	03 d8 			add	bx,ax
+	*** 000695	8b 47 02 		mov	ax,WORD PTR ss:2[bx]
+	*** 000698	98 			cbw
+	*** 000699	50 			push	ax
+	*** 00069a	6a 02 			push	OFFSET 2
+	*** 00069c	8b 86 fa f5 		mov	ax,WORD PTR -2566[bp]
+	*** 0006a0	d1 e0 			shl	ax,OFFSET 1
+	*** 0006a2	50 			push	ax
+	*** 0006a3	9a 00 00 00 00 		call	FAR PTR _Plot_Pixel_Fast
+	*** 0006a8	83 c4 06 		add	sp,OFFSET 6
+; ; ; ; Line 395
+	*** 0006ab	8b 86 fa f5 		mov	ax,WORD PTR -2566[bp]
+	*** 0006af	d1 e0 			shl	ax,OFFSET 1
+	*** 0006b1	d1 e0 			shl	ax,OFFSET 1
+	*** 0006b3	d1 e0 			shl	ax,OFFSET 1
+	*** 0006b5	8d 9e fe f5 		lea	bx,WORD PTR -2562[bp]
+	*** 0006b9	03 d8 			add	bx,ax
+	*** 0006bb	8b 47 02 		mov	ax,WORD PTR ss:2[bx]
+	*** 0006be	98 			cbw
+	*** 0006bf	50 			push	ax
+	*** 0006c0	6a 00 			push	OFFSET 0
+	*** 0006c2	8b 86 fa f5 		mov	ax,WORD PTR -2566[bp]
+	*** 0006c6	d1 e0 			shl	ax,OFFSET 1
+	*** 0006c8	05 01 00 		add	ax,OFFSET 1
+	*** 0006cb	50 			push	ax
+	*** 0006cc	9a 00 00 00 00 		call	FAR PTR _Plot_Pixel_Fast
+	*** 0006d1	83 c4 06 		add	sp,OFFSET 6
+; ; Line 396
+	*** 0006d4	8b 86 fa f5 		mov	ax,WORD PTR -2566[bp]
+	*** 0006d8	d1 e0 			shl	ax,OFFSET 1
+	*** 0006da	d1 e0 			shl	ax,OFFSET 1
+	*** 0006dc	d1 e0 			shl	ax,OFFSET 1
+	*** 0006de	8d 9e fe f5 		lea	bx,WORD PTR -2562[bp]
+	*** 0006e2	03 d8 			add	bx,ax
+	*** 0006e4	8b 47 02 		mov	ax,WORD PTR ss:2[bx]
+	*** 0006e7	98 			cbw
+	*** 0006e8	50 			push	ax
+	*** 0006e9	6a 01 			push	OFFSET 1
+	*** 0006eb	8b 86 fa f5 		mov	ax,WORD PTR -2566[bp]
+	*** 0006ef	d1 e0 			shl	ax,OFFSET 1
+	*** 0006f1	05 01 00 		add	ax,OFFSET 1
+	*** 0006f4	50 			push	ax
+	*** 0006f5	9a 00 00 00 00 		call	FAR PTR _Plot_Pixel_Fast
+	*** 0006fa	83 c4 06 		add	sp,OFFSET 6
+; ; Line 397
+	*** 0006fd	8b 86 fa f5 		mov	ax,WORD PTR -2566[bp]
+	*** 000701	d1 e0 			shl	ax,OFFSET 1
+	*** 000703	d1 e0 			shl	ax,OFFSET 1
+	*** 000705	d1 e0 			shl	ax,OFFSET 1
+	*** 000707	8d 9e fe f5 		lea	bx,WORD PTR -2562[bp]
+	*** 00070b	03 d8 			add	bx,ax
+	*** 00070d	8b 47 02 		mov	ax,WORD PTR ss:2[bx]
+	*** 000710	98 			cbw
+	*** 000711	50 			push	ax
+	*** 000712	6a 02 			push	OFFSET 2
+	*** 000714	8b 86 fa f5 		mov	ax,WORD PTR -2566[bp]
+	*** 000718	d1 e0 			shl	ax,OFFSET 1
+	*** 00071a	05 01 00 		add	ax,OFFSET 1
+	*** 00071d	50 			push	ax
+	*** 00071e	9a 00 00 00 00 		call	FAR PTR _Plot_Pixel_Fast
+	*** 000723	83 c4 06 		add	sp,OFFSET 6
+; ; ; Line 399
+					L00965:
+; Line 399
+	*** 000726	83 86 fa f5 01 		add	WORD PTR -2566[bp],OFFSET 1
+					L00967:
+	*** 00072b	81 be fa f5 a0 00 	cmp	WORD PTR -2566[bp],OFFSET 160
+	*** 000731	7d 03 e9 95 fe 		jl	L00964
+					L00966:
+; ; ; ; ; Line 403
+					L00969:
+	*** 000736	83 86 fc f5 01 		add	WORD PTR -2564[bp],OFFSET 1
+	*** 00073b	8b 86 fc f5 		mov	ax,WORD PTR -2564[bp]
+	*** 00073f	3d 08 07 		cmp	ax,OFFSET 1800
+	*** 000742	7c 03 e9 00 00 		jge	L00970
+; ; Line 404
+; ; ; ; ; Line 408
+	*** 000747	c7 86 fa f5 00 00 	mov	WORD PTR -2566[bp],OFFSET 0
+	*** 00074d	e9 00 00 		jmp	L00975
+					L00972:
+; ; Line 409
+; ; ; ; Line 412
+	*** 000750	8b 86 fa f5 		mov	ax,WORD PTR -2566[bp]
+	*** 000754	d1 e0 			shl	ax,OFFSET 1
+	*** 000756	d1 e0 			shl	ax,OFFSET 1
+	*** 000758	d1 e0 			shl	ax,OFFSET 1
+	*** 00075a	8d 9e fe f5 		lea	bx,WORD PTR -2562[bp]
+	*** 00075e	03 d8 			add	bx,ax
+	*** 000760	83 47 06 01 		add	WORD PTR ss:6[bx],OFFSET 1
+	*** 000764	8b 47 06 		mov	ax,WORD PTR ss:6[bx]
+	*** 000767	8b 96 fa f5 		mov	dx,WORD PTR -2566[bp]
+	*** 00076b	d1 e2 			shl	dx,OFFSET 1
+	*** 00076d	d1 e2 			shl	dx,OFFSET 1
+	*** 00076f	d1 e2 			shl	dx,OFFSET 1
+	*** 000771	8d 9e fe f5 		lea	bx,WORD PTR -2562[bp]
+	*** 000775	03 da 			add	bx,dx
+	*** 000777	3b 47 04 		cmp	ax,WORD PTR ss:4[bx]
+	*** 00077a	74 03 e9 00 00 		jne	L00976
+; ; Line 413
+; ; ; ; Line 416
+	*** 00077f	8b 86 fa f5 		mov	ax,WORD PTR -2566[bp]
+	*** 000783	d1 e0 			shl	ax,OFFSET 1
+	*** 000785	d1 e0 			shl	ax,OFFSET 1
+	*** 000787	d1 e0 			shl	ax,OFFSET 1
+	*** 000789	8d 9e fe f5 		lea	bx,WORD PTR -2562[bp]
+	*** 00078d	03 d8 			add	bx,ax
+	*** 00078f	c7 47 06 00 00 		mov	WORD PTR ss:6[bx],OFFSET 0
+; ; ; Line 418
+	*** 000794	8b 86 fa f5 		mov	ax,WORD PTR -2566[bp]
+	*** 000798	d1 e0 			shl	ax,OFFSET 1
+	*** 00079a	d1 e0 			shl	ax,OFFSET 1
+	*** 00079c	d1 e0 			shl	ax,OFFSET 1
+	*** 00079e	8d 9e fe f5 		lea	bx,WORD PTR -2562[bp]
+	*** 0007a2	03 d8 			add	bx,ax
+	*** 0007a4	8b 07 			mov	ax,WORD PTR ss:[bx]
+	*** 0007a6	05 04 00 		add	ax,OFFSET 4
+	*** 0007a9	50 			push	ax
+	*** 0007aa	ff b6 fa f5 		push	WORD PTR -2566[bp]
+	*** 0007ae	9a 00 00 00 00 		call	FAR PTR _Get_Pixel
+	*** 0007b3	83 c4 04 		add	sp,OFFSET 4
+	*** 0007b6	25 ff 00 		and	ax,OFFSET 255
+	*** 0007b9	8b 96 fa f5 		mov	dx,WORD PTR -2566[bp]
+	*** 0007bd	d1 e2 			shl	dx,OFFSET 1
+	*** 0007bf	d1 e2 			shl	dx,OFFSET 1
+	*** 0007c1	d1 e2 			shl	dx,OFFSET 1
+	*** 0007c3	8d 9e fe f5 		lea	bx,WORD PTR -2562[bp]
+	*** 0007c7	03 da 			add	bx,dx
+	*** 0007c9	89 47 02 		mov	WORD PTR ss:2[bx],ax
+; ; ; ; ; Line 422
+	*** 0007cc	8b 86 fa f5 		mov	ax,WORD PTR -2566[bp]
+	*** 0007d0	d1 e0 			shl	ax,OFFSET 1
+	*** 0007d2	d1 e0 			shl	ax,OFFSET 1
+	*** 0007d4	d1 e0 			shl	ax,OFFSET 1
+	*** 0007d6	8d 9e fe f5 		lea	bx,WORD PTR -2562[bp]
+	*** 0007da	03 d8 			add	bx,ax
+	*** 0007dc	81 3f c1 00 		cmp	WORD PTR ss:[bx],OFFSET 193
+	*** 0007e0	7c 03 e9 00 00 		jge	L00977
+; ; Line 423
+; ; ; Line 425
+	*** 0007e5	6a 00 			push	OFFSET 0
+	*** 0007e7	8b 86 fa f5 		mov	ax,WORD PTR -2566[bp]
+	*** 0007eb	d1 e0 			shl	ax,OFFSET 1
+	*** 0007ed	d1 e0 			shl	ax,OFFSET 1
+	*** 0007ef	d1 e0 			shl	ax,OFFSET 1
+	*** 0007f1	8d 9e fe f5 		lea	bx,WORD PTR -2562[bp]
+	*** 0007f5	03 d8 			add	bx,ax
+	*** 0007f7	ff 37 			push	WORD PTR ss:[bx]
+	*** 0007f9	8b 86 fa f5 		mov	ax,WORD PTR -2566[bp]
+	*** 0007fd	d1 e0 			shl	ax,OFFSET 1
+	*** 0007ff	50 			push	ax
+	*** 000800	9a 00 00 00 00 		call	FAR PTR _Plot_Pixel_Fast
+	*** 000805	83 c4 06 		add	sp,OFFSET 6
+; ; Line 426
+	*** 000808	8b 86 fa f5 		mov	ax,WORD PTR -2566[bp]
+	*** 00080c	d1 e0 			shl	ax,OFFSET 1
+	*** 00080e	d1 e0 			shl	ax,OFFSET 1
+	*** 000810	d1 e0 			shl	ax,OFFSET 1
+	*** 000812	8d 9e fe f5 		lea	bx,WORD PTR -2562[bp]
+	*** 000816	03 d8 			add	bx,ax
+	*** 000818	8b 47 02 		mov	ax,WORD PTR ss:2[bx]
+	*** 00081b	98 			cbw
+	*** 00081c	50 			push	ax
+	*** 00081d	8b 86 fa f5 		mov	ax,WORD PTR -2566[bp]
+	*** 000821	d1 e0 			shl	ax,OFFSET 1
+	*** 000823	d1 e0 			shl	ax,OFFSET 1
+	*** 000825	d1 e0 			shl	ax,OFFSET 1
+	*** 000827	8d 9e fe f5 		lea	bx,WORD PTR -2562[bp]
+	*** 00082b	03 d8 			add	bx,ax
+	*** 00082d	8b 07 			mov	ax,WORD PTR ss:[bx]
+	*** 00082f	05 01 00 		add	ax,OFFSET 1
+	*** 000832	50 			push	ax
+	*** 000833	8b 86 fa f5 		mov	ax,WORD PTR -2566[bp]
+	*** 000837	d1 e0 			shl	ax,OFFSET 1
+	*** 000839	50 			push	ax
+	*** 00083a	9a 00 00 00 00 		call	FAR PTR _Plot_Pixel_Fast
+	*** 00083f	83 c4 06 		add	sp,OFFSET 6
+; ; Line 427
+	*** 000842	8b 86 fa f5 		mov	ax,WORD PTR -2566[bp]
+	*** 000846	d1 e0 			shl	ax,OFFSET 1
+	*** 000848	d1 e0 			shl	ax,OFFSET 1
+	*** 00084a	d1 e0 			shl	ax,OFFSET 1
+	*** 00084c	8d 9e fe f5 		lea	bx,WORD PTR -2562[bp]
+	*** 000850	03 d8 			add	bx,ax
+	*** 000852	8b 47 02 		mov	ax,WORD PTR ss:2[bx]
+	*** 000855	98 			cbw
+	*** 000856	50 			push	ax
+	*** 000857	8b 86 fa f5 		mov	ax,WORD PTR -2566[bp]
+	*** 00085b	d1 e0 			shl	ax,OFFSET 1
+	*** 00085d	d1 e0 			shl	ax,OFFSET 1
+	*** 00085f	d1 e0 			shl	ax,OFFSET 1
+	*** 000861	8d 9e fe f5 		lea	bx,WORD PTR -2562[bp]
+	*** 000865	03 d8 			add	bx,ax
+	*** 000867	8b 07 			mov	ax,WORD PTR ss:[bx]
+	*** 000869	05 02 00 		add	ax,OFFSET 2
+	*** 00086c	50 			push	ax
+	*** 00086d	8b 86 fa f5 		mov	ax,WORD PTR -2566[bp]
+	*** 000871	d1 e0 			shl	ax,OFFSET 1
+	*** 000873	50 			push	ax
+	*** 000874	9a 00 00 00 00 		call	FAR PTR _Plot_Pixel_Fast
+	*** 000879	83 c4 06 		add	sp,OFFSET 6
+; ; Line 428
+	*** 00087c	8b 86 fa f5 		mov	ax,WORD PTR -2566[bp]
+	*** 000880	d1 e0 			shl	ax,OFFSET 1
+	*** 000882	d1 e0 			shl	ax,OFFSET 1
+	*** 000884	d1 e0 			shl	ax,OFFSET 1
+	*** 000886	8d 9e fe f5 		lea	bx,WORD PTR -2562[bp]
+	*** 00088a	03 d8 			add	bx,ax
+	*** 00088c	8b 47 02 		mov	ax,WORD PTR ss:2[bx]
+	*** 00088f	98 			cbw
+	*** 000890	50 			push	ax
+	*** 000891	8b 86 fa f5 		mov	ax,WORD PTR -2566[bp]
+	*** 000895	d1 e0 			shl	ax,OFFSET 1
+	*** 000897	d1 e0 			shl	ax,OFFSET 1
+	*** 000899	d1 e0 			shl	ax,OFFSET 1
+	*** 00089b	8d 9e fe f5 		lea	bx,WORD PTR -2562[bp]
+	*** 00089f	03 d8 			add	bx,ax
+	*** 0008a1	8b 07 			mov	ax,WORD PTR ss:[bx]
+	*** 0008a3	05 03 00 		add	ax,OFFSET 3
+	*** 0008a6	50 			push	ax
+	*** 0008a7	8b 86 fa f5 		mov	ax,WORD PTR -2566[bp]
+	*** 0008ab	d1 e0 			shl	ax,OFFSET 1
+	*** 0008ad	50 			push	ax
+	*** 0008ae	9a 00 00 00 00 		call	FAR PTR _Plot_Pixel_Fast
+	*** 0008b3	83 c4 06 		add	sp,OFFSET 6
+; ; ; Line 430
+	*** 0008b6	6a 00 			push	OFFSET 0
+	*** 0008b8	8b 86 fa f5 		mov	ax,WORD PTR -2566[bp]
+	*** 0008bc	d1 e0 			shl	ax,OFFSET 1
+	*** 0008be	d1 e0 			shl	ax,OFFSET 1
+	*** 0008c0	d1 e0 			shl	ax,OFFSET 1
+	*** 0008c2	8d 9e fe f5 		lea	bx,WORD PTR -2562[bp]
+	*** 0008c6	03 d8 			add	bx,ax
+	*** 0008c8	ff 37 			push	WORD PTR ss:[bx]
+	*** 0008ca	8b 86 fa f5 		mov	ax,WORD PTR -2566[bp]
+	*** 0008ce	d1 e0 			shl	ax,OFFSET 1
+	*** 0008d0	05 01 00 		add	ax,OFFSET 1
+	*** 0008d3	50 			push	ax
+	*** 0008d4	9a 00 00 00 00 		call	FAR PTR _Plot_Pixel_Fast
+	*** 0008d9	83 c4 06 		add	sp,OFFSET 6
+; ; Line 431
+	*** 0008dc	8b 86 fa f5 		mov	ax,WORD PTR -2566[bp]
+	*** 0008e0	d1 e0 			shl	ax,OFFSET 1
+	*** 0008e2	d1 e0 			shl	ax,OFFSET 1
+	*** 0008e4	d1 e0 			shl	ax,OFFSET 1
+	*** 0008e6	8d 9e fe f5 		lea	bx,WORD PTR -2562[bp]
+	*** 0008ea	03 d8 			add	bx,ax
+	*** 0008ec	8b 47 02 		mov	ax,WORD PTR ss:2[bx]
+	*** 0008ef	98 			cbw
+	*** 0008f0	50 			push	ax
+	*** 0008f1	8b 86 fa f5 		mov	ax,WORD PTR -2566[bp]
+	*** 0008f5	d1 e0 			shl	ax,OFFSET 1
+	*** 0008f7	d1 e0 			shl	ax,OFFSET 1
+	*** 0008f9	d1 e0 			shl	ax,OFFSET 1
+	*** 0008fb	8d 9e fe f5 		lea	bx,WORD PTR -2562[bp]
+	*** 0008ff	03 d8 			add	bx,ax
+	*** 000901	8b 07 			mov	ax,WORD PTR ss:[bx]
+	*** 000903	05 01 00 		add	ax,OFFSET 1
+	*** 000906	50 			push	ax
+	*** 000907	8b 86 fa f5 		mov	ax,WORD PTR -2566[bp]
+	*** 00090b	d1 e0 			shl	ax,OFFSET 1
+	*** 00090d	05 01 00 		add	ax,OFFSET 1
+	*** 000910	50 			push	ax
+	*** 000911	9a 00 00 00 00 		call	FAR PTR _Plot_Pixel_Fast
+	*** 000916	83 c4 06 		add	sp,OFFSET 6
+; ; Line 432
+	*** 000919	8b 86 fa f5 		mov	ax,WORD PTR -2566[bp]
+	*** 00091d	d1 e0 			shl	ax,OFFSET 1
+	*** 00091f	d1 e0 			shl	ax,OFFSET 1
+	*** 000921	d1 e0 			shl	ax,OFFSET 1
+	*** 000923	8d 9e fe f5 		lea	bx,WORD PTR -2562[bp]
+	*** 000927	03 d8 			add	bx,ax
+	*** 000929	8b 47 02 		mov	ax,WORD PTR ss:2[bx]
+	*** 00092c	98 			cbw
+	*** 00092d	50 			push	ax
+	*** 00092e	8b 86 fa f5 		mov	ax,WORD PTR -2566[bp]
+	*** 000932	d1 e0 			shl	ax,OFFSET 1
+	*** 000934	d1 e0 			shl	ax,OFFSET 1
+	*** 000936	d1 e0 			shl	ax,OFFSET 1
+	*** 000938	8d 9e fe f5 		lea	bx,WORD PTR -2562[bp]
+	*** 00093c	03 d8 			add	bx,ax
+	*** 00093e	8b 07 			mov	ax,WORD PTR ss:[bx]
+	*** 000940	05 02 00 		add	ax,OFFSET 2
+	*** 000943	50 			push	ax
+	*** 000944	8b 86 fa f5 		mov	ax,WORD PTR -2566[bp]
+	*** 000948	d1 e0 			shl	ax,OFFSET 1
+	*** 00094a	05 01 00 		add	ax,OFFSET 1
+	*** 00094d	50 			push	ax
+	*** 00094e	9a 00 00 00 00 		call	FAR PTR _Plot_Pixel_Fast
+	*** 000953	83 c4 06 		add	sp,OFFSET 6
+; ; Line 433
+	*** 000956	8b 86 fa f5 		mov	ax,WORD PTR -2566[bp]
+	*** 00095a	d1 e0 			shl	ax,OFFSET 1
+	*** 00095c	d1 e0 			shl	ax,OFFSET 1
+	*** 00095e	d1 e0 			shl	ax,OFFSET 1
+	*** 000960	8d 9e fe f5 		lea	bx,WORD PTR -2562[bp]
+	*** 000964	03 d8 			add	bx,ax
+	*** 000966	8b 47 02 		mov	ax,WORD PTR ss:2[bx]
+	*** 000969	98 			cbw
+	*** 00096a	50 			push	ax
+	*** 00096b	8b 86 fa f5 		mov	ax,WORD PTR -2566[bp]
+	*** 00096f	d1 e0 			shl	ax,OFFSET 1
+	*** 000971	d1 e0 			shl	ax,OFFSET 1
+	*** 000973	d1 e0 			shl	ax,OFFSET 1
+	*** 000975	8d 9e fe f5 		lea	bx,WORD PTR -2562[bp]
+	*** 000979	03 d8 			add	bx,ax
+	*** 00097b	8b 07 			mov	ax,WORD PTR ss:[bx]
+	*** 00097d	05 03 00 		add	ax,OFFSET 3
+	*** 000980	50 			push	ax
+	*** 000981	8b 86 fa f5 		mov	ax,WORD PTR -2566[bp]
+	*** 000985	d1 e0 			shl	ax,OFFSET 1
+	*** 000987	05 01 00 		add	ax,OFFSET 1
+	*** 00098a	50 			push	ax
+	*** 00098b	9a 00 00 00 00 		call	FAR PTR _Plot_Pixel_Fast
+	*** 000990	83 c4 06 		add	sp,OFFSET 6
+; ; ; Line 435
+	*** 000993	8b 86 fa f5 		mov	ax,WORD PTR -2566[bp]
+	*** 000997	d1 e0 			shl	ax,OFFSET 1
+	*** 000999	d1 e0 			shl	ax,OFFSET 1
+	*** 00099b	d1 e0 			shl	ax,OFFSET 1
+	*** 00099d	8d 9e fe f5 		lea	bx,WORD PTR -2562[bp]
+	*** 0009a1	03 d8 			add	bx,ax
+	*** 0009a3	83 07 01 		add	WORD PTR ss:[bx],OFFSET 1
+; ; ; Line 437
+; ; ; Line 439
+					L00977:
+; ; ; Line 441
+					L00976:
+					L00973:
+; Line 441
+	*** 0009a6	83 86 fa f5 01 		add	WORD PTR -2566[bp],OFFSET 1
+					L00975:
+	*** 0009ab	81 be fa f5 40 01 	cmp	WORD PTR -2566[bp],OFFSET 320
+	*** 0009b1	7d 03 e9 9a fd 		jl	L00972
+					L00974:
+; ; ; ; ; Line 445
+	*** 0009b6	b9 f4 01 		mov	cx,OFFSET 500
+	*** 0009b9	8b 86 fc f5 		mov	ax,WORD PTR -2564[bp]
+	*** 0009bd	99 			cwd
+	*** 0009be	f7 f9 			idiv	cx
+	*** 0009c0	83 fa 00 		cmp	dx,OFFSET 0
+	*** 0009c3	74 03 e9 00 00 		jne	L00978
+; ; Line 446
+; ; ; Line 448
+	*** 0009c8	c7 86 fa f5 00 00 	mov	WORD PTR -2566[bp],OFFSET 0
+	*** 0009ce	e9 00 00 		jmp	L00982
+					L00979:
+; ; Line 449
+	*** 0009d1	8b 86 fa f5 		mov	ax,WORD PTR -2566[bp]
+	*** 0009d5	d1 e0 			shl	ax,OFFSET 1
+	*** 0009d7	d1 e0 			shl	ax,OFFSET 1
+	*** 0009d9	d1 e0 			shl	ax,OFFSET 1
+	*** 0009db	8d 9e fe f5 		lea	bx,WORD PTR -2562[bp]
+	*** 0009df	03 d8 			add	bx,ax
+	*** 0009e1	83 6f 04 01 		sub	WORD PTR ss:4[bx],OFFSET 1
+					L00980:
+	*** 0009e5	83 86 fa f5 01 		add	WORD PTR -2566[bp],OFFSET 1
+					L00982:
+	*** 0009ea	81 be fa f5 a0 00 	cmp	WORD PTR -2566[bp],OFFSET 160
+	*** 0009f0	7d 03 e9 dc ff 		jl	L00979
+					L00981:
+; ; ; Line 451
+; ; ; Line 453
+					L00978:
+; Line 453
+	*** 0009f5	e9 3e fd 		jmp	L00969
+					L00970:
+; ; ; Line 455
+; Line 455
+					L00960:
+	*** 0009f8	5f 			pop	di
+	*** 0009f9	5e 			pop	si
+	*** 0009fa	c9 			leave
+	*** 0009fb	cb 			ret	OFFSET 0
+Local Size: 2566
+; Line 0
+; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; Line 460
+					_Sheer:
+	*** 0009fc	c8 00 00 00 		enter	OFFSET L01062,OFFSET 0
+	*** 000a00	56 			push	si
+	*** 000a01	57 			push	di
+; y = fffc
+; x = fffa
+; index = fff6
+; ; ; ; Line 463
+; ; Line 464
+; ; ; ; ; Line 468
+	*** 000a02	9a 00 00 00 00 		call	FAR PTR _rand
+	*** 000a07	b9 40 01 		mov	cx,OFFSET 320
+	*** 000a0a	99 			cwd
+	*** 000a0b	f7 f9 			idiv	cx
+	*** 000a0d	89 56 fa 		mov	WORD PTR -6[bp],dx
+; ; Line 469
+	*** 000a10	9a 00 00 00 00 		call	FAR PTR _rand
+	*** 000a15	b9 c8 00 		mov	cx,OFFSET 200
+	*** 000a18	99 			cwd
+	*** 000a19	f7 f9 			idiv	cx
+	*** 000a1b	89 56 fc 		mov	WORD PTR -4[bp],dx
+; ; ; ; ; Line 473
+	*** 000a1e	c7 46 f6 00 00 		mov	WORD PTR -10[bp],OFFSET 0
+	*** 000a23	c7 46 f8 00 00 		mov	WORD PTR -8[bp],OFFSET 0
+	*** 000a28	e9 00 00 		jmp	L00990
+					L00987:
+; ; Line 474
+; ; ; ; ; Line 478
+	*** 000a2b	83 46 fa 11 		add	WORD PTR -6[bp],OFFSET 17
+; ; Line 479
+	*** 000a2f	83 46 fc 0d 		add	WORD PTR -4[bp],OFFSET 13
+; ; ; ; ; Line 483
+	*** 000a33	81 7e fa 3f 01 		cmp	WORD PTR -6[bp],OFFSET 319
+	*** 000a38	7f 03 e9 00 00 		jle	L00991
+; ; Line 484
+	*** 000a3d	8b 46 fa 		mov	ax,WORD PTR -6[bp]
+	*** 000a40	05 c1 fe 		add	ax,OFFSET -319
+	*** 000a43	89 46 fa 		mov	WORD PTR -6[bp],ax
+; ; ; Line 486
+					L00991:
+	*** 000a46	81 7e fc c7 00 		cmp	WORD PTR -4[bp],OFFSET 199
+	*** 000a4b	7f 03 e9 00 00 		jle	L00992
+; ; Line 487
+	*** 000a50	8b 46 fc 		mov	ax,WORD PTR -4[bp]
+	*** 000a53	05 39 ff 		add	ax,OFFSET -199
+	*** 000a56	89 46 fc 		mov	WORD PTR -4[bp],ax
+; ; ; ; ; Line 491
+					L00992:
+	*** 000a59	6a 00 			push	OFFSET 0
+	*** 000a5b	ff 76 fc 		push	WORD PTR -4[bp]
+	*** 000a5e	ff 76 fa 		push	WORD PTR -6[bp]
+	*** 000a61	9a 00 00 00 00 		call	FAR PTR _Plot_Pixel_Fast
+	*** 000a66	83 c4 06 		add	sp,OFFSET 6
+; ; ; Line 493
+					L00988:
+; Line 493
+	*** 000a69	83 46 f6 01 		add	WORD PTR -10[bp],OFFSET 1
+	*** 000a6d	83 56 f8 00 		adc	WORD PTR -8[bp],OFFSET 0
+					L00990:
+	*** 000a71	83 7e f8 01 		cmp	WORD PTR -8[bp],OFFSET 1
+	*** 000a75	7d 03 e9 b1 ff 		jl	L00987
+	*** 000a7a	7e 03 e9 00 00 		jg	L01063
+	*** 000a7f	81 7e f6 a0 86 		cmp	WORD PTR -10[bp],OFFSET -31072
+	*** 000a84	73 03 e9 a2 ff 		jb	L00987
+					L01063:
+					L00989:
+; ; ; Line 495
+; Line 495
+					L00983:
+	*** 000a89	5f 			pop	di
+	*** 000a8a	5e 			pop	si
+	*** 000a8b	c9 			leave
+	*** 000a8c	cb 			ret	OFFSET 0
+Local Size: 10
+; Line 0
+; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; Line 500
+					_Wait_For_Vsync:
+	*** 000a8e	c8 00 00 00 		enter	OFFSET L01064,OFFSET 0
+	*** 000a92	56 			push	si
+	*** 000a93	57 			push	di
+; ; ; ; ; Line 504
+					L00995:
+	*** 000a94	68 da 03 		push	OFFSET 986
+	*** 000a97	9a 00 00 00 00 		call	FAR PTR __inp
+	*** 000a9c	83 c4 02 		add	sp,OFFSET 2
+	*** 000a9f	25 08 00 		and	ax,OFFSET 8
+	*** 000aa2	3d 00 00 		cmp	ax,OFFSET 0
+	*** 000aa5	75 03 e9 00 00 		je	L00996
+; ; Line 505
+; ; ; Line 507
+; Line 507
+	*** 000aaa	e9 e7 ff 		jmp	L00995
+					L00996:
+; ; ; ; ; Line 511
+					L00999:
+	*** 000aad	68 da 03 		push	OFFSET 986
+	*** 000ab0	9a 00 00 00 00 		call	FAR PTR __inp
+	*** 000ab5	83 c4 02 		add	sp,OFFSET 2
+	*** 000ab8	25 08 00 		and	ax,OFFSET 8
+	*** 000abb	3d 00 00 		cmp	ax,OFFSET 0
+	*** 000abe	74 03 e9 00 00 		jne	L01000
+; ; Line 512
+; ; ; Line 514
+; Line 514
+	*** 000ac3	e9 e7 ff 		jmp	L00999
+					L01000:
+; ; ; ; ; Line 518
+; Line 518
+					L00993:
+	*** 000ac6	5f 			pop	di
+	*** 000ac7	5e 			pop	si
+	*** 000ac8	c9 			leave
+	*** 000ac9	cb 			ret	OFFSET 0
+Local Size: 2
+; Line 0
+; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; Line 523
+; xc = 0006
+; yc = 0008
+; c = 000a
+; color = 000c
+; trans_flag = 000e
+					_Blit_Char_DB:
+	*** 000aca	c8 00 00 00 		enter	OFFSET L01065,OFFSET 0
+	*** 000ace	56 			push	si
+	*** 000acf	57 			push	di
+; offset = fffc
+; y = fffa
+; bit_mask = fff8
+; x = fff6
+; work_char = fff2
+; ; ; ; ; ; Line 528
+; ; Line 529
+; ; Line 530
+	*** 000ad0	c6 46 f8 80 		mov	BYTE PTR -8[bp],OFFSET 128
+; ; ; ; ; Line 534
+	*** 000ad4	8a 46 0a 		mov	al,BYTE PTR 10[bp]
+	*** 000ad7	98 			cbw
+	*** 000ad8	d1 e0 			shl	ax,OFFSET 1
+	*** 000ada	d1 e0 			shl	ax,OFFSET 1
+	*** 000adc	d1 e0 			shl	ax,OFFSET 1
+	*** 000ade	8b 0e 00 00 		mov	cx,WORD PTR _rom_char_set
+	*** 000ae2	8b 16 02 00 		mov	dx,WORD PTR _rom_char_set+2
+	*** 000ae6	03 c8 			add	cx,ax
+	*** 000ae8	89 4e f2 		mov	WORD PTR -14[bp],cx
+	*** 000aeb	89 56 f4 		mov	WORD PTR -12[bp],dx
+; ; ; ; ; Line 538
+	*** 000aee	8b 46 08 		mov	ax,WORD PTR 8[bp]
+	*** 000af1	c1 e0 06 		shl	ax,OFFSET 6
+	*** 000af4	8b 56 08 		mov	dx,WORD PTR 8[bp]
+	*** 000af7	c1 e2 08 		shl	dx,OFFSET 8
+	*** 000afa	03 d0 			add	dx,ax
+	*** 000afc	03 56 06 		add	dx,WORD PTR 6[bp]
+	*** 000aff	89 56 fc 		mov	WORD PTR -4[bp],dx
+; ; ; Line 540
+	*** 000b02	c7 46 fa 00 00 		mov	WORD PTR -6[bp],OFFSET 0
+	*** 000b07	e9 00 00 		jmp	L01021
+					L01018:
+; ; Line 541
+; ; ; ; Line 544
+	*** 000b0a	c6 46 f8 80 		mov	BYTE PTR -8[bp],OFFSET 128
+; ; ; Line 546
+	*** 000b0e	c7 46 f6 00 00 		mov	WORD PTR -10[bp],OFFSET 0
+	*** 000b13	e9 00 00 		jmp	L01025
+					L01022:
+; ; Line 547
+; ; ; ; Line 550
+	*** 000b16	8a 46 f8 		mov	al,BYTE PTR -8[bp]
+	*** 000b19	25 ff 00 		and	ax,OFFSET 255
+	*** 000b1c	c4 5e f2 		les	bx,WORD PTR -14[bp]
+	*** 000b1f	26 8a 0f 		mov	cl,BYTE PTR es:[bx]
+	*** 000b22	89 46 f0 		mov	WORD PTR -16[bp],ax
+	*** 000b25	8b c1 			mov	ax,cx
+	*** 000b27	98 			cbw
+	*** 000b28	8b 4e f0 		mov	cx,WORD PTR -16[bp]
+	*** 000b2b	23 c1 			and	ax,cx
+	*** 000b2d	3d 00 00 		cmp	ax,OFFSET 0
+	*** 000b30	75 03 e9 00 00 		je	L01026
+; ; Line 551
+	*** 000b35	8b 46 0c 		mov	ax,WORD PTR 12[bp]
+	*** 000b38	8b 4e fc 		mov	cx,WORD PTR -4[bp]
+	*** 000b3b	03 4e f6 		add	cx,WORD PTR -10[bp]
+	*** 000b3e	8b 1e 00 00 		mov	bx,WORD PTR _double_buffer
+	*** 000b42	8b 36 02 00 		mov	si,WORD PTR _double_buffer+2
+	*** 000b46	03 d9 			add	bx,cx
+	*** 000b48	8e c6 			mov	es,si
+	*** 000b4a	26 88 07 		mov	BYTE PTR es:[bx],al
+; ; ; Line 553
+	*** 000b4d	e9 00 00 		jmp	L01027
+					L01026:
+; Line 553
+	*** 000b50	83 7e 0e 00 		cmp	WORD PTR 14[bp],OFFSET 0
+	*** 000b54	74 03 e9 00 00 		jne	L01028
+; ; Line 554
+	*** 000b59	8b 46 fc 		mov	ax,WORD PTR -4[bp]
+	*** 000b5c	03 46 f6 		add	ax,WORD PTR -10[bp]
+	*** 000b5f	8b 1e 00 00 		mov	bx,WORD PTR _double_buffer
+	*** 000b63	8b 0e 02 00 		mov	cx,WORD PTR _double_buffer+2
+	*** 000b67	03 d8 			add	bx,ax
+	*** 000b69	8e c1 			mov	es,cx
+	*** 000b6b	26 c6 07 00 		mov	BYTE PTR es:[bx],OFFSET 0
+; ; ; ; ; Line 558
+					L01028:
+					L01027:
+	*** 000b6f	8a 46 f8 		mov	al,BYTE PTR -8[bp]
+	*** 000b72	25 ff 00 		and	ax,OFFSET 255
+	*** 000b75	d1 f8 			sar	ax,OFFSET 1
+	*** 000b77	88 46 f8 		mov	BYTE PTR -8[bp],al
+; ; ; Line 560
+					L01023:
+; Line 560
+	*** 000b7a	83 46 f6 01 		add	WORD PTR -10[bp],OFFSET 1
+					L01025:
+	*** 000b7e	83 7e f6 08 		cmp	WORD PTR -10[bp],OFFSET 8
+	*** 000b82	7d 03 e9 8f ff 		jl	L01022
+					L01024:
+; ; ; ; ; Line 564
+	*** 000b87	81 46 fc 40 01 		add	WORD PTR -4[bp],OFFSET 320
+; ; Line 565
+	*** 000b8c	83 46 f2 01 		add	WORD PTR -14[bp],OFFSET 1
+; ; ; Line 567
+					L01019:
+; Line 567
+	*** 000b90	83 46 fa 01 		add	WORD PTR -6[bp],OFFSET 1
+					L01021:
+	*** 000b94	83 7e fa 08 		cmp	WORD PTR -6[bp],OFFSET 8
+	*** 000b98	7d 03 e9 6d ff 		jl	L01018
+					L01020:
+; ; ; Line 569
+; Line 569
+					L01012:
+	*** 000b9d	5f 			pop	di
+	*** 000b9e	5e 			pop	si
+	*** 000b9f	c9 			leave
+	*** 000ba0	cb 			ret	OFFSET 0
+Local Size: 16
+; Line 0
+; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; ; Line 574
+; x = 0006
+; y = 0008
+; color = 000a
+; string = 000c
+; trans_flag = 000e
+					_Blit_String_DB:
+	*** 000ba2	c8 00 00 00 		enter	OFFSET L01066,OFFSET 0
+	*** 000ba6	56 			push	si
+	*** 000ba7	57 			push	di
+; index = fffc
+; ; ; ; ; Line 578
+; ; ; Line 580
+	*** 000ba8	c7 46 fc 00 00 		mov	WORD PTR -4[bp],OFFSET 0
+	*** 000bad	e9 00 00 		jmp	L01041
+					L01042:
+	*** 000bb0	83 46 fc 01 		add	WORD PTR -4[bp],OFFSET 1
+					L01041:
+	*** 000bb4	8b 46 fc 		mov	ax,WORD PTR -4[bp]
+	*** 000bb7	8b 5e 0c 		mov	bx,WORD PTR 12[bp]
+	*** 000bba	03 d8 			add	bx,ax
+	*** 000bbc	80 3f 00 		cmp	BYTE PTR [bx],OFFSET 0
+	*** 000bbf	75 03 e9 00 00 		je	L01043
+; ; Line 581
+; ; ; Line 583
+	*** 000bc4	ff 76 0e 		push	WORD PTR 14[bp]
+	*** 000bc7	ff 76 0a 		push	WORD PTR 10[bp]
+	*** 000bca	8b 46 fc 		mov	ax,WORD PTR -4[bp]
+	*** 000bcd	8b 5e 0c 		mov	bx,WORD PTR 12[bp]
+	*** 000bd0	03 d8 			add	bx,ax
+	*** 000bd2	8a 07 			mov	al,BYTE PTR [bx]
+	*** 000bd4	98 			cbw
+	*** 000bd5	50 			push	ax
+	*** 000bd6	ff 76 08 		push	WORD PTR 8[bp]
+	*** 000bd9	8b 46 fc 		mov	ax,WORD PTR -4[bp]
+	*** 000bdc	d1 e0 			shl	ax,OFFSET 1
+	*** 000bde	d1 e0 			shl	ax,OFFSET 1
+	*** 000be0	d1 e0 			shl	ax,OFFSET 1
+	*** 000be2	03 46 06 		add	ax,WORD PTR 6[bp]
+	*** 000be5	50 			push	ax
+	*** 000be6	9a 00 00 00 00 		call	FAR PTR _Blit_Char_DB
+	*** 000beb	83 c4 0a 		add	sp,OFFSET 10
+; ; ; Line 585
+; Line 585
+	*** 000bee	e9 bf ff 		jmp	L01042
+					L01043:
+; ; ; Line 587
+; Line 587
+					L01039:
+	*** 000bf1	5f 			pop	di
+	*** 000bf2	5e 			pop	si
+	*** 000bf3	c9 			leave
+	*** 000bf4	cb 			ret	OFFSET 0
+Local Size: 4
+; Line 0

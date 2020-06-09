@@ -15,6 +15,7 @@
 
 #include "graph3.h"  // include our graphics stuff
 #include "graph4.h"
+#include "graph6.h"
 
 #define CELL_COLUMNS   10  // size of cell based matrix
 #define CELL_ROWS      6
@@ -26,19 +27,22 @@
 
 #define ROBO_MOVE      8   // speed that the player moves at
 
+#define NUM_STARS  75
+
 // G L O B A L S  ////////////////////////////////////////////////////////////
+typedef struct star
+{
+    int x;
+    int y;
+    unsigned int plane;
+    unsigned char back;
+} star;
 
 pcx_picture imagery_pcx,   // used to load in the imagery for robopunk
             intro_pcx;     // the intro screen
 
 sprite back_cells,  // background cells sprite
        robopunk;    // robopunk
-
-unsigned char far *double_buffer = NULL;
-
-unsigned int buffer_height        = SCREEN_HEIGHT;
-
-unsigned int buffer_size = SCREEN_WIDTH*SCREEN_HEIGHT/2;
 
 // use an array of 2-D matrices to hold the screens
 
@@ -98,205 +102,16 @@ char *screen_6[CELL_ROWS] = {"           ",
                              "#########  ",
                              "#########  "};
 
+unsigned char star_color[] = {8, 7, 15};
+int star_dx[] = {2, 4, 6};
+int star_dy[] = {0, 0, 0};
+star stars[NUM_STARS];
+
+// P R O T O T Y P E S ////////////////////////////////////////////////////////
+void init_stars();
+void update_stars();
+
 // F U N C T I O N S /////////////////////////////////////////////////////////
-
-void Show_Double_Buffer(unsigned char far *buffer)
-{
-// this functions copies the double buffer into the video buffer
-
-_asm
-   {
-   push ds               ; save DS on stack
-   mov cx,buffer_size    ; this is the size of buffer in WORDS
-   les di,video_buffer   ; es:di is destination of memory move
-   lds si,buffer         ; ds:si is source of memory move
-   cld                   ; make sure to move in the right direction
-   rep movsw             ; move all the words
-   pop ds                ; restore the data segment
-   } // end asm
-
-} // end Show_Double_Buffer
-
-//////////////////////////////////////////////////////////////////////////////
-
-int Create_Double_Buffer(int num_lines)
-{
-
-// allocate enough memory to hold the double buffer
-
-if ((double_buffer = (unsigned char far *)_fmalloc(SCREEN_WIDTH * (num_lines + 1)))==NULL)
-   return(0);
-
-// set the height of the buffer and compute it's size
-
-buffer_height = num_lines;
-
-buffer_size = SCREEN_WIDTH * num_lines/2;
-
-// fill the buffer with black
-
-_fmemset(double_buffer, 0, SCREEN_WIDTH * num_lines);
-
-// everything was ok
-
-return(1);
-
-} // end Init_Double_Buffer
-
-///////////////////////////////////////////////////////////////////////////////
-
-void Fill_Double_Buffer(int color)
-{
-// this function fills in the double buffer with the sent color
-
-_fmemset(double_buffer, color, SCREEN_WIDTH * buffer_height);
-
-} // end Fill_Double_Buffer
-
-//////////////////////////////////////////////////////////////////////////////
-
-void Delete_Double_Buffer(void)
-{
-// this function free's up the memory allocated by the double buffer
-// make sure to use FAR version
-
-if (double_buffer)
-  _ffree(double_buffer);
-
-} // end Delete_Double_Buffer
-
-//////////////////////////////////////////////////////////////////////////////
-
-void Plot_Pixel_Fast_DB(int x,int y,unsigned char color)
-{
-
-// plots the pixel in the desired color a little quicker using binary shifting
-// to accomplish the multiplications
-
-// use the fact that 320*y = 256*y + 64*y = y<<8 + y<<6
-
-double_buffer[((y<<8) + (y<<6)) + x] = color;
-
-} // end Plot_Pixel_Fast_DB
-
-//////////////////////////////////////////////////////////////////////////////
-
-void Behind_Sprite_DB(sprite_ptr sprite)
-{
-
-// this function scans the background behind a sprite so that when the sprite
-// is draw, the background isnn'y obliterated
-
-char far *work_back;
-int work_offset=0,offset,y;
-
-// alias a pointer to sprite background for ease of access
-
-work_back = sprite->background;
-
-// compute offset of background in video buffer
-
-offset = (sprite->y << 8) + (sprite->y << 6) + sprite->x;
-
-for (y=0; y<sprite_height; y++)
-    {
-    // copy the next row out off screen buffer into sprite background buffer
-
-    _fmemcpy((char far *)&work_back[work_offset],
-             (char far *)&double_buffer[offset],
-             sprite_width);
-
-    // move to next line in double buffer and in sprite background buffer
-
-    offset      += SCREEN_WIDTH;
-    work_offset += sprite_width;
-
-    } // end for y
-
-} // end Behind_Sprite_DB
-
-//////////////////////////////////////////////////////////////////////////////
-
-void Erase_Sprite_DB(sprite_ptr sprite)
-{
-// replace the background that was behind the sprite
-
-// this function replaces the background that was saved from where a sprite
-// was going to be placed
-
-char far *work_back;
-int work_offset=0,offset,y;
-
-// alias a pointer to sprite background for ease of access
-
-work_back = sprite->background;
-
-// compute offset of background in double buffer
-
-offset = (sprite->y << 8) + (sprite->y << 6) + sprite->x;
-
-for (y=0; y<sprite_height; y++)
-    {
-    // copy the next row out off screen buffer into sprite background buffer
-
-    _fmemcpy((char far *)&double_buffer[offset],
-             (char far *)&work_back[work_offset],
-             sprite_width);
-
-    // move to next line in video buffer and in sprite background buffer
-
-    offset      += SCREEN_WIDTH;
-    work_offset += sprite_width;
-
-    } // end for y
-
-
-} // end Erase_Sprite_DB
-
-//////////////////////////////////////////////////////////////////////////////
-
-void Draw_Sprite_DB(sprite_ptr sprite)
-{
-
-// this function draws a sprite on the screen row by row very quickly
-// note the use of shifting to implement multplication
-
-char far *work_sprite;
-int work_offset=0,offset,x,y;
-unsigned char data;
-
-// alias a pointer to sprite for ease of access
-
-work_sprite = sprite->frames[sprite->curr_frame];
-
-// compute offset of sprite in video buffer
-
-offset = (sprite->y << 8) + (sprite->y << 6) + sprite->x;
-
-for (y=0; y<sprite_height; y++)
-    {
-    // copy the next row into the double buffer using memcpy for speed
-
-    for (x=0; x<sprite_width; x++)
-        {
-
-        // test for transparent pixel i.e. 0, if not transparent then draw
-
-        if ((data=work_sprite[work_offset+x]))
-             double_buffer[offset+x] = data;
-
-        } // end for x
-
-    // move to next line in double buffer and in sprite bitmap buffer
-
-    offset      += SCREEN_WIDTH;
-    work_offset += sprite_width;
-
-    } // end for y
-
-} // end Draw_Sprite_DB
-
-///////////////////////////////////////////////////////////////////////////////
 
 void Draw_Screen(char **screen)
 {
@@ -428,15 +243,6 @@ if (!entered_yet)
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void Disolve(void)
-{
-// disolve screen by ploting zillions of black pixels
-
-unsigned long index;
-
-for (index=0; index<=300000; index++,Plot_Pixel_Fast(rand()%320, rand()%200, 0));
-
-} // end Disolve
 
 // M A I N ////////////////////////////////////////////////////////////////////
 
@@ -446,11 +252,11 @@ void main(void)
 int index,
     curr_screen=0,
     done=0;
+int dy=0;
 
 // S E C T I O N   1  /////////////////////////////////////////////////////////
 
 // set video mode to 320x200 256 color mode
-
 Set_Video_Mode(VGA256);
 
 // create a double buffer
@@ -538,6 +344,7 @@ universe[5] = (char **)screen_6;
 Draw_Screen((char **)universe[curr_screen]);
 Show_Double_Buffer(double_buffer);
 
+init_stars();
 // place robopunk
 
 robopunk.x = 160;
@@ -561,6 +368,18 @@ while(!done)
      // erase robopunk
 
      Erase_Sprite_DB((sprite_ptr)&robopunk);
+
+     update_stars();
+
+     //move vertically (if needed)
+     if(dy) {
+     	robopunk.y += dy;
+	dy+=1;
+	if(robopunk.y >= 199-robopunk.height) {
+	    done=1;
+	    continue;
+	}
+     }
 
      // test if user has hit key
 
@@ -665,6 +484,7 @@ while(!done)
                             if (curr_screen==5)
                                {
                                robopunk.x -= ROBO_MOVE;
+			       dy=4;
                                } // end if already at end of universe
                             else
                                {
@@ -696,6 +516,7 @@ while(!done)
               default:break;
 
               } // end switch
+
 
         } // end if keyboard hit
 
@@ -731,7 +552,8 @@ while(!done)
 
 // use one of screen fx as exit
 
-Disolve();
+Disolve_Color(0x0c);
+Fade_Lights();
 
 // reset the video mode back to text
 
@@ -742,5 +564,54 @@ Set_Video_Mode(TEXT_MODE);
 Delete_Double_Buffer();
 
 } // end main
+
+
+
+void init_stars()
+{
+int i;
+int offset;
+
+offset = (stars[i].y << 8) + (stars[i].y << 6) + stars[i].x;
+for(i=0; i<NUM_STARS; i++) {
+    stars[i].x = rand() % 320;
+    stars[i].y = rand() % 200;
+    stars[i].plane = rand() % 3;
+    stars[i].back = double_buffer[offset];
+}
+}
+
+
+void update_stars()
+{
+int i;
+int offset;
+
+for(i=0; i<NUM_STARS; i++) {
+    //erase the star (if it was drawn)
+    if(!stars[i].back)
+      Plot_Pixel_Fast_DB(stars[i].x, stars[i].y, 0);
+
+    //move the star
+    stars[i].x += star_dx[stars[i].plane];
+    if(stars[i].x < 0) {
+	stars[i].x += 320;
+    } else if(stars[i].x >=320) {
+	stars[i].x -= 320;
+    }
+    stars[i].y += star_dy[stars[i].plane];
+    if(stars[i].y < 0) {
+	stars[i].y += 200;
+    } else if(stars[i].y >=200) {
+	stars[i].y -= 200;
+    }
+
+    //draw the star
+    offset = (stars[i].y << 8) + (stars[i].y << 6) + stars[i].x;
+    stars[i].back = double_buffer[offset];
+    if(!stars[i].back)
+      Plot_Pixel_Fast_DB(stars[i].x, stars[i].y, star_color[stars[i].plane]);
+}
+}
 
 

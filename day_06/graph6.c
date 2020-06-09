@@ -352,6 +352,17 @@ for (index=0; index<=300000; index++,Plot_Pixel_Fast(rand()%320, rand()%200, 0))
 
 } // end Disolve
 
+
+void Disolve_Color(unsigned char color)
+{
+// disolve screen by ploting zillions of black pixels
+
+unsigned long index;
+
+for (index=0; index<=300000; index++,Plot_Pixel_Fast(rand()%320, rand()%200, color));
+
+} // end Disolve
+
 //////////////////////////////////////////////////////////////////////////////
 
 void Melt(void)

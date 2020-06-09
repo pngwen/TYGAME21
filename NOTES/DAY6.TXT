@@ -1,0 +1,53 @@
+Day 6 June 9, 2020
+==================
+Today was all about a few house keeping sorts of things.  The first big
+advance was the introduction of double buffering functions.  Then it was
+all about color-based effects and screen transition.  Today's reading felt
+like learning a bag of tricks, and it looks like the exercises will be just
+a tad light.
+
+Still, I did enjoy the chapter.  Lots of useful ideas!
+
+Exercises
+=========
+1. Modify the text-blitting functions to work with a double buffer.
+
+   This was already done in graph6.h and graph6.c.  Still, the change
+   would have been trivial.  Simply change the pointer from video 
+   memory to the double buffer in Blit_Char_DB, and then make 
+   Blit_String_DB use the Blit_Char_DB function.
+   
+2. Modify the robo.c program so that when Robopunk walks all the way 
+   to the right edge of the universe, he falls downard instead of floating 
+   mid-air.
+   
+   Done.  I made it dependent on the right edge, though I think it would
+   be farily simple to determine if robo was on a platform.  I didn't do
+   that because then I would have been tempted to make him jump.  I have
+   a feeling that he may re-appear in another exercise set so I left that
+   alone for now.
+   
+   As for falling, I set dy=4 and then increased it by 1 for each falling
+   frame. Once robo touches the bottom of the screen, I end the game.
+   
+3. Write a function that adds a starfield to robo.c
+
+   Done!  I lifted my star functions from the starship in day_04.  Though
+   I modified them a bit to make sure that the stars used the double buffer,
+   and I also made them so they would only paint on background pixels.
+   
+   The effect is a star field that can be seen only in the gaps between tiles
+   and behind open areas.  I am quite happy with the result!
+   
+4. Modify the Disolve() screen transition function so that it dissolves
+   the screen with any color. 
+   
+   Done!  I create a function called "Disolve_Color" which does this.
+   I added it to the game library.  To test it out, I made robo use this.
+   However, when I added graph6.obj to the gamelibrary, robo no longer 
+   compiled because of all the duplicate functions!  So I removed the 
+   duplicate symbols so that robo now uses the gamelib copy of all of its
+   functions.
+   
+   On the whole, this was a pretty easy day, but it is a lot of fun to 
+   mess around with these effects!

@@ -1,0 +1,56 @@
+Stack Allocation = 8192 bytes
+
+ Start  Stop   Length Name                   Class
+ 00000H 00822H 00823H ROBO_TEXT              CODE
+ 00824H 00C35H 00412H GRAPH1_TEXT            CODE
+ 00C36H 01416H 007E1H GRAPH4_TEXT            CODE
+ 01418H 0200CH 00BF5H GRAPH6_TEXT            CODE
+ 0200EH 0529CH 0328FH _TEXT                  CODE
+ 052A0H 0799FH 02700H EMULATOR_TEXT          CODE
+ 079A0H 079A0H 00000H C_ETEXT                ENDCODE
+ 079A0H 07B0FH 00170H EMULATOR_DATA          FAR_DATA
+ 07B10H 07B51H 00042H NULL                   BEGDATA
+ 07B52H 0827BH 0072AH _DATA                  DATA
+ 0827CH 0827DH 00002H XIQC                   DATA
+ 0827EH 08289H 0000CH DBDATA                 DATA
+ 0828AH 08297H 0000EH CDATA                  DATA
+ 08298H 08298H 00000H XIB                    DATA
+ 08298H 0829BH 00004H XI                     DATA
+ 0829CH 0829CH 00000H XIE                    DATA
+ 0829CH 0829CH 00000H XIFB                   DATA
+ 0829CH 0829CH 00000H XIF                    DATA
+ 0829CH 0829CH 00000H XIFE                   DATA
+ 0829CH 0829CH 00000H XPB                    DATA
+ 0829CH 0829FH 00004H XP                     DATA
+ 082A0H 082A0H 00000H XPE                    DATA
+ 082A0H 082A0H 00000H XCB                    DATA
+ 082A0H 082A0H 00000H XC                     DATA
+ 082A0H 082A0H 00000H XCE                    DATA
+ 082A0H 082A0H 00000H XCFB                   DATA
+ 082A0H 082A0H 00000H XCFCRT                 DATA
+ 082A0H 082A0H 00000H XCF                    DATA
+ 082A0H 082A0H 00000H XCFE                   DATA
+ 082A0H 082A0H 00000H XIFCB                  DATA
+ 082A0H 082A0H 00000H XIFU                   DATA
+ 082A0H 082A0H 00000H XIFL                   DATA
+ 082A0H 082A0H 00000H XIFM                   DATA
+ 082A0H 082A0H 00000H XIFCE                  DATA
+ 082A0H 082A7H 00008H CONST                  CONST
+ 082A8H 082AFH 00008H HDR                    MSG
+ 082B0H 0845CH 001ADH MSG                    MSG
+ 0845DH 0845EH 00002H PAD                    MSG
+ 0845FH 0845FH 00001H EPAD                   MSG
+ 08460H 08479H 0001AH _BSS                   BSS
+ 0847AH 0847AH 00000H XOB                    BSS
+ 0847AH 0847AH 00000H XO                     BSS
+ 0847AH 0847AH 00000H XOE                    BSS
+ 0847AH 0847AH 00000H XOFB                   BSS
+ 0847AH 0847AH 00000H XOF                    BSS
+ 0847AH 0847AH 00000H XOFE                   BSS
+ 08480H 08EE3H 00A64H c_common               BSS
+ 08EF0H 0AEEFH 02000H STACK                  STACK
+
+ Origin   Group
+ 07B1:0   DGROUP
+
+Program entry point at 0200:001E

@@ -48,6 +48,8 @@ void Fade_Lights(void);
 
 void Disolve(void);
 
+void Disolve_Color(unsigned char color);
+
 void Melt(void);
 
 void Sheer(void);
